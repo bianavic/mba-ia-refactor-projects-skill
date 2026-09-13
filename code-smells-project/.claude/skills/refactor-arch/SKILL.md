@@ -17,7 +17,7 @@ Load these on demand, only when the current phase needs them — do not read all
 |---|---|---|
 | [references/project-analysis.md](references/project-analysis.md) | Phase 1 | Heuristics to detect language, framework, database, and current architecture |
 | [references/anti-patterns-catalog.md](references/anti-patterns-catalog.md) | Phase 2 | Anti-pattern signals, severity classification, deprecated API detection |
-| [references/report-template.md](references/report-template.md) | Phase 2 | Exact audit report format to produce |
+| [references/audit-report-template.md](references/audit-report-template.md) | Phase 2 | Exact audit report format to produce |
 | [references/architecture-guidelines.md](references/architecture-guidelines.md) | Phase 3 | Target MVC layer rules and responsibilities |
 | [references/refactoring-playbook.md](references/refactoring-playbook.md) | Phase 3 | Before/after transformation patterns per anti-pattern |
 
@@ -61,11 +61,11 @@ DB tables:     <tables/collections found, if any>
 
 Goal: cross-reference the code against the anti-pattern catalog and produce a report — never modify files in this phase.
 
-1. Read `references/anti-patterns-catalog.md` and `references/report-template.md`.
+1. Read `references/anti-patterns-catalog.md` and `references/audit-report-template.md`.
 2. Systematically scan every source file identified in Phase 1 for each cataloged anti-pattern, including deprecated/obsolete API usage.
 3. For every finding, record: severity, a short title, exact file path and line number(s), a description, and its concrete impact. Do not report a finding without a real file/line reference — re-check the file if you are unsure.
 4. Find at least 5 findings total, including at least 1 CRITICAL or HIGH, at least 2 MEDIUM, and at least 2 LOW. If the codebase does not surface enough on the first pass, look again before concluding there is nothing else — do not pad the report with fabricated or trivial findings to hit the count.
-5. Sort findings by severity (CRITICAL → HIGH → MEDIUM → LOW) and render the report using the exact structure in `references/report-template.md`.
+5. Sort findings by severity (CRITICAL → HIGH → MEDIUM → LOW) and render the report using the exact structure in `references/audit-report-template.md`.
 6. Print the full report, then **stop and explicitly ask the user to confirm before proceeding to Phase 3**. Do not touch any file until the user responds affirmatively (e.g. "y", "yes", "proceed"). If the user declines or asks for changes, address their feedback and re-present the report instead of continuing.
 
 ### Phase 3 — Refactoring
