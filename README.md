@@ -113,7 +113,7 @@ Neste desafio, você vai criar uma Skill que automatiza esse processo — analis
 | | |
 |---|---|
 | **Stack** | Node.js + Express 4.18.2, SQLite (`sqlite3`) |
-| **Domínio** | LMS — E-learning (usuários, cursos, matrículas, pagamentos, checkout) |
+| **Domínio** | LMS — E-learning (usuários, cursos, matrículas, pagamentos, auditoria) |
 | **Arquivos** | 3 (`src/app.js`, `src/AppManager.js`, `src/utils.js`), ~180 linhas, sem separação de camadas |
 | **Resumo** | CRITICAL: 2 · HIGH: 1 · MEDIUM: 2 · LOW: 2 — **Total: 7** ||
 
