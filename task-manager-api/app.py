@@ -5,6 +5,7 @@ from flask_cors import CORS
 
 from config.settings import Config
 from database import db
+from middlewares.error_handler import register_error_handlers
 from routes.task_routes import task_bp
 from routes.user_routes import user_bp
 from routes.report_routes import report_bp
@@ -21,6 +22,8 @@ db.init_app(app)
 app.register_blueprint(task_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(report_bp)
+
+register_error_handlers(app)
 
 
 @app.route('/health')
