@@ -23,6 +23,7 @@
   - [4.3 Projeto 2 — ecommerce-api-legacy](#43-projeto-2--ecommerce-api-legacy)
   - [4.4 Projeto 3 — task-manager-api](#44-projeto-3--task-manager-api)
   - [4.5 Validação](#45-validação)
+  - [4.6 Evidências de Execução](#46-evidências-de-execução)
 - [5. Resultados](#5-resultados)
   - [5.1 Resumo das Auditorias](#51-resumo-das-auditorias)
   - [5.2 code-smells-project](#52-code-smells-project)
@@ -39,8 +40,8 @@
   - [8.4 Requisitos](#84-requisitos)
   - [8.5 Entregável](#85-entregável)
   - [8.6 Estrutura do Repositório](#86-estrutura-do-repositório)
-  - [8.7 Critérios de Aceite](#86-critérios-de-aceite)
-  - [8.8 Dicas Finais](#87-dicas-finais)
+  - [8.7 Critérios de Aceite](#87-critérios-de-aceite)
+  - [8.8 Dicas Finais](#88-dicas-finais)
 
 ## 1. Visão Geral
 Ao longo do curso você aprendeu o que são Skills e como elas permitem que um agente de IA atue como um especialista em tarefas específicas. Agora imagine o seguinte cenário: você herdou 3 projetos legados com problemas de arquitetura, segurança e qualidade de código. Revisar e corrigir tudo manualmente levaria dias.
@@ -329,6 +330,8 @@ A prova concreta dessa estratégia é a própria execução nos 3 projetos: a me
 
 > **Nota:** a Fase 2 da skill apenas imprime o relatório no terminal — o `SKILL.md` não grava nenhum arquivo por conta própria. Salvar essa saída em `reports/audit-project-N.md` é um passo manual feito após cada execução, conforme pedido no próprio enunciado (seção 8.4.3), e não uma ação disparada automaticamente pelo agente.
 
+> **Nota:** `pip install -r requirements.txt` (projetos Python) e `npm install` (projeto Node.js) são pré-requisitos manuais, executados uma única vez antes do primeiro `claude "/refactor-arch"` em cada projeto — a skill não instala dependências por conta própria, apenas analisa e refatora código já executável. Sem esse passo, tanto a Fase 2 (se o agente tentar rodar a aplicação para inspecioná-la) quanto a validação da Fase 3 (`python app.py` / `node src/app.js` + `curl`) falham com erro de módulo/pacote não encontrado.
+
 ### 4.2 Projeto 1 — code-smells-project
 
 ```bash
@@ -362,6 +365,93 @@ Relatório salvo em [`reports/audit-project-3.md`](reports/audit-project-3.md).
 ### 4.5 Validação
 
 Após a Fase 3 de cada projeto, a validação seguiu o checklist da seção 8.4 (reproduzido com o resultado obtido nos 3 projetos na seção 5.5/5.6): inicializar a aplicação (`python app.py` ou `node src/app.js`) e exercitar cada endpoint original com `curl` (ou o arquivo `api.http` do `ecommerce-api-legacy`), comparando o status/response shape com o comportamento pré-refatoração — a única mudança de shape esperada é a remoção do campo de senha/hash das respostas que antes o vazavam.
+
+### 4.6 Evidências de Execução
+
+Comandos para reproduzir localmente a validação de cada projeto e capturar evidência (boot da aplicação + o endpoint que corrige o finding CRITICAL mais grave do respectivo relatório de auditoria). `code-smells-project` e `task-manager-api` usam a mesma porta padrão (5000) — rode um projeto por vez, ou sobrescreva a porta de um deles via variável de ambiente (`PORT`/`FLASK_PORT`).
+
+**Projeto 1 — code-smells-project (porta 5000)**
+
+```bash
+cd code-smells-project
+python app.py
+```
+Log esperado: `Servidor iniciado em http://0.0.0.0:5000`, sem `SECRET_KEY` impresso.
+
+![Boot do code-smells-project sem SECRET_KEY exposta](evidence/project1-boot.png)
+
+```bash
+# senha não deve mais vazar na listagem de usuários (AP-04 / RP-09)
+curl -s -X POST localhost:5000/usuarios -H "Content-Type: application/json" \
+  -d '{"nome":"Teste","email":"teste@ex.com","senha":"123456"}' | jq
+curl -s localhost:5000/usuarios | python3 -m json.tool
+# → nenhum objeto deve conter a chave "senha"
+```
+
+![Resposta de /usuarios sem o campo senha](evidence/project1-usuarios-sem-senha.png)
+
+```bash
+# endpoint admin agora bloqueado por padrão, sem ADMIN_TOKEN configurado (AP-01 / RP-01)
+curl -s -X POST localhost:5000/admin/query -H "Content-Type: application/json" -d '{"sql":"SELECT 1"}'
+# → 403 {"erro":"Endpoints administrativos desabilitados"}
+```
+
+![POST /admin/query bloqueado com 403](evidence/project1-admin-bloqueado.png)
+
+**Projeto 2 — ecommerce-api-legacy (porta 3000)**
+
+```bash
+cd ecommerce-api-legacy
+npm install
+npm start   # ou: node src/app.js
+```
+Log esperado: `Frankenstein LMS rodando na porta 3000...`.
+
+![Boot do ecommerce-api-legacy](evidence/project2-boot.png)
+
+```bash
+# checkout não deve mais imprimir o cartão em texto plano no log do servidor (AP-02 / RP-02)
+curl -s -X POST localhost:3000/api/checkout -H "Content-Type: application/json" \
+  -d '{"usr":"maria","eml":"maria@ex.com","pwd":"minhasenha","c_id":1,"card":"4111111111111111"}'
+# → conferir no terminal do servidor: nenhum número de cartão impresso
+```
+
+![Resposta do checkout](evidence/project2-checkout-sem-cartao.png)
+
+![Log do servidor durante o checkout, sem o número do cartão em texto plano](evidence/project2-checkout-sem-cartao-log.png)
+
+**Projeto 3 — task-manager-api (porta 5000)**
+
+```bash
+cd task-manager-api
+python seed.py   # dados de exemplo, opcional
+python app.py
+```
+
+![Boot do task-manager-api](evidence/project3-boot.png)
+
+```bash
+# token de login real assinado, não mais "fake-jwt-token-<id>" (AP-02 / RP-02)
+curl -s -X POST localhost:5000/login -H "Content-Type: application/json" \
+  -d '{"email":"<email do seed>","password":"<senha do seed>"}' | python3 -m json.tool
+```
+
+![Login retornando token assinado real](evidence/project3-login-token.png)
+
+```bash
+# senha não deve mais vazar no detalhe de usuário (AP-04 / RP-09)
+curl -s localhost:5000/users/1 | python3 -m json.tool
+# → sem a chave "password"
+```
+
+![GET /users/1 sem o campo password](evidence/project3-users-sem-senha.png)
+
+```bash
+# paginação funcionando (AP-09 / RP-07)
+curl -s "localhost:5000/tasks?page=1&per_page=2" | python3 -m json.tool
+```
+
+![GET /tasks paginado](evidence/project3-tasks-paginacao.png)
 
 ## 5. Resultados
 
@@ -479,10 +569,22 @@ mba-ia-refactor-projects-skill/
 │   ├── utils/
 │   └── requirements.txt
 │
-└── reports/
-    ├── audit-project-1.md
-    ├── audit-project-2.md
-    └── audit-project-3.md
+├── reports/
+│   ├── audit-project-1.md
+│   ├── audit-project-2.md
+│   └── audit-project-3.md
+│
+└── evidence/                              # screenshots citados na seção 4.6
+    ├── project1-boot.png
+    ├── project1-usuarios-sem-senha.png
+    ├── project1-admin-bloqueado.png
+    ├── project2-boot.png
+    ├── project2-checkout-sem-cartao.png
+    ├── project2-checkout-sem-cartao-log.png
+    ├── project3-boot.png
+    ├── project3-login-token.png
+    ├── project3-users-sem-senha.png
+    └── project3-tasks-paginacao.png
 ```
 
 ## 7. Referências
