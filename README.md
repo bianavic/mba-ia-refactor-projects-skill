@@ -31,6 +31,7 @@
   - [5.4 task-manager-api](#54-task-manager-api)
   - [5.5 Comparação Antes e Depois](#55-comparação-antes-e-depois)
   - [5.6 Comportamento entre Diferentes Stacks](#56-comportamento-entre-diferentes-stacks)
+  - [5.7 Checklist de Validação Preenchido](#57-checklist-de-validação-preenchido)
 - [6. Estrutura Final do Projeto](#6-estrutura-final-do-projeto)
 - [7. Referências](#7-referências)
 - [8. Instruções Originais do Desafio](#8-instruções-originais-do-desafio)
@@ -313,7 +314,7 @@ A prova concreta dessa estratégia é a própria execução nos 3 projetos: a me
 ### 3.8 Desafios e Soluções
 
 - **Risco de finding fabricado ("alucinação" de linha/arquivo):** a regra mais repetida em todo o conjunto de arquivos é "nunca reportar um finding sem arquivo/linha real — reabra o arquivo se não tiver certeza". Isso foi reforçado tanto no catálogo quanto nas "Non-negotiable rules" do `SKILL.md`, e na prática os 3 relatórios em `reports/` citam ranges de linha específicos e verificáveis.
-- **Projeto parcialmente em camadas (`task-manager-api`) exigindo tratamento diferente de um monolito:** um projeto que já tem `models/routes/services/utils` não deve ser reconstruído do zero — só as responsabilidades erradas dentro de cada camada precisam ser corrigidas. `architecture-guidelines.md` trata esse caso como uma categoria própria ("Partially-layered projects"), instruindo a manter os nomes de pasta existentes e apenas mover a lógica para o lugar certo — foi exatamente o que aconteceu na Fase 3 desse projeto: nenhuma pasta foi criada, apenas `services/report_service.py` (novo) e ajustes internos nos arquivos existentes (ver seção 5.5).
+- **Projeto parcialmente em camadas (`task-manager-api`) exigindo tratamento diferente de um monolito:** um projeto que já tem `models/routes/services/utils` não deve ser reconstruído do zero — só as responsabilidades erradas dentro de cada camada precisam ser corrigidas. `architecture-guidelines.md` trata esse caso como uma categoria própria ("Partially-layered projects"), instruindo a manter os nomes de pasta existentes e apenas mover a lógica para o lugar certo — foi exatamente o que aconteceu na Fase 3 desse projeto: nenhuma camada existente foi renomeada ou reconstruída — só `config/` e `services/report_service.py` foram criados, o resto foram ajustes internos nos arquivos existentes (ver seção 5.5).
 - **Preservar comportamento observável mesmo corrigindo falhas de segurança:** redigir o hash de senha da resposta de `/login` ou de `/users` é, por definição, uma mudança de response shape — mas é uma mudança *desejada*. A solução foi documentar essa exceção explicitamente em `architecture-guidelines.md` ("No endpoint may change its response shape except to redact a previously-leaked sensitive field").
 - **Nomear o arquivo de template do relatório:** optou-se por `audit-report-template.md` (em vez de `report-template.md`) para deixar explícito, só pelo nome, que o arquivo é o template do relatório de *auditoria* da Fase 2 e não de qualquer outro tipo de relatório que a skill possa vir a gerar.
 - **Tornar a Fase 3 mecânica e não ad hoc:** sem um mapeamento entre finding e correção, a Fase 3 dependeria de o agente "lembrar" a correção certa a cada execução. O esquema de IDs cruzados `AP-xx ↔ RP-xx` (seção 3.4) resolve isso: a Fase 3 lê a `Recommendation` de cada finding confirmado e aplica o `RP-xx` citado, o que tornou a refatoração consistente nas 3 execuções reais.
@@ -364,7 +365,9 @@ Relatório salvo em [`reports/audit-project-3.md`](reports/audit-project-3.md).
 
 ### 4.5 Validação
 
-Após a Fase 3 de cada projeto, a validação seguiu o checklist da seção 8.4 (reproduzido com o resultado obtido nos 3 projetos na seção 5.5/5.6): inicializar a aplicação (`python app.py` ou `node src/app.js`) e exercitar cada endpoint original com `curl` (ou o arquivo `api.http` do `ecommerce-api-legacy`), comparando o status/response shape com o comportamento pré-refatoração — a única mudança de shape esperada é a remoção do campo de senha/hash das respostas que antes o vazavam.
+Após a Fase 3 de cada projeto, a validação seguiu o checklist da seção 8.4 — **preenchido projeto a projeto na [seção 5.7](#57-checklist-de-validação-preenchido)**: inicializar a aplicação (`python app.py` ou `node src/app.js`) e exercitar cada endpoint original com `curl` (ou o arquivo `api.http` do `ecommerce-api-legacy`), comparando o status/response shape com o comportamento pré-refatoração — a única mudança de shape esperada é a remoção do campo de senha/hash das respostas que antes o vazavam.
+
+Cada projeto tem um `manual-tests.sh` na sua própria pasta, cobrindo todos os endpoints reais (sucesso, validação, 404/409, e os casos de segurança citados no respectivo relatório de auditoria — ex.: tentativa de SQL injection no login do `code-smells-project`, gate do `ADMIN_TOKEN`): [`code-smells-project/manual-tests.sh`](code-smells-project/manual-tests.sh), [`ecommerce-api-legacy/manual-tests.sh`](ecommerce-api-legacy/manual-tests.sh), [`task-manager-api/manual-tests.sh`](task-manager-api/manual-tests.sh).
 
 ### 4.6 Evidências de Execução
 
@@ -477,6 +480,12 @@ Relatório completo: [`reports/audit-project-2.md`](reports/audit-project-2.md).
 
 Principais achados e correções (commit [`f5c6fca`](https://github.com/bianavic/mba-ia-refactor-projects-skill/commit/f5c6fca)): segredos de produção e chave de gateway de pagamento hardcoded → `src/config/index.js` via `.env`; hashing de senha falso (base64 repetido) → `scrypt`; número de cartão logado em texto plano → mascarado no logger estruturado (`src/utils/logger.js`); `AppManager` (God Class) → dividido em `models/`, `controllers/`, `services/`, `routes/`; exclusão de usuário sem cascata → cascata explícita no model; N+1 no relatório financeiro → consultas agrupadas.
 
+**Vulnerabilidade de dependência conhecida (fora do escopo do catálogo de anti-patterns):** `npm audit` reporta 1 vulnerabilidade moderada em `qs` (DoS via `isBuffer`, [GHSA-4mjr-xmp4-gh2g](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g)) — uma categoria diferente da que a skill audita (CVE de dependência de terceiros, não anti-pattern no código-fonte do projeto), por isso não consta em `reports/audit-project-2.md`.
+
+**Status:** não corrigido automaticamente.
+
+`npm audit fix` não resolve a vulnerabilidade porque `express@4.22.1` declara `qs: "~6.14.0"`, restringindo a resolução à série 6.14.x. A versão corrigida (`qs@6.16.0`) só é liberada a partir do `express@5.1.0`, que relaxa essa dependência para `qs: "^6.14.0"` — mas migrar de Express 4→5 é uma mudança de versão major, fora do escopo de uma refatoração estrutural que deve preservar 100% do comportamento observável, e exigiria validação de compatibilidade própria antes de ser aplicada.
+
 ### 5.4 task-manager-api
 
 Relatório completo: [`reports/audit-project-3.md`](reports/audit-project-3.md).
@@ -511,7 +520,7 @@ src/utils.js                  src/controllers/{checkout,report,user}Controller.j
                                src/utils/{crypto,logger}.js
 ```
 
-**task-manager-api** — camadas já existentes, ajustadas *in place* (nenhuma pasta nova além de `config/` e um novo service):
+**task-manager-api** — camadas já existentes, ajustadas *in place* (as únicas adições da Fase 3 foram `config/` e um novo service):
 
 ```
 Antes (parcial)                        Depois
@@ -520,6 +529,7 @@ models/{user,task,category}.py          models/{user,task,category}.py (hashing 
 routes/{task,user,report}_routes.py     routes/{task,user,report}_routes.py (lógica delegada ao model/service)
 services/notification_service.py        config/settings.py            (novo)
 utils/helpers.py                        services/report_service.py    (novo — agregação centralizada)
+                                         middlewares/error_handler.py  (novo — ajuste pós-Fase 3, ver 5.7 nota 4)
                                          (notification_service.py removido — código morto)
 ```
 
@@ -529,6 +539,105 @@ utils/helpers.py                        services/report_service.py    (novo — 
 - **Node.js/Express monolítico (`ecommerce-api-legacy`):** mesma estratégia de reconstrução total, mas a implementação de cada camada seguiu as convenções idiomáticas de Node (callbacks/módulos CommonMark, `express.Router()`) em vez de espelhar literalmente a estrutura Python — confirmando que a detecção de stack (seção 3.6) direciona corretamente o `architecture-guidelines.md` para o bloco "Node.js / Express" em vez do bloco "Python / Flask".
 - **Python/Flask parcialmente em camadas (`task-manager-api`):** a skill não recriou a estrutura de pastas — identificou corretamente que `models/routes/services/utils` já existiam e limitou a Fase 3 a mover lógica de negócio das rotas para o model/service correto, removendo apenas a camada morta (`notification_service.py`) e adicionando uma camada nova apenas onde não havia nenhuma equivalente (`report_service.py`). Esse foi o teste mais direto de que a regra "adaptar, não reconstruir" (seção 3.8) funciona na prática.
 - Em todos os 3 casos, a mesma invocação (`claude "/refactor-arch"`) e o mesmo `SKILL.md` produziram um fluxo de 3 fases correto sem qualquer ajuste manual entre execuções — a única diferença entre projetos foi o conteúdo específico do relatório e da refatoração, nunca o processo.
+
+### 5.7 Checklist de Validação Preenchido
+
+Checklist da seção 8.4 ("Validação"), preenchido para cada projeto após a Fase 3. Cada item marcado é verificável no repositório (arquivo citado, relatório em `reports/` ou evidência em `evidence/`, seção 4.6).
+
+**Projeto 1 — code-smells-project (Python/Flask)**
+
+```markdown
+### Fase 1 — Análise
+- [x] Linguagem detectada corretamente         → Python
+- [x] Framework detectado corretamente         → Flask 3.1.1 (+ flask-cors)
+- [x] Domínio da aplicação descrito            → E-commerce (produtos, usuários, pedidos, itens_pedido)
+- [x] Número de arquivos condiz com a realidade → 4 (app.py, controllers.py, models.py, database.py)
+
+### Fase 2 — Auditoria
+- [x] Relatório segue o template de referência  → reports/audit-project-1.md
+- [x] Cada finding tem arquivo e linhas exatos  → ex.: models.py:28,47-50,109-111
+- [x] Findings ordenados CRITICAL → LOW
+- [x] Mínimo de 5 findings identificados        → 13 (4 CRITICAL · 3 HIGH · 2 MEDIUM · 4 LOW)
+- [–] Detecção de APIs deprecated (se aplicável) → não aplicável: nenhuma API deprecated no código original
+- [x] Skill pausa e pede confirmação antes da Fase 3
+
+### Fase 3 — Refatoração
+- [x] Estrutura de diretórios segue padrão MVC  → config/ models/ controllers/ routes/ middlewares/
+- [x] Configuração extraída (sem hardcoded)     → config/settings.py (SECRET_KEY via env)
+- [x] Models criados para abstrair dados        → models/{db,order,product,user}_model.py
+- [x] Views/Routes separadas                    → routes/routes.py
+- [x] Controllers concentram o fluxo            → controllers/{admin,order,product,system,user}_controller.py
+- [x] Error handling centralizado               → middlewares/error_handler.py
+- [x] Entry point claro                         → app.py (composition root)
+- [x] Aplicação inicia sem erros                → evidence/project1-boot.png
+- [x] Endpoints originais respondem             → seção 4.6 (evidence/project1-usuarios-sem-senha.png, project1-admin-bloqueado.png)
+```
+
+**Projeto 2 — ecommerce-api-legacy (Node.js/Express)**
+
+```markdown
+### Fase 1 — Análise
+- [x] Linguagem detectada corretamente         → JavaScript / Node.js
+- [x] Framework detectado corretamente         → Express 4.18.2
+- [x] Domínio da aplicação descrito            → LMS com fluxo de checkout (cursos, matrículas, pagamentos)
+- [x] Número de arquivos condiz com a realidade → 3 (src/app.js, src/AppManager.js, src/utils.js)
+
+### Fase 2 — Auditoria
+- [x] Relatório segue o template de referência  → reports/audit-project-2.md ¹
+- [x] Cada finding tem arquivo e linhas exatos  → ex.: src/utils.js:2-6, src/AppManager.js:45
+- [x] Findings ordenados CRITICAL → LOW
+- [x] Mínimo de 5 findings identificados        → 12 (4 CRITICAL · 2 HIGH · 2 MEDIUM · 4 LOW)
+- [–] Detecção de APIs deprecated (se aplicável) → não aplicável: nenhuma API deprecated no código original
+- [x] Skill pausa e pede confirmação antes da Fase 3
+
+### Fase 3 — Refatoração
+- [x] Estrutura de diretórios segue padrão MVC  → src/{config,models,controllers,services,routes,middlewares,utils}
+- [x] Configuração extraída (sem hardcoded)     → src/config/index.js + .env (.env.example versionado)
+- [x] Models criados para abstrair dados        → src/models/{auditLog,course,enrollment,payment,user}Model.js
+- [x] Views/Routes separadas                    → src/routes/index.js (express.Router)
+- [x] Controllers concentram o fluxo            → src/controllers/{checkout,report,user}Controller.js
+- [x] Error handling centralizado               → src/middlewares/errorHandler.js (app.use na app.js)
+- [x] Entry point claro                         → src/app.js (composition root)
+- [x] Aplicação inicia sem erros                → evidence/project2-boot.png
+- [x] Endpoints originais respondem             → seção 4.6 + api.http (evidence/project2-checkout-sem-cartao.png e -log.png)
+```
+
+¹ O relatório do projeto 2 traz cabeçalhos extras de agrupamento (`## HIGH`, `## MEDIUM`, `## LOW`) que não existem no `audit-report-template.md` nem nos relatórios 1 e 3. É uma variação cosmética da saída daquela execução; a estrutura obrigatória (cabeçalho, `## Summary`, blocos de finding com File/Description/Impact/Recommendation, total e prompt de confirmação) está integralmente presente, e o arquivo foi mantido como a saída literal da Fase 2, sem edição posterior.
+
+**Projeto 3 — task-manager-api (Python/Flask, parcialmente em camadas)**
+
+```markdown
+### Fase 1 — Análise
+- [x] Linguagem detectada corretamente         → Python
+- [x] Framework detectado corretamente         → Flask 3.0.0 + Flask-SQLAlchemy 3.1.1
+- [x] Domínio da aplicação descrito            → Task Manager (tasks, users, categories, reports)
+- [x] Número de arquivos condiz com a realidade → 15 arquivos .py (app.py, database.py, seed.py + models/ routes/ services/ utils/)
+
+### Fase 2 — Auditoria
+- [x] Relatório segue o template de referência  → reports/audit-project-3.md
+- [x] Cada finding tem arquivo e linhas exatos  → ex.: models/user.py:27-32, routes/user_routes.py:210
+- [x] Findings ordenados CRITICAL → LOW
+- [x] Mínimo de 5 findings identificados        → 14 (4 CRITICAL · 2 HIGH · 4 MEDIUM · 4 LOW)
+- [x] Detecção de APIs deprecated incluída      → [MEDIUM] datetime.utcnow() em 18 ocorrências
+- [x] Skill pausa e pede confirmação antes da Fase 3
+
+### Fase 3 — Refatoração
+- [x] Estrutura de diretórios segue padrão MVC  → camadas existentes mantidas (models/ routes/ services/ utils/) + config/ novo ²
+- [x] Configuração extraída (sem hardcoded)     → config/settings.py (SECRET_KEY, DEBUG, HOST, PORT via env)
+- [x] Models criados para abstrair dados        → models/{user,task,category}.py (regra de negócio movida para cá)
+- [x] Views/Routes separadas                    → routes/{task,user,report}_routes.py (blueprints)
+- [x] Controllers concentram o fluxo            → os blueprints acumulam o papel de controller ³
+- [x] Error handling centralizado               → middlewares/error_handler.py ⁴
+- [x] Entry point claro                         → app.py (registra blueprints, config e error handlers)
+- [x] Aplicação inicia sem erros                → evidence/project3-boot.png
+- [x] Endpoints originais respondem             → seção 4.6 (evidence/project3-login-token.png, project3-users-sem-senha.png, project3-tasks-paginacao.png)
+```
+
+² Conforme a regra "Partially-layered projects" do `architecture-guidelines.md` (seção 3.8): projeto que já tem camadas não é reconstruído do zero — a Fase 3 corrigiu as responsabilidades dentro das camadas existentes em vez de renomear pastas.
+
+³ Diferente dos projetos 1 e 2, este projeto não ganhou uma pasta `controllers/`: no Flask, um blueprint já é a camada de entrada HTTP, e a separação exigida pelo checklist foi obtida movendo a regra de negócio das rotas para `models/` e `services/report_service.py`, deixando os blueprints apenas com o fluxo (parse do request → chamada de model/service → resposta).
+
+⁴ Este foi o único item do checklist que a Fase 3 original não entregou: o projeto tratava erros com `try/except` repetido rota a rota, e a skill preservou esse padrão em vez de centralizá-lo. O handler central foi adicionado depois, em ajuste manual de fechamento da entrega, para alinhar o projeto 3 aos outros dois — ele converte `HTTPException` e exceções não tratadas em JSON preservando os status codes originais (404, 405, 400, 500), sem alterar nenhuma resposta já existente nas rotas.
 
 ## 6. Estrutura Final do Projeto
 
@@ -544,7 +653,8 @@ mba-ia-refactor-projects-skill/
 │   ├── models/
 │   ├── middlewares/
 │   ├── routes/
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── manual-tests.sh                    # curl de validação manual (seção 4.5)
 │
 ├── ecommerce-api-legacy/                  # Projeto 2 — Node.js/Express (LMS)
 │   ├── .claude/skills/refactor-arch/      # cópia da skill
@@ -557,17 +667,20 @@ mba-ia-refactor-projects-skill/
 │   │   ├── middlewares/
 │   │   ├── routes/
 │   │   └── utils/
-│   └── package.json
+│   ├── package.json
+│   └── manual-tests.sh                    # curl de validação manual (seção 4.5)
 │
 ├── task-manager-api/                      # Projeto 3 — Python/Flask (Task Manager)
 │   ├── .claude/skills/refactor-arch/      # cópia da skill
 │   ├── app.py                             # composition root
 │   ├── config/settings.py                 # novo
+│   ├── middlewares/error_handler.py       # novo — handler central de erros
 │   ├── models/
 │   ├── routes/
 │   ├── services/                          # report_service.py novo; notification_service.py removido
 │   ├── utils/
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── manual-tests.sh                    # curl de validação manual (seção 4.5)
 │
 ├── reports/
 │   ├── audit-project-1.md
