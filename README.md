@@ -329,6 +329,12 @@ A prova concreta dessa estratégia é a própria execução nos 3 projetos: a me
 - Para o projeto Node.js (`ecommerce-api-legacy`): Node.js 18+ e `npm install`.
 - A skill já está presente em `.claude/skills/refactor-arch/` dentro de cada um dos 3 projetos (copiada de `code-smells-project/` para os outros dois, conforme exigido na seção 8.4.3).
 
+> **Nota sobre a ferramenta de IA:** este projeto foi construído e testado com o Claude Code, que é a ferramenta recomendada — a skill `refactor-arch` já vem pronta no formato dele (`.claude/skills/refactor-arch/SKILL.md` + `references/`).
+>
+> Você pode usar outra ferramenta agêntica se preferir (Gemini CLI, OpenAI Codex — as duas alternativas aceitas pelo enunciado, seção 8.3). Atenção: a skill deste repositório é específica do formato do Claude Code. Se optar por outra ferramenta, é responsabilidade sua portar `SKILL.md` para o mecanismo equivalente dela (custom command, extensão, ou, na ausência de um equivalente direto, conduzir manualmente o mesmo fluxo de 3 fases a partir do conteúdo de `references/`) antes de começar.
+>
+> Consulte sempre a documentação oficial da ferramenta escolhida para os nomes corretos de arquivos, pastas e comandos de invocação. Independentemente da ferramenta, o fluxo (Análise → Auditoria → Refatoração) e os artefatos entregues — relatórios em `reports/`, código refatorado, `README.md` — são os mesmos descritos neste documento: só a máquina muda. A escolha da ferramenta não altera os [Critérios de Aceite](#87-critérios-de-aceite).
+
 > **Nota:** a Fase 2 da skill apenas imprime o relatório no terminal — o `SKILL.md` não grava nenhum arquivo por conta própria. Salvar essa saída em `reports/audit-project-N.md` é um passo manual feito após cada execução, conforme pedido no próprio enunciado (seção 8.4.3), e não uma ação disparada automaticamente pelo agente.
 
 > **Nota:** `pip install -r requirements.txt` (projetos Python) e `npm install` (projeto Node.js) são pré-requisitos manuais, executados uma única vez antes do primeiro `claude "/refactor-arch"` em cada projeto — a skill não instala dependências por conta própria, apenas analisa e refatora código já executável. Sem esse passo, tanto a Fase 2 (se o agente tentar rodar a aplicação para inspecioná-la) quanto a validação da Fase 3 (`python app.py` / `node src/app.js` + `curl`) falham com erro de módulo/pacote não encontrado.
