@@ -15,6 +15,12 @@ curl -s "$BASE/" | python3 -m json.tool
 echo "--- GET /health ---"
 curl -s "$BASE/health" | python3 -m json.tool
 
+echo "--- GET /rota-inexistente (esperado 404 em JSON, via middlewares/error_handler.py) ---"
+curl -s -w "\nHTTP %{http_code}\n" "$BASE/rota-inexistente"
+
+echo "--- DELETE /health (método não suportado pela rota, esperado 405 em JSON) ---"
+curl -s -w "\nHTTP %{http_code}\n" -X DELETE "$BASE/health"
+
 echo "=================================================="
 echo "USERS"
 echo "=================================================="
