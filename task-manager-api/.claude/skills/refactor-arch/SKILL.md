@@ -80,7 +80,8 @@ Goal: restructure the project into MVC and prove it still works. Only start afte
    - The application boots without errors.
    - Every original endpoint still responds (exercise them, e.g. with `curl` or the project's existing HTTP client file).
    - Re-check the codebase against the catalog to confirm the confirmed findings are resolved.
-6. Print a completion summary in this exact shape:
+6. **"Static AP-16 audit (AP-16) — mandatory, never skipped.** This is a structural check, not a correctness check: AP-16 is an architecture violation, not a functional bug, so the endpoint responses are identical either way — a route that queries the DB directly and one that properly delegates to a Controller/Service return exactly the same HTTP response. That means step 5's endpoint tests cannot tell the two apart and cannot substitute for this check. So grep the route/view files themselves and confirm there are zero direct persistence calls left — ORM session calls (`db.session.add/commit/delete`), query attributes (`Model.query...`), Model finders/writers (`Model.find/findById/create/update/get_by_id/find_by_x(...)`), driver/cursor calls (`cursor.execute`, `db.run/all/get`), or raw SQL literals. Adapt the patterns to the detected stack. Any hit must be moved into a Controller/Service before this phase can be reported complete — "the project already has folders" is not an exemption (see `references/architecture-guidelines.md`, *Partially-layered projects*). Each project in this repository ships this check as `./arch-check.sh`, next to its `manual-tests.sh` — it exits non-zero on any hit.
+7. Print a completion summary in this exact shape:
 
 ```
 ================================
@@ -92,6 +93,7 @@ PHASE 3: REFACTORING COMPLETE
 ## Validation
   ✓ Application boots without errors
   ✓ All endpoints respond correctly
+  ✓ No route touches persistence directly (AP-16)
   ✓ <N> anti-patterns resolved
 ================================
 ```
@@ -102,4 +104,5 @@ PHASE 3: REFACTORING COMPLETE
 - Every finding must cite a real file and line range — verify by reading the file, never guess.
 - Do not assume Python/Flask: detect the stack fresh for every project this skill runs against.
 - Preserve existing functionality; refactoring must not change observable behavior or break any endpoint.
+- No route/view file may call persistence directly after Phase 3 — prove it with the mechanical check (Phase 3, step 6), never by eyeballing the diff.
 - If Phase 3 validation fails (boot error or broken endpoint), fix the regression before reporting completion — do not report success with known failures.
