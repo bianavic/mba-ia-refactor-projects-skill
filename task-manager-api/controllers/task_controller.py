@@ -33,12 +33,12 @@ def _validate_priority(priority):
 
 
 def _resolve_user(user_id):
-    if user_id and not User.query.get(user_id):
+    if user_id and not db.session.get(User, user_id):
         abort(404, description='Usuário não encontrado')
 
 
 def _resolve_category(category_id):
-    if category_id and not Category.query.get(category_id):
+    if category_id and not db.session.get(Category, category_id):
         abort(404, description='Categoria não encontrada')
 
 
@@ -67,7 +67,7 @@ def list_tasks(page, per_page):
 
 
 def get_task(task_id):
-    task = Task.query.get(task_id)
+    task = db.session.get(Task, task_id)
     if not task:
         abort(404, description='Task não encontrada')
     return task.to_dict()
@@ -119,7 +119,7 @@ def create_task(data):
 
 
 def update_task(task_id, data):
-    task = Task.query.get(task_id)
+    task = db.session.get(Task, task_id)
     if not task:
         abort(404, description='Task não encontrada')
 
@@ -169,7 +169,7 @@ def update_task(task_id, data):
 
 
 def delete_task(task_id):
-    task = Task.query.get(task_id)
+    task = db.session.get(Task, task_id)
     if not task:
         abort(404, description='Task não encontrada')
 

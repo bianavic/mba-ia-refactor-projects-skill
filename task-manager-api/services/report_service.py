@@ -101,7 +101,7 @@ def build_summary_report():
 
 
 def build_user_report(user_id):
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
 
@@ -187,7 +187,7 @@ def create_category(data):
 
 
 def update_category(cat_id, data):
-    cat = Category.query.get(cat_id)
+    cat = db.session.get(Category, cat_id)
     if not cat:
         abort(404, description='Categoria não encontrada')
 
@@ -212,7 +212,7 @@ def update_category(cat_id, data):
 
 
 def delete_category(cat_id):
-    cat = Category.query.get(cat_id)
+    cat = db.session.get(Category, cat_id)
     if not cat:
         abort(404, description='Categoria não encontrada')
 

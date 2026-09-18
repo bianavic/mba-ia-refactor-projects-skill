@@ -45,7 +45,7 @@ def list_users(page, per_page):
 
 
 def get_user(user_id):
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
 
@@ -105,7 +105,7 @@ def create_user(data):
 
 
 def update_user(user_id, data):
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
 
@@ -148,7 +148,7 @@ def update_user(user_id, data):
 
 
 def delete_user(user_id):
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
 
@@ -164,7 +164,7 @@ def delete_user(user_id):
 
 
 def get_user_tasks(user_id):
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
 

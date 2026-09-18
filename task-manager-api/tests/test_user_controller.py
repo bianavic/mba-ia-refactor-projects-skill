@@ -129,7 +129,7 @@ class TestDeleteUser:
 
         user_controller.delete_user(u.id)
 
-        assert User.query.get(u.id) is None
+        assert db.session.get(User, u.id) is None
         assert Task.query.filter_by(user_id=u.id).count() == 0
 
 

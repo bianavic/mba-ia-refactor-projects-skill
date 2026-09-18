@@ -101,7 +101,7 @@ class TestCreateTask:
     def test_tags_list_normalized_to_comma_string_and_back(self, app):
         result = task_controller.create_task({'title': 'Valid title', 'tags': ['a', 'b', 'c']})
         assert result['tags'] == ['a', 'b', 'c']
-        assert Task.query.get(result['id']).tags == 'a,b,c'
+        assert db.session.get(Task, result['id']).tags == 'a,b,c'
 
 
 class TestGetTask:
@@ -161,7 +161,7 @@ class TestDeleteTask:
     def test_deletes_and_is_gone_after(self, app):
         created = task_controller.create_task({'title': 'Valid title'})
         task_controller.delete_task(created['id'])
-        assert Task.query.get(created['id']) is None
+        assert db.session.get(Task, created['id']) is None
 
 
 class TestSearchAndStats:
