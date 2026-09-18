@@ -1,5 +1,16 @@
+from datetime import datetime
+
 from database import db
-from utils.helpers import utc_now, calculate_percentage, VALID_STATUSES, MIN_PRIORITY, MAX_PRIORITY
+from utils.helpers import (
+    utc_now,
+    calculate_percentage,
+    VALID_STATUSES,
+    MIN_PRIORITY,
+    MAX_PRIORITY,
+    MIN_TITLE_LENGTH,
+    MAX_TITLE_LENGTH,
+    DEFAULT_PRIORITY,
+)
 
 class Task(db.Model):
     __tablename__ = 'tasks'
@@ -8,7 +19,7 @@ class Task(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(50), default='pending')
-    priority = db.Column(db.Integer, default=3)
+    priority = db.Column(db.Integer, default=DEFAULT_PRIORITY)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=utc_now)
@@ -35,11 +46,32 @@ class Task(db.Model):
         data['overdue'] = self.is_overdue()
         return data
 
-    def validate_status(self, new_status):
+    @staticmethod
+    def validate_status(new_status):
         return new_status in VALID_STATUSES
 
-    def validate_priority(self, p):
+    @staticmethod
+    def validate_priority(p):
         return MIN_PRIORITY <= p <= MAX_PRIORITY
+
+    @staticmethod
+    def title_error(title):
+        """Return an error message for an invalid title length, or None if it's valid."""
+        if len(title) < MIN_TITLE_LENGTH:
+            return 'Título muito curto'
+        if len(title) > MAX_TITLE_LENGTH:
+            return 'Título muito longo'
+        return None
+
+    @staticmethod
+    def parse_due_date(due_date_str):
+        return datetime.strptime(due_date_str, '%Y-%m-%d')
+
+    @staticmethod
+    def normalize_tags(tags):
+        if isinstance(tags, list):
+            return ','.join(tags)
+        return tags
 
     def is_overdue(self):
         if not self.due_date:
