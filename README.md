@@ -35,16 +35,22 @@
   - [5.8 Bug Encontrado Após a Entrega](#58-bug-encontrado-após-a-entrega)
   - [5.9 Re-auditoria do code-smells-project](#59-re-auditoria-do-code-smells-project)
 - [6. Estrutura Final do Projeto](#6-estrutura-final-do-projeto)
-- [7. Referências](#7-referências)
-- [8. Instruções Originais do Desafio](#8-instruções-originais-do-desafio)
-  - [8.1 Objetivo](#81-objetivo)
-  - [8.2 Contexto](#82-contexto)
-  - [8.3 Tecnologias Obrigatórias](#83-tecnologias-obrigatórias)
-  - [8.4 Requisitos](#84-requisitos)
-  - [8.5 Entregável](#85-entregável)
-  - [8.6 Estrutura do Repositório](#86-estrutura-do-repositório)
-  - [8.7 Critérios de Aceite](#87-critérios-de-aceite)
-  - [8.8 Dicas Finais](#88-dicas-finais)
+- [7. Evolução do Uso de IA](#7-evolução-do-uso-de-ia)
+  - [7.1 O Que Já Foi Aplicado](#71-o-que-já-foi-aplicado)
+  - [7.2 Hooks — Mover Regras do Prompt para o Harness](#72-hooks--mover-regras-do-prompt-para-o-harness)
+  - [7.3 Modo Headless e CI](#73-modo-headless-e-ci)
+  - [7.4 Decomposição da Skill e Evals](#74-decomposição-da-skill-e-evals)
+  - [7.5 Limites Conhecidos](#75-limites-conhecidos)
+- [8. Referências](#8-referências)
+- [9. Instruções Originais do Desafio](#9-instruções-originais-do-desafio)
+  - [9.1 Objetivo](#91-objetivo)
+  - [9.2 Contexto](#92-contexto)
+  - [9.3 Tecnologias Obrigatórias](#93-tecnologias-obrigatórias)
+  - [9.4 Requisitos](#94-requisitos)
+  - [9.5 Entregável](#95-entregável)
+  - [9.6 Estrutura do Repositório](#96-estrutura-do-repositório)
+  - [9.7 Critérios de Aceite](#97-critérios-de-aceite)
+  - [9.8 Dicas Finais](#98-dicas-finais)
 
 ## 1. Visão Geral
 Ao longo do curso você aprendeu o que são Skills e como elas permitem que um agente de IA atue como um especialista em tarefas específicas. Agora imagine o seguinte cenário: você herdou 3 projetos legados com problemas de arquitetura, segurança e qualidade de código. Revisar e corrigir tudo manualmente levaria dias.
@@ -255,12 +261,15 @@ A skill `refactor-arch` foi desenhada para replicar, de forma automatizada, o pr
 ```
 .claude/skills/refactor-arch/
 ├── SKILL.md                                # visão geral + fluxo das 3 fases (carregado sempre)
-└── references/                             # carregados sob demanda, por fase
-    ├── project-analysis.md                 # Fase 1
-    ├── anti-patterns-catalog.md            # Fase 2
-    ├── audit-report-template.md            # Fase 2
-    ├── architecture-guidelines.md          # Fase 3
-    └── refactoring-playbook.md             # Fase 3
+├── references/                             # carregados sob demanda, por fase
+│   ├── project-analysis.md                 # Fase 1
+│   ├── anti-patterns-catalog.md            # Fase 2
+│   ├── audit-report-template.md            # Fase 2
+│   ├── architecture-guidelines.md          # Fase 3
+│   ├── refactoring-playbook.md             # Fase 3
+│   └── verification-recipes.md             # Fase 3, passo 6
+└── scripts/                                # executáveis da skill
+    └── arch-check.sh                       # Fase 3, passo 6 — verificação de AP-16
 ```
 
 O design segue o princípio de *progressive disclosure*: o `SKILL.md` funciona como um índice/prompt enxuto (frontmatter + fluxo), e cada arquivo de referência só é lido quando a fase correspondente começa — a Fase 1 nunca precisa carregar o playbook de refatoração, por exemplo. Isso mantém o contexto necessário em cada etapa proporcional ao que ela realmente exige.
@@ -276,19 +285,22 @@ O `SKILL.md` (código-fonte completo em [`code-smells-project/.claude/skills/ref
 
 ### 3.4 Arquivos de Referência
 
-| Arquivo | Fase | Área de conhecimento (seção 8.4) | Conteúdo |
+| Arquivo | Fase | Área de conhecimento (seção 9.4) | Conteúdo |
 |---|---|---|---|
 | `project-analysis.md` | 1 | Análise de projeto | Heurísticas de detecção de linguagem (extensões/manifests), framework, banco de dados, domínio e classificação da arquitetura atual (monolítica / parcialmente em camadas / já em MVC) |
 | `anti-patterns-catalog.md` | 2 | Catálogo de anti-patterns | 16 anti-patterns (AP-01–AP-16) com sinais de detecção agnósticos de linguagem, distribuídos nas 4 severidades, incluindo detecção de APIs deprecated |
 | `audit-report-template.md` | 2 | Template de relatório | Formato exato do `ARCHITECTURE AUDIT REPORT` (cabeçalho, `## Summary`, `## Findings` ordenados por severidade, regras de preenchimento) |
 | `architecture-guidelines.md` | 3 | Guidelines de arquitetura | Responsabilidades de Models/Views-Routes/Controllers, camadas de suporte opcionais (config, services, middlewares, entry point), layouts por stack (Flask, Express) e regra para projetos parcialmente em camadas |
-| `refactoring-playbook.md` | 3 | Playbook de refatoração | 15 padrões de transformação (RP-01–RP-15, acima do mínimo de 8 exigido pela seção 8.4) com exemplos antes/depois em Python e Node.js, cada um referenciando o(s) AP-xx que resolve |
+| `refactoring-playbook.md` | 3 | Playbook de refatoração | 15 padrões de transformação (RP-01–RP-15, acima do mínimo de 8 exigido pela seção 9.4) com exemplos antes/depois em Python e Node.js, cada um referenciando o(s) AP-xx que resolve |
+| `verification-recipes.md` | 3 (passo 6) | Guidelines de arquitetura | Sinais de persistência por stack (Python, JS/TS, Go, Java/Kotlin, Ruby, PHP, C#), configuração do `arch-check.sh` e o procedimento para derivar padrões numa stack não listada |
+
+A skill também empacota um executável próprio, `scripts/arch-check.sh`: a verificação estrutural do AP-16 exigida no passo 6 da Fase 3. Ele detecta as linguagens presentes, seleciona os arquivos de rota/view e procura os sinais de persistência da stack correspondente. Se o projeto auditado já tiver uma verificação equivalente, a skill roda a dele; caso contrário, roda e instala essa. Sair com código 2 ("nenhum arquivo de rota identificado") é reportado como INCONCLUSIVE, nunca como aprovação — ver [seção 5.6](#56-comportamento-entre-diferentes-stacks) para o falso PASS que motivou essa distinção.
 
 Cada finding do relatório de Fase 2 referencia um `AP-xx`, e cada `AP-xx` do catálogo é referenciado por um ou mais `RP-xx` do playbook — esse mapeamento cruzado é o que permite à Fase 3 decidir mecanicamente qual transformação aplicar a partir do próprio relatório da Fase 2, em vez de reinventar a correção a cada execução.
 
 ### 3.5 Catálogo de Anti-patterns
 
-O catálogo tem 16 entradas (acima do mínimo de 8 exigido pela seção 8.4, "Requisitos da skill"), distribuídas assim:
+O catálogo tem 16 entradas (acima do mínimo de 8 exigido pela seção 9.4, "Requisitos da skill"), distribuídas assim:
 
 - **CRITICAL (4):** AP-01 SQL Injection, AP-02 Segredos/credenciais hardcoded, AP-03 Hashing de senha quebrado/falso, AP-04 Dado sensível vazado via serialização.
 - **HIGH (4):** AP-05 God Class, AP-06 Lógica de negócio duplicada, AP-07 Estado mutável global, AP-16 Persistência/ORM chamada direto na rota.
@@ -329,15 +341,15 @@ A prova concreta dessa estratégia é a própria execução nos 3 projetos: a me
 - Repositório clonado localmente, com os 3 projetos em `code-smells-project/`, `ecommerce-api-legacy/` e `task-manager-api/`.
 - Para os projetos Python (`code-smells-project`, `task-manager-api`): Python 3.10+ e as dependências de `requirements.txt` instaladas em um virtualenv (`pip install -r requirements.txt`).
 - Para o projeto Node.js (`ecommerce-api-legacy`): Node.js 18+ e `npm install`.
-- A skill já está presente em `.claude/skills/refactor-arch/` dentro de cada um dos 3 projetos (copiada de `code-smells-project/` para os outros dois, conforme exigido na seção 8.4.3).
+- A skill já está presente em `.claude/skills/refactor-arch/` dentro de cada um dos 3 projetos (copiada de `code-smells-project/` para os outros dois, conforme exigido na seção 9.4.3).
 
 > **Nota sobre a ferramenta de IA:** este projeto foi construído e testado com o Claude Code, que é a ferramenta recomendada — a skill `refactor-arch` já vem pronta no formato dele (`.claude/skills/refactor-arch/SKILL.md` + `references/`).
 >
-> Você pode usar outra ferramenta agêntica se preferir (Gemini CLI, OpenAI Codex — as duas alternativas aceitas pelo enunciado, seção 8.3). Atenção: a skill deste repositório é específica do formato do Claude Code. Se optar por outra ferramenta, é responsabilidade sua portar `SKILL.md` para o mecanismo equivalente dela (custom command, extensão, ou, na ausência de um equivalente direto, conduzir manualmente o mesmo fluxo de 3 fases a partir do conteúdo de `references/`) antes de começar.
+> Você pode usar outra ferramenta agêntica se preferir (Gemini CLI, OpenAI Codex — as duas alternativas aceitas pelo enunciado, seção 9.3). Atenção: a skill deste repositório é específica do formato do Claude Code. Se optar por outra ferramenta, é responsabilidade sua portar `SKILL.md` para o mecanismo equivalente dela (custom command, extensão, ou, na ausência de um equivalente direto, conduzir manualmente o mesmo fluxo de 3 fases a partir do conteúdo de `references/`) antes de começar.
 >
-> Consulte sempre a documentação oficial da ferramenta escolhida para os nomes corretos de arquivos, pastas e comandos de invocação. Independentemente da ferramenta, o fluxo (Análise → Auditoria → Refatoração) e os artefatos entregues — relatórios em `reports/`, código refatorado, `README.md` — são os mesmos descritos neste documento: só a máquina muda. A escolha da ferramenta não altera os [Critérios de Aceite](#87-critérios-de-aceite).
+> Consulte sempre a documentação oficial da ferramenta escolhida para os nomes corretos de arquivos, pastas e comandos de invocação. Independentemente da ferramenta, o fluxo (Análise → Auditoria → Refatoração) e os artefatos entregues — relatórios em `reports/`, código refatorado, `README.md` — são os mesmos descritos neste documento: só a máquina muda. A escolha da ferramenta não altera os [Critérios de Aceite](#97-critérios-de-aceite).
 
-> **Nota:** a Fase 2 da skill apenas imprime o relatório no terminal — o `SKILL.md` não grava nenhum arquivo por conta própria. Salvar essa saída em `reports/audit-project-N.md` é um passo manual feito após cada execução, conforme pedido no próprio enunciado (seção 8.4.3), e não uma ação disparada automaticamente pelo agente.
+> **Nota:** a Fase 2 da skill apenas imprime o relatório no terminal — o `SKILL.md` não grava nenhum arquivo por conta própria. Salvar essa saída em `reports/audit-project-N.md` é um passo manual feito após cada execução, conforme pedido no próprio enunciado (seção 9.4.3), e não uma ação disparada automaticamente pelo agente.
 
 > **Nota:** `pip install -r requirements.txt` (projetos Python) e `npm install` (projeto Node.js) são pré-requisitos manuais, executados uma única vez antes do primeiro `claude "/refactor-arch"` em cada projeto — a skill não instala dependências por conta própria, apenas analisa e refatora código já executável. Sem esse passo, tanto a Fase 2 (se o agente tentar rodar a aplicação para inspecioná-la) quanto a validação da Fase 3 (`python app.py` / `node src/app.js` + `curl`) falham com erro de módulo/pacote não encontrado.
 
@@ -373,7 +385,7 @@ Relatório salvo em [`reports/audit-project-3.md`](reports/audit-project-3.md).
 
 ### 4.5 Validação
 
-Após a Fase 3 de cada projeto, a validação seguiu o checklist da seção 8.4 — **preenchido projeto a projeto na [seção 5.7](#57-checklist-de-validação-preenchido)**: inicializar a aplicação (`python app.py` ou `node src/app.js`) e exercitar cada endpoint original com `curl` (ou o arquivo `api.http` do `ecommerce-api-legacy`), comparando o status/response shape com o comportamento pré-refatoração — a única mudança de shape esperada é a remoção do campo de senha/hash das respostas que antes o vazavam.
+Após a Fase 3 de cada projeto, a validação seguiu o checklist da seção 9.4 — **preenchido projeto a projeto na [seção 5.7](#57-checklist-de-validação-preenchido)**: inicializar a aplicação (`python app.py` ou `node src/app.js`) e exercitar cada endpoint original com `curl` (ou o arquivo `api.http` do `ecommerce-api-legacy`), comparando o status/response shape com o comportamento pré-refatoração — a única mudança de shape esperada é a remoção do campo de senha/hash das respostas que antes o vazavam.
 
 Cada projeto tem um `manual-tests.sh` na sua própria pasta, cobrindo todos os endpoints reais (sucesso, validação, 404/409, e os casos de segurança citados no respectivo relatório de auditoria — ex.: tentativa de SQL injection no login do `code-smells-project`, gate do `ADMIN_TOKEN`): [`code-smells-project/manual-tests.sh`](code-smells-project/manual-tests.sh), [`ecommerce-api-legacy/manual-tests.sh`](ecommerce-api-legacy/manual-tests.sh), [`task-manager-api/manual-tests.sh`](task-manager-api/manual-tests.sh).
 
@@ -478,6 +490,8 @@ curl -s "localhost:5000/tasks?page=1&per_page=2" | python3 -m json.tool
 
 Todos os 3 projetos superam o mínimo exigido (≥5 findings, ≥1 CRITICAL/HIGH, ≥2 MEDIUM, ≥2 LOW).
 
+Um quarto projeto, **externo ao repositório e em stack não coberta** (Go/Gin), foi auditado depois para testar a independência de tecnologia — 1 CRITICAL, 3 HIGH, 3 MEDIUM, 3 LOW, total **10**. Ele não faz parte da entrega dos 3 projetos legados e recebeu apenas as Fases 1 e 2; ver [seção 5.6](#56-comportamento-entre-diferentes-stacks) e `reports/audit-project-4.md`.
+
 ### 5.2 code-smells-project
 
 Relatório completo: [`reports/audit-project-1.md`](reports/audit-project-1.md).
@@ -551,9 +565,27 @@ utils/helpers.py                        config/settings.py            (novo)
 - **Python/Flask parcialmente em camadas (`task-manager-api`):** a skill não recriou a estrutura de pastas — identificou corretamente que `models/routes/services/utils` já existiam e limitou a Fase 3 a mover lógica de negócio das rotas para o model/service correto, removendo apenas a camada morta (`notification_service.py`) e adicionando uma camada nova apenas onde não havia nenhuma equivalente (`report_service.py`). Esse foi o teste mais direto de que a regra "adaptar, não reconstruir" (seção 3.8) funciona na prática.
 - Em todos os 3 casos, a mesma invocação (`claude "/refactor-arch"`) e o mesmo `SKILL.md` produziram um fluxo de 3 fases correto sem qualquer ajuste manual entre execuções — a única diferença entre projetos foi o conteúdo específico do relatório e da refatoração, nunca o processo.
 
+#### Teste em projeto externo — Go/Gin (`reports/audit-project-4.md`)
+
+Os 3 projetos acima são Python/Flask ou Node/Express, então "funciona com qualquer stack de backend" continuava sendo uma afirmação não testada: as duas linguagens exercitadas são exatamente as duas para as quais o catálogo foi escrito. Para fechar essa lacuna, a skill foi executada num projeto **fora deste repositório**, em stack não coberta:
+
+- **Alvo:** [gothinkster/golang-gin-realworld-example-app](https://github.com/gothinkster/golang-gin-realworld-example-app), commit `626c372` — Go 1.21, Gin 1.10, GORM 1.25, ~1 670 linhas.
+- **Escopo:** Fases 1 e 2 apenas. A Fase 3 não se aplica a um codebase de terceiros; o código não foi alterado e o clone não foi versionado aqui.
+- **Resultado:** 10 achados (1 CRITICAL, 3 HIGH, 3 MEDIUM, 3 LOW), todos com arquivo:linha verificado — segredo de assinatura JWT publicado no repositório, ausência total de camada de controller, handle de banco global e mutável, e erro do bcrypt descartado no caminho de hash de senha.
+
+O valor real do teste não foi o relatório, e sim **o que ele quebrou**. A primeira execução do `arch-check` no projeto Go retornou **PASS com zero achados** — em arquivos de rota com 26 violações de AP-16. A causa: todos os padrões de detecção assumiam que a persistência é alcançada por um receptor (`Model.query`, `db.session.add`, `Model.findOne(...)`), que é como Python e Node expõem ORM. Go expõe como **funções de pacote** (`FindOneUser(...)`, `SaveOne(...)`), então nada casava e o arquivo era reportado como limpo.
+
+Três correções saíram daí, e são a razão de essa auditoria estar no repositório:
+
+1. `scripts/arch-check.sh` ganhou o padrão de função livre com verbo à frente, que produziu os 26 achados reais.
+2. O AP-16 no catálogo passou a nomear explicitamente essa forma, para a Fase 2 procurá-la na leitura e não depender só do script.
+3. `references/verification-recipes.md` documenta a regra de fundo — decidir se a stack expõe persistência como método ou função livre **antes** de escrever o padrão — e exige validar todo padrão novo contra uma violação conhecida, porque um padrão que nunca dispara não é evidência de código limpo.
+
+Um falso PASS é pior do que nenhuma verificação: ele encerra a Fase 3 com um selo de aprovação. Por isso o checker agora sai com código 2 (INCONCLUSIVE) quando não identifica a camada de rotas, em vez de 0 — silêncio não é aprovação.
+
 ### 5.7 Checklist de Validação Preenchido
 
-Checklist da seção 8.4 ("Validação"), preenchido para cada projeto após a Fase 3. Cada item marcado é verificável no repositório (arquivo citado, relatório em `reports/` ou evidência em `evidence/`, seção 4.6).
+Checklist da seção 9.4 ("Validação"), preenchido para cada projeto após a Fase 3. Cada item marcado é verificável no repositório (arquivo citado, relatório em `reports/` ou evidência em `evidence/`, seção 4.6).
 
 **Projeto 1 — code-smells-project (Python/Flask)**
 
@@ -658,7 +690,7 @@ Checklist da seção 8.4 ("Validação"), preenchido para cada projeto após a F
 
 **Causa raiz (dupla).** O `architecture-guidelines.md` liberava explicitamente rotas com persistência inline em projetos já em camadas: a regra "Partially-layered projects" mandava não criar `controllers/` quando as rotas "já cumprem esse papel", e o critério para "já cumprem" era ausência de *duplicação* (AP-06), não ausência de acesso a dados. Como as queries eram únicas por rota, a regra deixava de ser uma permissão e virava uma proibição de criar o controller. Somado a isso, o catálogo de anti-patterns não tinha nenhuma entrada para o padrão — então a Fase 2 sequer o reportava como finding.
 
-**Por que a validação não pegou.** A validação seguiu o checklist da seção 8.4, preenchido projeto a projeto na [seção 5.7](#57-checklist-de-validação-preenchido), e cada projeto tem um `manual-tests.sh` na sua própria pasta cobrindo todos os endpoints reais via HTTP (sucesso, validação, 404/409 e os casos de segurança citados no respectivo relatório de auditoria). Mas esses são testes de caixa-preta: a resposta HTTP de uma rota que consulta o ORM diretamente é idêntica à de uma rota que delega a um controller/service. As evidências da seção 4.6 têm a mesma limitação. O bug só apareceu em revisão externa do código.
+**Por que a validação não pegou.** A validação seguiu o checklist da seção 9.4, preenchido projeto a projeto na [seção 5.7](#57-checklist-de-validação-preenchido), e cada projeto tem um `manual-tests.sh` na sua própria pasta cobrindo todos os endpoints reais via HTTP (sucesso, validação, 404/409 e os casos de segurança citados no respectivo relatório de auditoria). Mas esses são testes de caixa-preta: a resposta HTTP de uma rota que consulta o ORM diretamente é idêntica à de uma rota que delega a um controller/service. As evidências da seção 4.6 têm a mesma limitação. O bug só apareceu em revisão externa do código.
 
 **Correção aplicada.**
 
@@ -691,7 +723,7 @@ cd ../task-manager-api     && ./arch-check.sh
 6. **[LOW]** limiares/taxas de desconto do relatório de vendas hardcoded na função.
 7. **[LOW]** parâmetro `id` sobrescrevendo o builtin do Python em 3 handlers de produto.
 
-**Por que a validação original (seção 5.7) não pegou isso.** O checklist da seção 8.4 valida uma execução da Fase 2 seguida de uma Fase 3 — não prevê uma segunda passada para confirmar que a correção resolveu o espírito da recomendação, não só a letra. O achado 1 é o mesmo tipo de lacuna descrita na seção 5.8 para o projeto 3: a recomendação original dizia "delete estes endpoints, ou proteja com autenticação **e** nunca exponha execução de SQL bruto sobre HTTP" — a Fase 3 aplicou a primeira parte e ignorou a segunda. Os achados 3-7 simplesmente não existiam na auditoria original: foram introduzidos pela refatoração (paginação nova, endpoint de busca novo), então só uma re-auditoria depois da Fase 3 poderia pegá-los.
+**Por que a validação original (seção 5.7) não pegou isso.** O checklist da seção 9.4 valida uma execução da Fase 2 seguida de uma Fase 3 — não prevê uma segunda passada para confirmar que a correção resolveu o espírito da recomendação, não só a letra. O achado 1 é o mesmo tipo de lacuna descrita na seção 5.8 para o projeto 3: a recomendação original dizia "delete estes endpoints, ou proteja com autenticação **e** nunca exponha execução de SQL bruto sobre HTTP" — a Fase 3 aplicou a primeira parte e ignorou a segunda. Os achados 3-7 simplesmente não existiam na auditoria original: foram introduzidos pela refatoração (paginação nova, endpoint de busca novo), então só uma re-auditoria depois da Fase 3 poderia pegá-los.
 
 **Correção aplicada.**
 1. `models/admin_model.py` criado — `reset_database()` e `executar_query()` movidos para lá; `executar_query()` agora rejeita qualquer instrução que não comece com `SELECT`.
@@ -722,9 +754,11 @@ curl -s -X POST http://localhost:5000/admin/query -H "X-Admin-Token: <token>" \
 ```
 mba-ia-refactor-projects-skill/
 ├── README.md
+├── CLAUDE.md                              # contexto do repositório para o agente (seção 7.1)
 │
 ├── code-smells-project/                   # Projeto 1 — Python/Flask (E-commerce)
-│   ├── .claude/skills/refactor-arch/      # SKILL.md + references/
+│   ├── .claude/skills/refactor-arch/      # SKILL.md + references/ + scripts/arch-check.sh
+│   ├── CLAUDE.md                          # invariantes de segurança e validação do projeto
 │   ├── app.py                             # composition root
 │   ├── config/settings.py
 │   ├── controllers/
@@ -737,6 +771,7 @@ mba-ia-refactor-projects-skill/
 │
 ├── ecommerce-api-legacy/                  # Projeto 2 — Node.js/Express (LMS)
 │   ├── .claude/skills/refactor-arch/      # cópia da skill
+│   ├── CLAUDE.md                          # invariantes de segurança e validação do projeto
 │   ├── src/
 │   │   ├── app.js                         # composition root
 │   │   ├── config/
@@ -752,6 +787,7 @@ mba-ia-refactor-projects-skill/
 │
 ├── task-manager-api/                      # Projeto 3 — Python/Flask (Task Manager)
 │   ├── .claude/skills/refactor-arch/      # cópia da skill
+│   ├── CLAUDE.md                          # invariantes de segurança e validação do projeto
 │   ├── app.py                             # composition root
 │   ├── config/settings.py                 # novo
 │   ├── controllers/                       # novo — task_controller.py, user_controller.py (fecha o AP-16, seção 5.8)
@@ -767,8 +803,12 @@ mba-ia-refactor-projects-skill/
 │
 ├── reports/
 │   ├── audit-project-1.md
+│   ├── audit-project-1-part2.md           # re-auditoria após a Fase 3 (seção 5.9)
 │   ├── audit-project-2.md
-│   └── audit-project-3.md
+│   ├── audit-project-2-part2.md           # re-auditoria após a Fase 3
+│   ├── audit-project-3.md
+│   ├── audit-project-3-part2.md           # re-auditoria após a Fase 3 (seção 5.8)
+│   └── audit-project-4.md                 # projeto externo Go/Gin — só Fases 1 e 2 (seção 5.6)
 │
 └── evidence/                              # screenshots citados na seção 4.6
     ├── project1-boot.png
@@ -783,7 +823,59 @@ mba-ia-refactor-projects-skill/
     └── project3-tasks-paginacao.png
 ```
 
-## 7. Referências
+## 7. Evolução do Uso de IA
+
+O enunciado pede uma skill que funcione em qualquer projeto de backend. Esta seção registra o que foi feito para sustentar essa afirmação, e o que ficou mapeado como próximo passo — separando explicitamente as duas coisas, para que nada aqui seja lido como implementado quando não está.
+
+O princípio que organiza tudo abaixo: **separar o que é da skill do que é do repositório**. Tudo que a skill precisa para rodar tem que viajar com ela; tudo que é específico de um projeto fica no projeto. Foi a violação desse princípio que gerou o trabalho da seção 7.1.
+
+### 7.1 O Que Já Foi Aplicado
+
+**A verificação estrutural passou a ser propriedade da skill.** O `SKILL.md` exigia, no passo 6 da Fase 3, uma verificação mecânica do AP-16 — e apontava para `./arch-check.sh`, um script que existia em triplicata neste repositório e em nenhum outro lugar. Em qualquer projeto externo, o único passo que a skill não consegue provar por teste de endpoint simplesmente não tinha o que executar. A skill agora empacota `scripts/arch-check.sh` (agnóstico de stack) e `references/verification-recipes.md` (sinais por linguagem e o procedimento para derivar padrões numa stack não listada); o passo 6 prefere uma verificação que o projeto auditado já tenha e cai para a empacotada quando não existe.
+
+**A skill foi executada num projeto externo, em stack não coberta.** Go/Gin/GORM, ~1 670 linhas, 10 achados — detalhado na [seção 5.6](#56-comportamento-entre-diferentes-stacks) e em `reports/audit-project-4.md`. Esse teste é a razão de as duas primeiras entregas existirem na forma atual: ele produziu um falso PASS que nenhuma execução nos 3 projetos deste repositório poderia ter produzido, porque todos eles usam stacks cujo idioma de persistência a skill já conhecia.
+
+**Contexto persistente por projeto.** Cada projeto ganhou um `CLAUDE.md` com o que não é derivável do código: invariantes de segurança já corrigidas que não podem regredir, o contrato de validação (`arch-check.sh` prova estrutura, `manual-tests.sh` prova comportamento, e nenhum substitui o outro) e as convenções de idioma. Isso é o que impede uma sessão futura de "consertar" a vulnerabilidade conhecida do `qs` no Projeto 2 ou de traduzir os nomes de tabela em português do Projeto 1.
+
+### 7.2 Hooks — Mover Regras do Prompt para o Harness
+
+Três das regras inegociáveis do `SKILL.md` hoje dependem de o modelo obedecer a uma instrução em texto. Hooks as tornariam garantias do harness:
+
+| Hook | Regra que passa a ser imposta |
+|---|---|
+| `PreToolUse` em `Edit`/`Write` | "Nunca modificar arquivo antes da confirmação da Fase 2" — bloqueia a escrita enquanto a fase corrente for 1 ou 2, em vez de confiar na instrução |
+| `PostToolUse` em `Edit`/`Write` | Roda a verificação de AP-16 assim que um arquivo de rota é alterado — a regressão aparece no instante em que é introduzida |
+| `Stop` | Recusa encerrar o turno se a verificação estrutural falhar, ou se a Fase 2 rodou sem o relatório ter sido salvo em `reports/` |
+| `PreToolUse` em `Bash(git commit *)` | Aborta se o staged tocar `.env`, `*.db` ou `instance/` — hoje isso é só `.gitignore` |
+
+Detalhe de projeto importante: **hooks não pertencem à skill**. Eles vivem no `.claude/settings.json` do projeto auditado, e colocá-los dentro da skill a amarraria a uma configuração de host — exatamente o erro corrigido na seção 7.1. O caminho correto é a Fase 3 *emitir* uma configuração sugerida como entregável, que o projeto adota ou não.
+
+O mesmo raciocínio se aplica ao *plan mode*: rodar as Fases 1 e 2 nele faz do gate de confirmação uma impossibilidade técnica em vez de uma promessa, sem que a skill precise saber nada sobre isso.
+
+### 7.3 Modo Headless e CI
+
+A Fase 2 é read-only por definição — o que a torna o candidato natural para automação:
+
+- **Auditoria como gate de PR.** `claude -p` com as ferramentas restritas a leitura transforma "a Fase 2 nunca modifica arquivos" numa garantia do processo, não do modelo. Falhar o PR quando aparece um CRITICAL/HIGH ausente do baseline converte os relatórios de `reports/` — hoje evidência estática do estado "antes" — em baseline executável.
+- **Saída estruturada.** Se a Fase 2 emitisse `audit.json` junto com o markdown, o diff entre auditorias seria mecânico. É exatamente o trabalho que hoje é feito à mão nos relatórios `-part2`, cuja seção `## Resolved since ...` é redigida manualmente.
+- **Execução em lote multi-repo.** O teste da seção 5.6 foi um projeto externo. O mesmo procedimento sobre N repositórios públicos produziria uma medida de genericidade em vez de um argumento — e é como a lacuna do Go apareceria numa quarta linguagem antes de alguém tropeçar nela.
+
+### 7.4 Decomposição da Skill e Evals
+
+- **Três skills em vez de três fases.** `arch-audit` (read-only), `arch-refactor` e `arch-verify`. O gate entre Fase 2 e Fase 3 viraria uma fronteira real, e `arch-verify` ficaria reutilizável em CI sem arrastar o resto do fluxo.
+- **Testes de caracterização antes da Fase 3.** "Preservar o comportamento existente" hoje é verificado por um `manual-tests.sh` escrito à mão, depois do fato. A Fase 1 já monta a tabela de rotas: gerar os testes *antes* de tocar no código transforma a preservação de comportamento em medida, não em afirmação.
+- **Evals da skill.** Rodar a skill contra repositórios não vistos e medir se ela dispara, se atinge a distribuição mínima de achados e se todo achado cita arquivo:linha real. É a forma de substituir "a skill é agnóstica de tecnologia" por um número — e a seção 5.6 mostra que a pergunta não é retórica.
+- **Distribuição como plugin.** A triplicata da skill é exigência do enunciado ([seção 9.4.3](#94-requisitos)), não uma escolha de design. Fora deste contexto, empacotar como plugin instalável resolveria a duplicação sem copiar diretórios.
+
+### 7.5 Limites Conhecidos
+
+- O `arch-check.sh` empacotado é baseado em regex sobre arquivos de rota. Ele não substitui análise de AST: uma chamada de persistência atrás de um alias, de reflexão ou de um wrapper genérico escapa. Ele erra para o lado de sinalizar demais (um falso positivo vira revisão humana; um falso negativo vira selo de aprovação indevido), e por isso trata "não achei a camada de rotas" como INCONCLUSIVE.
+- Os padrões cobrem 7 famílias de linguagem. Uma oitava stack provavelmente expõe uma lacuna análoga à do Go — é o que `verification-recipes.md` tenta antecipar ao exigir que todo padrão novo seja validado contra uma violação conhecida antes de se confiar num PASS.
+- A Fase 3 nunca foi executada num projeto externo. A evidência de que a refatoração preserva comportamento vem dos 3 projetos deste repositório, todos com suíte de validação escrita à mão.
+
+---
+
+## 8. Referências
 
 - [Claude Code: Skills](https://docs.anthropic.com/en/docs/claude-code/skills) — Documentação oficial sobre como criar e estruturar Skills
 - [Claude Code: Overview](https://docs.anthropic.com/en/docs/claude-code/overview) — Visão geral do Claude Code e suas capacidades
@@ -792,9 +884,9 @@ mba-ia-refactor-projects-skill/
 
 ---
 
-## 8. Instruções Originais do Desafio
+## 9. Instruções Originais do Desafio
 
-### 8.1 Objetivo
+### 9.1 Objetivo
 
 Você deve entregar uma Skill capaz de:
 
@@ -806,7 +898,7 @@ Você deve entregar uma Skill capaz de:
 
 A skill deve ser agnóstica de tecnologia, funcionando com diferentes linguagens e frameworks.
 
-### 8.2 Contexto
+### 9.2 Contexto
 
 #### Definição de Severidades
 
@@ -898,7 +990,7 @@ src/
 ================================
 ```
 
-### 8.3 Tecnologias obrigatórias
+### 9.3 Tecnologias obrigatórias
 
 - **Ferramenta:** uma das três opções abaixo (não são aceitas outras ferramentas):
   - Claude Code
@@ -910,7 +1002,7 @@ src/
 
 > **Nota sobre a ferramenta:** Os exemplos deste documento usam o Claude Code (`.claude/skills/`) como referência, pois é a ferramenta utilizada no curso. Se você optar por Gemini CLI ou Codex, adapte o nome da pasta e o comando de invocação conforme a convenção dela — o conceito de skill e a estrutura interna (SKILL.md + arquivos de referência) permanecem os mesmos.
 
-### 8.4 Requisitos
+### 9.4 Requisitos
 
 #### 1. Análise Manual dos Projetos
 
@@ -1063,7 +1155,7 @@ Para cada projeto refatorado, valide o seguinte checklist:
 
 > **Dica:** Se a skill não detectou problemas suficientes ou a refatoração falhou, ajuste os arquivos de referência e execute novamente. É normal precisar de 2-4 iterações.
 
-### 8.5 Entregável
+### 9.5 Entregável
 
 Repositório público no GitHub (fork do repositório base) contendo:
 
@@ -1072,7 +1164,7 @@ Repositório público no GitHub (fork do repositório base) contendo:
 - Relatórios de auditoria em `reports/` (3 arquivos)
 - `README.md` atualizado
 
-### 8.6 Estrutura do repositório
+### 9.6 Estrutura do repositório
 
 Faça um fork do repositório base contendo os três projetos com code smells.
 
@@ -1202,7 +1294,7 @@ Salve a saída da Fase 2 de cada projeto em `reports/audit-project-{1,2,3}.md`.
 
 Se a skill não detectou problemas suficientes ou a refatoração falhou, ajuste os arquivos de referência e execute novamente. É normal precisar de 2-4 iterações.
 
-### 8.7 Critérios de Aceite
+### 9.7 Critérios de Aceite
 
 A skill deve atingir os seguintes mínimos em **todos os 3 projetos**:
 
@@ -1217,7 +1309,7 @@ A skill deve atingir os seguintes mínimos em **todos os 3 projetos**:
 
 > **Sobre o projeto 3 (task-manager-api):** Este projeto já possui alguma organização. "aplicação funciona" significa que a API inicia sem erros e todos os endpoints continuam respondendo corretamente.
 
-### 8.8 Dicas Finais
+### 9.8 Dicas Finais
 
 - **Comece pela análise manual** — entender os problemas profundamente é essencial para criar uma skill que os detecte.
 - **O SKILL.md é um prompt** — ele instrui o agente sobre o que fazer, enquanto os arquivos de referência fornecem o conhecimento de domínio.

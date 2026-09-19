@@ -15,16 +15,17 @@ evidence/                screenshots citados na seção 4.6 do README
 ## A skill vive em triplicata
 
 `.claude/skills/refactor-arch/` existe **idêntica** dentro dos 3 projetos — é exigência
-do enunciado (seção 8.4.3), não duplicação acidental.
+do enunciado (seção 9.4.3 do README), não duplicação acidental.
 
-- Qualquer edição em `SKILL.md` ou em `references/` deve ser replicada nas 3 cópias.
+- Qualquer edição em `SKILL.md`, `references/` ou `scripts/` deve ser replicada nas 3 cópias.
 - Confirme antes de encerrar a tarefa:
   `diff -r code-smells-project/.claude/skills/refactor-arch <outro-projeto>/.claude/skills/refactor-arch`
 - A skill é escrita em **inglês**. Mantenha assim, mesmo que a conversa seja em português.
 
 ## Relatórios
 
-- `reports/audit-project-N.md` — N = 1 (code-smells), 2 (ecommerce), 3 (task-manager).
+- `reports/audit-project-N.md` — N = 1 (code-smells), 2 (ecommerce), 3 (task-manager),
+  4 (projeto Go/Gin externo, só Fases 1 e 2 — o código-fonte dele não é versionado aqui).
 - Re-auditoria de um projeto já refatorado vai para `audit-project-N-part2.md`, com uma
   seção `## Resolved since audit-project-N.md` no topo. **Nunca sobrescreva** um relatório
   anterior: ele é a evidência do estado "antes".
@@ -42,6 +43,11 @@ Rode, dentro da pasta do projeto alterado:
 Os dois se complementam e nenhum substitui o outro — `manual-tests.sh` não distingue uma
 rota que consulta o ORM direto de uma que delega. Se algum falhar, corrija antes de
 reportar sucesso.
+
+O `arch-check.sh` de cada projeto é a versão específica dele (em português, padrões fixos) e
+continua sendo a validação desta entrega. A skill empacota separadamente
+`scripts/arch-check.sh`, genérico e detector de stack, para projetos que ainda não têm um —
+os dois checam a mesma regra (AP-16) e ambos passam nos 3 projetos.
 
 ## README.md
 
