@@ -1,6 +1,6 @@
 # Audit Report Template (Phase 2)
 
-Run the Phase 2 architecture audit and produce a report for every execution. Save the report to `reports/` and print it to the terminal in the exact format below.
+Run the Phase 2 architecture audit and produce a report for every execution. Save the report to the `reports/` directory at the root of the enclosing git repository — find it with `git rev-parse --show-toplevel` (never assume the current working directory), then use `<that path>/reports/`. This repo holds several project folders side by side (each with its own copy of this skill) and shares one `reports/` directory and one project-numbering sequence across all of them — do not create or use a project-local `reports/` folder even though the project directory is the working directory this skill was invoked from. Print the report to the terminal in the exact format below.
 
 ## Report format
 
@@ -49,7 +49,7 @@ Naming convention:
 
 Example: `reports/audit-project-7.md`, `reports/audit-project-7-part2.md`, `reports/audit-project-7-part3.md`.
 
-Never overwrite an existing report. Each file is an immutable snapshot of one Phase 2 execution, saved regardless of whether it's the first audit or a re-run. Before saving, inspect `reports/` to determine the next available filename.
+Never overwrite an existing report. Each file is an immutable snapshot of one Phase 2 execution, saved regardless of whether it's the first audit or a re-run. Before saving, inspect the repo-root `reports/` directory (see above — not a project-local one) to determine the next available filename. The `<N>` in `audit-project-<N>.md` is a repo-wide sequence shared across all projects, not a per-project counter — check every existing report's `Project:` line to find whether this project already has a number, rather than assuming the next free `<N>` belongs to it.
 
 Handling re-runs: review the previous report(s) first. Confirm resolution of every finding from the previous part before treating it as closed — a finding that reappears, even partially (e.g. a fix that addressed the letter of the recommendation but not its intent), is not new; note it as still open.
 
