@@ -1,0 +1,64 @@
+==================================================
+CHECKOUT
+==================================================
+--- POST /api/checkout (sucesso - cartão começando em 4, cria usuário novo) ---
+{"msg":"Sucesso","enrollment_id":2}
+  -> conferir no terminal do servidor: o log de 'Processing payment' deve mostrar o cartão mascarado, nunca em texto plano
+--- POST /api/checkout (pagamento recusado - cartão não começa em 4) ---
+Pagamento recusado
+--- POST /api/checkout (usuário já existente - reutiliza o cadastro pelo email) ---
+{"msg":"Sucesso","enrollment_id":3}
+--- POST /api/checkout (curso inexistente, esperado 404) ---
+HTTP 404
+--- POST /api/checkout (campo obrigatório faltando, esperado 400) ---
+HTTP 400
+==================================================
+FINANCIAL REPORT
+==================================================
+--- GET /api/admin/financial-report ---
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    },
+    {
+        "course": "Docker",
+        "revenue": 994,
+        "students": [
+            {
+                "student": "Guilherme",
+                "paid": 497
+            },
+            {
+                "student": "Leonan",
+                "paid": 497
+            }
+        ]
+    }
+]
+--- GET /api/admin/financial-report?page=1&per_page=1 (paginação) ---
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    }
+]
+==================================================
+USERS
+==================================================
+--- DELETE /api/users/3 (remove o usuário 'Joao', criado no checkout recusado acima; cascade em matrículas/pagamentos) ---
+Usuário e seus registros associados (matrículas e pagamentos) foram deletados.
+--- DELETE /api/users/9999 (id inexistente) ---
+HTTP 200

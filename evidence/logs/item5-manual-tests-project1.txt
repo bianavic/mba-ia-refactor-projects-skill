@@ -1,0 +1,501 @@
+==================================================
+APP
+==================================================
+--- GET / ---
+{
+    "endpoints": {
+        "health": "/health",
+        "login": "/login",
+        "pedidos": "/pedidos",
+        "produtos": "/produtos",
+        "relatorios": "/relatorios/vendas",
+        "usuarios": "/usuarios"
+    },
+    "mensagem": "Bem-vindo \u00e0 API da Loja",
+    "versao": "1.0.0"
+}
+--- GET /health (não deve conter secret_key/debug no corpo) ---
+{
+    "counts": {
+        "pedidos": 0,
+        "produtos": 10,
+        "usuarios": 3
+    },
+    "database": "connected",
+    "status": "ok",
+    "versao": "1.0.0"
+}
+==================================================
+PRODUTOS
+==================================================
+--- GET /produtos ---
+{
+    "dados": [
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Notebook potente para jogos",
+            "estoque": 10,
+            "id": 1,
+            "nome": "Notebook Gamer",
+            "preco": 5999.99
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Mouse sem fio ergon\u00f4mico",
+            "estoque": 50,
+            "id": 2,
+            "nome": "Mouse Wireless",
+            "preco": 89.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Teclado mec\u00e2nico RGB",
+            "estoque": 30,
+            "id": 3,
+            "nome": "Teclado Mec\u00e2nico",
+            "preco": 299.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Monitor 27 polegadas 144hz",
+            "estoque": 15,
+            "id": 4,
+            "nome": "Monitor 27''",
+            "preco": 1899.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Headset com microfone",
+            "estoque": 25,
+            "id": 5,
+            "nome": "Headset Gamer",
+            "preco": 199.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "moveis",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Cadeira ergon\u00f4mica",
+            "estoque": 8,
+            "id": 6,
+            "nome": "Cadeira Gamer",
+            "preco": 1299.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Webcam 1080p",
+            "estoque": 20,
+            "id": 7,
+            "nome": "Webcam HD",
+            "preco": 249.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Hub USB 3.0 7 portas",
+            "estoque": 40,
+            "id": 8,
+            "nome": "Hub USB",
+            "preco": 79.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "SSD NVMe 1TB",
+            "estoque": 35,
+            "id": 9,
+            "nome": "SSD 1TB",
+            "preco": 449.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "vestuario",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Camiseta estampa c\u00f3digo",
+            "estoque": 100,
+            "id": 10,
+            "nome": "Camiseta Dev",
+            "preco": 59.9
+        }
+    ],
+    "sucesso": true
+}
+--- GET /produtos?page=1&per_page=5 (paginação) ---
+{
+    "dados": [
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Notebook potente para jogos",
+            "estoque": 10,
+            "id": 1,
+            "nome": "Notebook Gamer",
+            "preco": 5999.99
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Mouse sem fio ergon\u00f4mico",
+            "estoque": 50,
+            "id": 2,
+            "nome": "Mouse Wireless",
+            "preco": 89.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Teclado mec\u00e2nico RGB",
+            "estoque": 30,
+            "id": 3,
+            "nome": "Teclado Mec\u00e2nico",
+            "preco": 299.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Monitor 27 polegadas 144hz",
+            "estoque": 15,
+            "id": 4,
+            "nome": "Monitor 27''",
+            "preco": 1899.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Headset com microfone",
+            "estoque": 25,
+            "id": 5,
+            "nome": "Headset Gamer",
+            "preco": 199.9
+        }
+    ],
+    "sucesso": true
+}
+--- GET /produtos/busca?q=notebook ---
+{
+    "dados": [
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Notebook potente para jogos",
+            "estoque": 10,
+            "id": 1,
+            "nome": "Notebook Gamer",
+            "preco": 5999.99
+        }
+    ],
+    "sucesso": true,
+    "total": 1
+}
+--- GET /produtos/busca?categoria=informatica&preco_min=100&preco_max=1000 ---
+{
+    "dados": [
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Teclado mec\u00e2nico RGB",
+            "estoque": 30,
+            "id": 3,
+            "nome": "Teclado Mec\u00e2nico",
+            "preco": 299.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Headset com microfone",
+            "estoque": 25,
+            "id": 5,
+            "nome": "Headset Gamer",
+            "preco": 199.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "Webcam 1080p",
+            "estoque": 20,
+            "id": 7,
+            "nome": "Webcam HD",
+            "preco": 249.9
+        },
+        {
+            "ativo": 1,
+            "categoria": "informatica",
+            "criado_em": "2026-09-19 19:05:06",
+            "descricao": "SSD NVMe 1TB",
+            "estoque": 35,
+            "id": 9,
+            "nome": "SSD 1TB",
+            "preco": 449.9
+        }
+    ],
+    "sucesso": true,
+    "total": 4
+}
+--- GET /produtos/1 ---
+{
+    "dados": {
+        "ativo": 1,
+        "categoria": "informatica",
+        "criado_em": "2026-09-19 19:05:06",
+        "descricao": "Notebook potente para jogos",
+        "estoque": 10,
+        "id": 1,
+        "nome": "Notebook Gamer",
+        "preco": 5999.99
+    },
+    "sucesso": true
+}
+--- GET /produtos/9999 (esperado 404) ---
+{
+    "erro": "Produto n\u00e3o encontrado",
+    "sucesso": false
+}
+--- POST /produtos (cria produto novo, guarde o id retornado) ---
+{
+    "dados": {
+        "id": 11
+    },
+    "mensagem": "Produto criado",
+    "sucesso": true
+}
+--- POST /produtos (categoria inválida, esperado 400) ---
+{
+    "erro": "Categoria inv\u00e1lida. V\u00e1lidas: ['informatica', 'moveis', 'vestuario', 'geral', 'eletronicos', 'livros']"
+}
+--- POST /produtos (preço negativo, esperado 400) ---
+{
+    "erro": "Pre\u00e7o n\u00e3o pode ser negativo"
+}
+--- PUT /produtos/<id> (ajuste <id> para o retornado no POST acima) ---
+{
+    "mensagem": "Produto atualizado",
+    "sucesso": true
+}
+--- DELETE /produtos/<id> (remove o produto criado acima) ---
+{
+    "mensagem": "Produto deletado",
+    "sucesso": true
+}
+==================================================
+USUARIOS
+==================================================
+--- GET /usuarios (senha/hash não deve aparecer em nenhum item) ---
+{
+    "dados": [
+        {
+            "criado_em": "2026-09-19 19:05:07",
+            "email": "admin@loja.com",
+            "id": 1,
+            "nome": "Admin",
+            "tipo": "admin"
+        },
+        {
+            "criado_em": "2026-09-19 19:05:07",
+            "email": "joao@email.com",
+            "id": 2,
+            "nome": "Jo\u00e3o Silva",
+            "tipo": "cliente"
+        },
+        {
+            "criado_em": "2026-09-19 19:05:07",
+            "email": "maria@email.com",
+            "id": 3,
+            "nome": "Maria Santos",
+            "tipo": "cliente"
+        }
+    ],
+    "sucesso": true
+}
+--- GET /usuarios/1 ---
+{
+    "dados": {
+        "criado_em": "2026-09-19 19:05:07",
+        "email": "admin@loja.com",
+        "id": 1,
+        "nome": "Admin",
+        "tipo": "admin"
+    },
+    "sucesso": true
+}
+--- GET /usuarios/9999 (esperado 404) ---
+{
+    "erro": "Usu\u00e1rio n\u00e3o encontrado"
+}
+--- POST /usuarios (cria usuário novo, guarde o id retornado) ---
+{
+    "dados": {
+        "id": 4
+    },
+    "sucesso": true
+}
+--- POST /usuarios (campo obrigatório faltando, esperado 400) ---
+{
+    "erro": "Nome, email e senha s\u00e3o obrigat\u00f3rios"
+}
+--- POST /login (credenciais válidas do seed) ---
+{
+    "dados": {
+        "criado_em": "2026-09-19 19:05:07",
+        "email": "joao@email.com",
+        "id": 2,
+        "nome": "Jo\u00e3o Silva",
+        "tipo": "cliente"
+    },
+    "mensagem": "Login OK",
+    "sucesso": true
+}
+--- POST /login (senha errada, esperado 401) ---
+{
+    "erro": "Email ou senha inv\u00e1lidos",
+    "sucesso": false
+}
+--- POST /login (tentativa de SQL injection no login, não deve autenticar) ---
+{
+    "erro": "Email ou senha inv\u00e1lidos",
+    "sucesso": false
+}
+==================================================
+PEDIDOS
+==================================================
+--- POST /pedidos (cria pedido novo com produtos 1 e 2, guarde o id retornado) ---
+{
+    "dados": {
+        "pedido_id": 1,
+        "total": 6179.79
+    },
+    "mensagem": "Pedido criado com sucesso",
+    "sucesso": true
+}
+--- POST /pedidos (produto inexistente, esperado erro de negócio) ---
+{
+    "erro": "Produto 9999 n\u00e3o encontrado",
+    "sucesso": false
+}
+--- POST /pedidos (estoque insuficiente, esperado erro de negócio) ---
+{
+    "erro": "Estoque insuficiente para Notebook Gamer",
+    "sucesso": false
+}
+--- GET /pedidos (paginado) ---
+{
+    "dados": [
+        {
+            "criado_em": "2026-09-19 19:05:14",
+            "id": 1,
+            "itens": [
+                {
+                    "preco_unitario": 5999.99,
+                    "produto_id": 1,
+                    "produto_nome": "Notebook Gamer",
+                    "quantidade": 1
+                },
+                {
+                    "preco_unitario": 89.9,
+                    "produto_id": 2,
+                    "produto_nome": "Mouse Wireless",
+                    "quantidade": 2
+                }
+            ],
+            "status": "pendente",
+            "total": 6179.79,
+            "usuario_id": 2
+        }
+    ],
+    "sucesso": true
+}
+--- GET /pedidos/usuario/2 ---
+{
+    "dados": [
+        {
+            "criado_em": "2026-09-19 19:05:14",
+            "id": 1,
+            "itens": [
+                {
+                    "preco_unitario": 5999.99,
+                    "produto_id": 1,
+                    "produto_nome": "Notebook Gamer",
+                    "quantidade": 1
+                },
+                {
+                    "preco_unitario": 89.9,
+                    "produto_id": 2,
+                    "produto_nome": "Mouse Wireless",
+                    "quantidade": 2
+                }
+            ],
+            "status": "pendente",
+            "total": 6179.79,
+            "usuario_id": 2
+        }
+    ],
+    "sucesso": true
+}
+--- PUT /pedidos/<id>/status (ajuste <id> para o pedido criado acima) ---
+{
+    "mensagem": "Status atualizado",
+    "sucesso": true
+}
+--- PUT /pedidos/<id>/status (status inválido, esperado 400) ---
+{
+    "erro": "Status inv\u00e1lido"
+}
+==================================================
+RELATORIOS
+==================================================
+--- GET /relatorios/vendas ---
+{
+    "dados": {
+        "desconto_aplicavel": 308.99,
+        "faturamento_bruto": 6179.79,
+        "faturamento_liquido": 5870.8,
+        "pedidos_aprovados": 1,
+        "pedidos_cancelados": 0,
+        "pedidos_pendentes": 0,
+        "ticket_medio": 6179.79,
+        "total_pedidos": 1
+    },
+    "sucesso": true
+}
+==================================================
+ADMIN (desabilitado por padrão - sem ADMIN_TOKEN no ambiente)
+==================================================
+--- POST /admin/query sem ADMIN_TOKEN (esperado 403, endpoints desabilitados) ---
+{
+    "erro": "Endpoints administrativos desabilitados"
+}
+--- POST /admin/reset-db sem ADMIN_TOKEN (esperado 403) ---
+{
+    "erro": "Endpoints administrativos desabilitados"
+}
+--- (opcional) com ADMIN_TOKEN definido no servidor (export ADMIN_TOKEN=algum-token antes de subir o app): ---
+--- POST /admin/query sem header (esperado 401, token ausente) ---
+{
+    "erro": "Endpoints administrativos desabilitados"
+}
+--- POST /admin/query com header correto (ajuste <ADMIN_TOKEN> para o valor real) ---
+{
+    "erro": "Endpoints administrativos desabilitados"
+}
