@@ -1,0 +1,140 @@
+# Skill rodando de verdade: Fase 1, Fase 2 e o gate de confirmação — code-smells-project
+
+Execução real e ao vivo de `claude -p "/refactor-arch"` (modo headless, ferramentas
+restritas a Read/Grep/Glob — só leitura, nada gravado), capturada via
+`--output-format stream-json --verbose` e extraída aqui como texto puro na ordem em
+que o agente produziu cada bloco.
+
+Estado do código: git worktree isolado (fora deste repositório, não commitado, não
+versionado) no commit `5f0e13b`, o commit imediatamente anterior à Fase 3 original
+de code-smells-project (`1d8e0fa`). Confirmado antes da execução que a árvore de
+arquivos nesse commit bate com a estrutura "Antes" documentada no README
+(`app.py`, `controllers.py`, `models.py`, `database.py`, monolítico).
+
+A execução foi interrompida deliberadamente no gate de confirmação da Fase 2 (decisão
+do desenvolvedor) — a Fase 3 não rodou nesta captura; o código refatorado já existe,
+commitado, na história real do repositório (commit `1d8e0fa`) e documentado em
+`reports/audit-project-1.md` e `docs/results.md`.
+
+Nota sobre os números: esta execução encontrou 13 findings (5 CRITICAL, 2 HIGH,
+3 MEDIUM, 3 LOW) — o total bate com o relatório original (13), mas a distribuição por
+severidade varia (o original documentado é 4 CRITICAL, 3 HIGH, 2 MEDIUM, 4 LOW), porque
+é uma nova execução do modelo sobre o mesmo código, não uma repetição determinística.
+Nenhum achado foi editado ou removido desta transcrição para bater com o número
+original — é a saída real, tal como veio.
+
+---
+
+I'll start Phase 1 by analyzing the codebase structure and stack.
+
+Small project — let me read the four source files to fingerprint it.
+
+Phase 1 complete. Here's the summary:
+
+```
+================================
+PHASE 1: PROJECT ANALYSIS
+================================
+Language:      Python
+Framework:     Flask 3.1.1 (+ flask-cors 5.0.1)
+Dependencies:  flask, flask-cors, sqlite3 (stdlib)
+Domain:        E-commerce API — products (produtos), users (usuarios), orders (pedidos), order items (itens_pedido), sales reports
+Architecture:  Partial layering (app.py/controllers.py/models.py/database.py split exists) but responsibilities leak badly — raw SQL string concatenation in models.py, business logic and even raw DB access directly in app.py's admin routes
+Source files:  4 files analyzed (app.py, controllers.py, database.py, models.py)
+DB tables:     produtos, usuarios, pedidos, itens_pedido
+================================
+```
+
+Now moving to Phase 2 — auditing against the anti-pattern catalog.
+
+```
+================================
+ARCHITECTURE AUDIT REPORT
+================================
+Project: code-smells-project (Loja API)
+Stack:   Python / Flask 3.1.1
+Files:   4 analyzed | ~780 lines of code
+
+## Summary
+CRITICAL: 5 | HIGH: 2 | MEDIUM: 3 | LOW: 3
+
+## Findings
+
+### [CRITICAL] SQL Injection via unauthenticated raw query endpoint
+File: app.py:59-78
+Description: `/admin/query` accepts an arbitrary SQL string from the request body and executes it directly with `cursor.execute(query)`, with zero authentication/authorization on the route.
+Impact: Any unauthenticated caller can read, modify, or drop the entire database (`DROP TABLE usuarios`, dump all passwords, etc.). This is full database compromise, not a hypothetical.
+Recommendation: Remove this endpoint entirely, or gate it behind real authentication + a strict allowlist of parameterized operations. See AP-01/RP-01.
+
+### [CRITICAL] SQL Injection via string concatenation across the data layer
+File: models.py:28, 47-50, 57-61, 68, 92, 109-111, 126-129, 140, 148-151, 155, 158-161, 163-166, 174, 188, 192, 220, 224, 279-281, 289-297
+Description: Nearly every query in models.py builds SQL by concatenating raw Python values (including user-controlled `nome`, `email`, `senha`, `termo`, `categoria`, ids) into the query string instead of using parameterized placeholders (`?`).
+Impact: Classic SQL injection on almost every endpoint (product search, login, order creation, product CRUD) — attacker-controlled input can alter query logic, bypass authentication in `login_usuario`, or exfiltrate/alter arbitrary rows.
+Recommendation: Rewrite every query to use `?` placeholders with parameter tuples. See AP-01/RP-01.
+
+### [CRITICAL] Hardcoded secret key, debug mode enabled, and secret leaked via API
+File: app.py:7-8; controllers.py:285-290
+Description: `SECRET_KEY` is a hardcoded literal committed to source, `DEBUG=True` is forced on, and `health_check()` returns `"debug": True` and `"secret_key": "minha-chave-super-secreta-123"` directly in the `/health` JSON response.
+Impact: Anyone hitting `/health` obtains the Flask secret key (used for session/cookie signing), enabling session forgery; Flask debug mode also exposes the interactive debugger/stack traces to any client.
+Recommendation: Move the secret to an environment variable, disable debug in production, and strip all secret/debug fields from `/health`. See AP-02/RP-02.
+
+### [CRITICAL] Plaintext password storage and comparison
+File: database.py:76-79; models.py:122-131, 105-120
+Description: User passwords (`senha`) are stored as plain literal strings on seed (`"admin123"`, `"123456"`, ...), inserted as plaintext in `criar_usuario`, and compared with plaintext equality in `login_usuario`'s SQL `WHERE email = '...' AND senha = '...'`.
+Impact: A database read (trivially achievable given the SQL injection findings above) yields every user's real password in cleartext; equivalent to no authentication security at all.
+Recommendation: Hash passwords with `werkzeug.security.generate_password_hash`/`check_password_hash` (already available via Flask) before storing or comparing. See AP-03/RP-03.
+
+### [CRITICAL] Password hash/field leaked via serialization
+File: models.py:72-87 (`get_todos_usuarios`), 89-103 (`get_usuario_por_id`); exposed by controllers.py:128-134, 136-144
+Description: The `senha` field is included in the dict returned by `get_todos_usuarios` and `get_usuario_por_id`, and both `listar_usuarios` (GET `/usuarios`) and `buscar_usuario` (GET `/usuarios/<id>`) return that dict verbatim as the JSON response body.
+Impact: Every client of the public API can retrieve every user's plaintext password by simply listing or looking up users — no injection needed.
+Recommendation: Exclude `senha` from any dict returned to a controller/serializer; only `login_usuario` should ever touch it, and only for the comparison itself. See AP-04/RP-04.
+
+### [HIGH] Admin routes bypass the model/controller layers entirely
+File: app.py:47-78
+Description: `/admin/reset-db` and `/admin/query` are defined directly in `app.py` and perform raw `db.cursor()`/SQL work in the routing file, ignoring the models.py layer that every other endpoint goes through.
+Impact: Two different data-access conventions exist in the same app; these routes can't be unit tested without booting Flask, and any future auth/validation added to the model layer silently doesn't apply to them.
+Recommendation: Move admin operations into a model/service function, and route through it like every other controller. See AP-05/RP-05.
+
+### [HIGH] Duplicated business logic across controllers and models
+File: controllers.py:24-54 vs 64-91 (product validation duplicated in `criar_produto`/`atualizar_produto`); models.py:171-201 vs 203-233 (`get_pedidos_usuario`/`get_todos_pedidos` duplicate the identical nested item-fetch loop)
+Description: The same validation rules and the same N+1 order/item-fetch logic are copy-pasted between two functions instead of extracted into one shared helper.
+Impact: A future fix (e.g. correcting a validation rule or the query pattern) applied to only one copy silently diverges from the other — a correctness bug waiting to happen.
+Recommendation: Extract shared validation into one function and shared order-hydration logic into one model helper. See AP-06/RP-06.
+
+### [MEDIUM] N+1 query pattern when hydrating orders
+File: models.py:187-199 (`get_pedidos_usuario`), 219-231 (`get_todos_pedidos`)
+Description: For every order, a separate query fetches its items, and for every item, another separate query fetches the product name — nested per-row queries instead of a join.
+Impact: Listing N orders with M items each triggers roughly `N + N*M` round-trips to SQLite; this degrades sharply as the order table grows.
+Recommendation: Replace with a single JOIN query across `pedidos`, `itens_pedido`, and `produtos`. See AP-08/RP-08.
+
+### [MEDIUM] Missing pagination on list endpoints
+File: controllers.py:5-12 (`listar_produtos`), 128-134 (`listar_usuarios`), 229-235 (`listar_todos_pedidos`); models.py:4-22, 72-87, 203-233
+Description: All three "list everything" endpoints query and return the entire table with no `limit`/`offset` or `page`/`per_page` parameters.
+Impact: Response size and latency grow linearly with table size; the current in-memory seed data hides this, but it will page-fault in a real dataset.
+Recommendation: Add `limit`/`offset` query params, default to a sane page size. See AP-09/RP-09.
+
+### [MEDIUM] Hardcoded configuration values embedded in handlers
+File: controllers.py:52 (`categorias_validas` list), controllers.py:242 (order status list)
+Description: The valid product categories and valid order statuses are literal lists embedded inline inside the controller functions rather than sourced from config/DB/enum module.
+Impact: Adding or renaming a category/status requires a source-code edit and redeploy instead of a configuration change.
+Recommendation: Move both lists to a shared config/constants module (or a `categorias`/`status` reference table). See AP-13/RP-13.
+
+### [LOW] print()-based logging throughout
+File: app.py:56, 83-86; controllers.py:8, 11, 57, 61, 106, 161, 179, 182, 208-210, 219, 248, 250
+Description: Operational logging (startup banner, errors, "email/SMS/push sent" simulation, login attempts) uses `print(...)` instead of the standard `logging` module.
+Impact: No log levels, no structured fields, no way to filter/route logs by severity in production — the `print` output is unusable for real operations.
+Recommendation: Replace with Python's `logging` module configured with a proper formatter/handler. See AP-12/RP-12.
+
+### [LOW] Unused imports
+File: database.py:2 (`import os`, never referenced); models.py:2 (`import sqlite3`, never referenced — only `get_db` from `database` is used)
+Description: Both modules import a name that is never used anywhere else in the file.
+Impact: Minor noise that obscures each file's actual dependencies.
+Recommendation: Remove both unused imports. See AP-14/RP-14.
+
+================================
+Total: 13 findings
+================================
+
+Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]
+```

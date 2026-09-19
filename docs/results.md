@@ -108,17 +108,15 @@ As 10 imagens acima cobrem só "a aplicação sobe depois da Fase 3". A tabela a
 | [`item6-go-gin-false-pass-reproduction.txt`](../evidence/logs/item6-go-gin-false-pass-reproduction.txt) | **Reprodução do bug**, não a execução original: mesmo repositório Go, mas com o padrão de função livre desativado numa cópia do script — reproduz o falso `PASS` que motivou a correção. A versão que produziu o falso PASS original nunca foi commitada, então isto é uma recriação rotulada, não um log histórico |
 | [`item7a-drop-table-blocked-project1.txt`](../evidence/logs/item7a-drop-table-blocked-project1.txt) | `DROP TABLE` bloqueado em `/admin/query` mesmo com token de admin válido — fecha o achado 1 da re-auditoria do code-smells-project |
 | [`item9-project2-checkout-server-log.txt`](../evidence/logs/item9-project2-checkout-server-log.txt) | Log do servidor durante o checkout do projeto 2 — número de cartão sempre mascarado (`4111********4444`), nunca em texto plano |
+| [`item1-2-skill-phase1-phase2-gate-code-smells-project.txt`](../evidence/logs/item1-2-skill-phase1-phase2-gate-code-smells-project.txt) | A skill rodando de verdade: bloco `PHASE 1: PROJECT ANALYSIS`, o relatório completo da Fase 2 (13 findings) e o gate `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]` parando a execução — capturado via `claude -p "/refactor-arch"` headless (só leitura) contra o estado pré-Fase-3 real do code-smells-project (commit `5f0e13b`, isolado num git worktree local) |
 
 O `PASS` do `arch-check.sh` de cada projeto (linha 1 da tabela acima) fecha também o fechamento do AP-16 no task-manager-api citado no [postmortem abaixo](#bug-encontrado-após-a-entrega).
 
 ### Lacunas de evidência
 
-Dois itens do "Screenshots ou logs" do enunciado ainda dependem de uma execução interativa da skill e não foram capturados nesta passada:
+**Fechado:** os blocos `PHASE 1/2/3` da skill rodando e o gate de confirmação da Fase 2 — cobertos por [`item1-2-skill-phase1-phase2-gate-code-smells-project.txt`](../evidence/logs/item1-2-skill-phase1-phase2-gate-code-smells-project.txt), uma execução real (não reconstruída) contra o commit pré-Fase-3 do code-smells-project, interrompida deliberadamente no gate — a Fase 3 não foi re-executada, já que o resultado dela já está commitado e documentado.
 
-1. **Blocos `PHASE 1/2/3` da skill rodando**, por projeto — a única prova hoje é o relatório já salvo em `reports/`.
-2. **A Fase 2 parando e pedindo confirmação (`y`)** — a regra inegociável nº 1 do `SKILL.md`.
-
-Ambos exigem rodar `claude "/refactor-arch"` interativamente e capturar o terminal; ficam como pendência explícita para revisão antes da entrega final.
+**Ainda pendente:** a mesma captura não foi repetida para `ecommerce-api-legacy` e `task-manager-api` — o code-smells-project foi escolhido como demonstração representativa do fluxo, que é idêntico nos 3 (mesmo `SKILL.md`, mesmo gate, ver [seção Comportamento entre Diferentes Stacks](#comportamento-entre-diferentes-stacks)). Reproduzir para os outros dois segue o mesmo procedimento: `git worktree add --detach <dir> <commit-pré-fase-3>` e `claude -p "/refactor-arch" --permission-mode dontAsk --allowedTools "Read Grep Glob" --output-format stream-json --verbose` dentro do worktree.
 
 ## Resumo das Auditorias
 
