@@ -14,10 +14,16 @@ def register_routes(app):
 
     app.add_url_rule("/produtos", "listar_produtos", product_controller.listar, methods=["GET"])
     app.add_url_rule("/produtos/busca", "buscar_produtos", product_controller.buscar, methods=["GET"])
-    app.add_url_rule("/produtos/<int:id>", "buscar_produto", product_controller.buscar_por_id, methods=["GET"])
+    app.add_url_rule(
+        "/produtos/<int:produto_id>", "buscar_produto", product_controller.buscar_por_id, methods=["GET"]
+    )
     app.add_url_rule("/produtos", "criar_produto", product_controller.criar, methods=["POST"])
-    app.add_url_rule("/produtos/<int:id>", "atualizar_produto", product_controller.atualizar, methods=["PUT"])
-    app.add_url_rule("/produtos/<int:id>", "deletar_produto", product_controller.deletar, methods=["DELETE"])
+    app.add_url_rule(
+        "/produtos/<int:produto_id>", "atualizar_produto", product_controller.atualizar, methods=["PUT"]
+    )
+    app.add_url_rule(
+        "/produtos/<int:produto_id>", "deletar_produto", product_controller.deletar, methods=["DELETE"]
+    )
 
     app.add_url_rule("/usuarios", "listar_usuarios", user_controller.listar, methods=["GET"])
     app.add_url_rule("/usuarios/<int:id>", "buscar_usuario", user_controller.buscar_por_id, methods=["GET"])

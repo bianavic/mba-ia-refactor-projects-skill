@@ -2,19 +2,13 @@ import logging
 
 from flask import jsonify, request
 
-from models.db import get_db
+from models import admin_model
 
 logger = logging.getLogger(__name__)
 
 
 def reset_database():
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("DELETE FROM itens_pedido")
-    cursor.execute("DELETE FROM pedidos")
-    cursor.execute("DELETE FROM produtos")
-    cursor.execute("DELETE FROM usuarios")
-    db.commit()
+    admin_model.reset_database()
     logger.warning("Banco de dados resetado via /admin/reset-db")
     return jsonify({"mensagem": "Banco de dados resetado", "sucesso": True}), 200
 
@@ -25,15 +19,10 @@ def executar_query():
     if not query:
         return jsonify({"erro": "Query não informada"}), 400
 
-    db = get_db()
-    cursor = db.cursor()
     try:
-        cursor.execute(query)
-        if query.strip().upper().startswith("SELECT"):
-            rows = cursor.fetchall()
-            result = [dict(row) for row in rows]
-            return jsonify({"dados": result, "sucesso": True}), 200
-        db.commit()
-        return jsonify({"mensagem": "Query executada", "sucesso": True}), 200
+        resultado = admin_model.executar_query(query)
+        return jsonify({"dados": resultado, "sucesso": True}), 200
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
