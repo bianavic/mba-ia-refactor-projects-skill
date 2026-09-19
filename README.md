@@ -32,6 +32,8 @@
   - [5.5 Comparação Antes e Depois](#55-comparação-antes-e-depois)
   - [5.6 Comportamento entre Diferentes Stacks](#56-comportamento-entre-diferentes-stacks)
   - [5.7 Checklist de Validação Preenchido](#57-checklist-de-validação-preenchido)
+  - [5.8 Bug Encontrado Após a Entrega](#58-bug-encontrado-após-a-entrega)
+  - [5.9 Re-auditoria do code-smells-project](#59-re-auditoria-do-code-smells-project)
 - [6. Estrutura Final do Projeto](#6-estrutura-final-do-projeto)
 - [7. Referências](#7-referências)
 - [8. Instruções Originais do Desafio](#8-instruções-originais-do-desafio)
@@ -277,23 +279,23 @@ O `SKILL.md` (código-fonte completo em [`code-smells-project/.claude/skills/ref
 | Arquivo | Fase | Área de conhecimento (seção 8.4) | Conteúdo |
 |---|---|---|---|
 | `project-analysis.md` | 1 | Análise de projeto | Heurísticas de detecção de linguagem (extensões/manifests), framework, banco de dados, domínio e classificação da arquitetura atual (monolítica / parcialmente em camadas / já em MVC) |
-| `anti-patterns-catalog.md` | 2 | Catálogo de anti-patterns | 15 anti-patterns (AP-01–AP-15) com sinais de detecção agnósticos de linguagem, distribuídos nas 4 severidades, incluindo detecção de APIs deprecated |
+| `anti-patterns-catalog.md` | 2 | Catálogo de anti-patterns | 16 anti-patterns (AP-01–AP-16) com sinais de detecção agnósticos de linguagem, distribuídos nas 4 severidades, incluindo detecção de APIs deprecated |
 | `audit-report-template.md` | 2 | Template de relatório | Formato exato do `ARCHITECTURE AUDIT REPORT` (cabeçalho, `## Summary`, `## Findings` ordenados por severidade, regras de preenchimento) |
 | `architecture-guidelines.md` | 3 | Guidelines de arquitetura | Responsabilidades de Models/Views-Routes/Controllers, camadas de suporte opcionais (config, services, middlewares, entry point), layouts por stack (Flask, Express) e regra para projetos parcialmente em camadas |
-| `refactoring-playbook.md` | 3 | Playbook de refatoração | 13 padrões de transformação (RP-01–RP-13, acima do mínimo de 8 exigido pela seção 8.4) com exemplos antes/depois em Python e Node.js, cada um referenciando o(s) AP-xx que resolve |
+| `refactoring-playbook.md` | 3 | Playbook de refatoração | 15 padrões de transformação (RP-01–RP-15, acima do mínimo de 8 exigido pela seção 8.4) com exemplos antes/depois em Python e Node.js, cada um referenciando o(s) AP-xx que resolve |
 
 Cada finding do relatório de Fase 2 referencia um `AP-xx`, e cada `AP-xx` do catálogo é referenciado por um ou mais `RP-xx` do playbook — esse mapeamento cruzado é o que permite à Fase 3 decidir mecanicamente qual transformação aplicar a partir do próprio relatório da Fase 2, em vez de reinventar a correção a cada execução.
 
 ### 3.5 Catálogo de Anti-patterns
 
-O catálogo tem 15 entradas (acima do mínimo de 8 exigido pela seção 8.4, "Requisitos da skill"), distribuídas assim:
+O catálogo tem 16 entradas (acima do mínimo de 8 exigido pela seção 8.4, "Requisitos da skill"), distribuídas assim:
 
 - **CRITICAL (4):** AP-01 SQL Injection, AP-02 Segredos/credenciais hardcoded, AP-03 Hashing de senha quebrado/falso, AP-04 Dado sensível vazado via serialização.
-- **HIGH (3):** AP-05 God Class, AP-06 Lógica de negócio duplicada, AP-07 Estado mutável global.
+- **HIGH (4):** AP-05 God Class, AP-06 Lógica de negócio duplicada, AP-07 Estado mutável global, AP-16 Persistência/ORM chamada direto na rota.
 - **MEDIUM (4):** AP-08 N+1, AP-09 Ausência de paginação, AP-10 Camada de código morta/desconectada, AP-11 Uso de API deprecated.
 - **LOW (4):** AP-12 Logging via print/console, AP-13 Configuração/valores mágicos hardcoded, AP-14 Imports não utilizados, AP-15 Idioma/nomenclatura inconsistente.
 
-Todos os 15 foram escolhidos porque apareceram, na prática, em pelo menos um dos 3 projetos durante a análise manual (seção 2) — nenhum é hipotético. A detecção de API deprecated (AP-11) foi incluída como sua própria categoria (e não apenas um exemplo dentro de outra) porque o enunciado exige isso explicitamente; ela cobre tanto Python (`datetime.utcnow()`, `imp`, `flask.ext.*`) quanto Node.js (`new Buffer()`, `crypto.createCipher`), e foi validada na prática no `task-manager-api`, que usa `datetime.utcnow()` em 18 pontos do código.
+Os 15 primeiros foram escolhidos porque apareceram, na prática, em pelo menos um dos 3 projetos durante a análise manual (seção 2) — nenhum é hipotético. O AP-16 entrou depois, pelo mesmo critério e pelo motivo oposto: ele descreve um problema real que ficou no `task-manager-api` e atravessou a auditoria justamente por não estar catalogado ([seção 5.8](#58-bug-encontrado-após-a-entrega)). A detecção de API deprecated (AP-11) foi incluída como sua própria categoria (e não apenas um exemplo dentro de outra) porque o enunciado exige isso explicitamente; ela cobre tanto Python (`datetime.utcnow()`, `imp`, `flask.ext.*`) quanto Node.js (`new Buffer()`, `crypto.createCipher`), e foi validada na prática no `task-manager-api`, que usa `datetime.utcnow()` em 18 pontos do código.
 
 ### 3.6 Estratégia Agnóstica de Tecnologia
 
@@ -363,7 +365,7 @@ Relatório salvo em [`reports/audit-project-2.md`](reports/audit-project-2.md).
 
 ```bash
 cd task-manager-api
-pip install -r requirements.txt
+pip install -r requirements.txt/btw
 claude "/refactor-arch"
 ```
 
@@ -374,6 +376,8 @@ Relatório salvo em [`reports/audit-project-3.md`](reports/audit-project-3.md).
 Após a Fase 3 de cada projeto, a validação seguiu o checklist da seção 8.4 — **preenchido projeto a projeto na [seção 5.7](#57-checklist-de-validação-preenchido)**: inicializar a aplicação (`python app.py` ou `node src/app.js`) e exercitar cada endpoint original com `curl` (ou o arquivo `api.http` do `ecommerce-api-legacy`), comparando o status/response shape com o comportamento pré-refatoração — a única mudança de shape esperada é a remoção do campo de senha/hash das respostas que antes o vazavam.
 
 Cada projeto tem um `manual-tests.sh` na sua própria pasta, cobrindo todos os endpoints reais (sucesso, validação, 404/409, e os casos de segurança citados no respectivo relatório de auditoria — ex.: tentativa de SQL injection no login do `code-smells-project`, gate do `ADMIN_TOKEN`): [`code-smells-project/manual-tests.sh`](code-smells-project/manual-tests.sh), [`ecommerce-api-legacy/manual-tests.sh`](ecommerce-api-legacy/manual-tests.sh), [`task-manager-api/manual-tests.sh`](task-manager-api/manual-tests.sh).
+
+Cada projeto tem também um `arch-check.sh` na mesma pasta, que valida a estrutura em vez do comportamento: falha se algum arquivo de rota ainda chamar a persistência diretamente (AP-16). Os dois se complementam — ver [seção 5.8](#58-bug-encontrado-após-a-entrega): [`code-smells-project/arch-check.sh`](code-smells-project/arch-check.sh), [`ecommerce-api-legacy/arch-check.sh`](ecommerce-api-legacy/arch-check.sh), [`task-manager-api/arch-check.sh`](task-manager-api/arch-check.sh).
 
 ### 4.6 Evidências de Execução
 
@@ -526,15 +530,16 @@ src/utils.js                  src/controllers/{checkout,report,user}Controller.j
                                src/utils/{crypto,logger}.js
 ```
 
-**task-manager-api** — camadas já existentes, ajustadas *in place* (as únicas adições da Fase 3 foram `config/` e um novo service):
+**task-manager-api** — camadas já existentes, ajustadas *in place* (adições da Fase 3: `config/`, um novo service, e — no fechamento do bug da seção 5.8 — `controllers/`):
 
 ```
 Antes (parcial)                        Depois
 app.py                                  app.py                        (SECRET_KEY/debug via env)
 models/{user,task,category}.py          models/{user,task,category}.py (hashing correto, sem duplicação)
-routes/{task,user,report}_routes.py     routes/{task,user,report}_routes.py (lógica delegada ao model/service)
-services/notification_service.py        config/settings.py            (novo)
-utils/helpers.py                        services/report_service.py    (novo — agregação centralizada)
+routes/{task,user,report}_routes.py     routes/{task,user,report}_routes.py (parse → 1 chamada de controller/service → resposta)
+services/notification_service.py        controllers/{task,user}_controller.py (novo — fecha o AP-16, ver 5.8)
+utils/helpers.py                        config/settings.py            (novo)
+                                         services/report_service.py    (novo — agregação + CRUD de categorias)
                                          middlewares/error_handler.py  (novo — ajuste pós-Fase 3, ver 5.7 nota 4)
                                          (notification_service.py removido — código morto)
 ```
@@ -572,12 +577,14 @@ Checklist da seção 8.4 ("Validação"), preenchido para cada projeto após a F
 - [x] Configuração extraída (sem hardcoded)     → config/settings.py (SECRET_KEY via env)
 - [x] Models criados para abstrair dados        → models/{db,order,product,user}_model.py
 - [x] Views/Routes separadas                    → routes/routes.py
-- [x] Controllers concentram o fluxo            → controllers/{admin,order,product,system,user}_controller.py
+- [x] Controllers concentram o fluxo            → controllers/{admin,order,product,system,user}_controller.py ⁵
 - [x] Error handling centralizado               → middlewares/error_handler.py
 - [x] Entry point claro                         → app.py (composition root)
 - [x] Aplicação inicia sem erros                → evidence/project1-boot.png
 - [x] Endpoints originais respondem             → seção 4.6 (evidence/project1-usuarios-sem-senha.png, project1-admin-bloqueado.png)
 ```
+
+⁵ Na entrega original, `admin_controller.py` era exceção a este item: chamava `models.db.get_db()`/`cursor.execute()` diretamente, e o endpoint `POST /admin/query` continuava executando qualquer SQL enviado pelo cliente (a autenticação adicionada na Fase 3 cobria só a metade da recomendação original da seção 5.2). Uma segunda auditoria encontrou isso e mais 5 achados introduzidos pela própria Fase 3 — ver [seção 5.9](#59-re-auditoria-do-code-smells-project).
 
 **Projeto 2 — ecommerce-api-legacy (Node.js/Express)**
 
@@ -632,7 +639,7 @@ Checklist da seção 8.4 ("Validação"), preenchido para cada projeto após a F
 - [x] Configuração extraída (sem hardcoded)     → config/settings.py (SECRET_KEY, DEBUG, HOST, PORT via env)
 - [x] Models criados para abstrair dados        → models/{user,task,category}.py (regra de negócio movida para cá)
 - [x] Views/Routes separadas                    → routes/{task,user,report}_routes.py (blueprints)
-- [x] Controllers concentram o fluxo            → os blueprints acumulam o papel de controller ³
+- [x] Controllers concentram o fluxo            → controllers/{task,user}_controller.py + services/report_service.py ³
 - [x] Error handling centralizado               → middlewares/error_handler.py ⁴
 - [x] Entry point claro                         → app.py (registra blueprints, config e error handlers)
 - [x] Aplicação inicia sem erros                → evidence/project3-boot.png
@@ -641,9 +648,74 @@ Checklist da seção 8.4 ("Validação"), preenchido para cada projeto após a F
 
 ² Conforme a regra "Partially-layered projects" do `architecture-guidelines.md` (seção 3.8): projeto que já tem camadas não é reconstruído do zero — a Fase 3 corrigiu as responsabilidades dentro das camadas existentes em vez de renomear pastas.
 
-³ Diferente dos projetos 1 e 2, este projeto não ganhou uma pasta `controllers/`: no Flask, um blueprint já é a camada de entrada HTTP, e a separação exigida pelo checklist foi obtida movendo a regra de negócio das rotas para `models/` e `services/report_service.py`, deixando os blueprints apenas com o fluxo (parse do request → chamada de model/service → resposta).
+³ Na entrega original, este projeto não tinha ganhado uma pasta `controllers/` — a separação vinha só de mover a regra de negócio das rotas para `models/`/`services/`, com o blueprint ainda chamando `Task.query`/`db.session.*` diretamente (ver o bug descrito na seção 5.8). Isso foi corrigido depois: `controllers/task_controller.py` e `controllers/user_controller.py` agora concentram parse → validação → persistência para tasks e usuários, e `services/report_service.py` foi estendido para cobrir também o CRUD de categorias — os blueprints ficaram só com parse do request → uma chamada → resposta, fechando o `arch-check.sh` (seção 5.8).
 
 ⁴ Este foi o único item do checklist que a Fase 3 original não entregou: o projeto tratava erros com `try/except` repetido rota a rota, e a skill preservou esse padrão em vez de centralizá-lo. O handler central foi adicionado depois, em ajuste manual de fechamento da entrega, para alinhar o projeto 3 aos outros dois — ele converte `HTTPException` e exceções não tratadas em JSON preservando os status codes originais (404, 405, 400, 500), sem alterar nenhuma resposta já existente nas rotas.
+
+### 5.8 Bug Encontrado Após a Entrega
+
+**O bug.** A primeira refatoração do `task-manager-api` (commit [`5ef74b3`](https://github.com/bianavic/mba-ia-refactor-projects-skill/commit/5ef74b3)) manteve chamadas de persistência (`.query()`, `db.session.*`, `Model.get_by_id()`) direto nas rotas, mesmo já existindo `models/`, `routes/` e `services/`. O caso mais claro era `report_routes.py:16`, que chamava `User.get_by_id(user_id)` sem passar por nenhuma camada intermediária.
+
+**Causa raiz (dupla).** O `architecture-guidelines.md` liberava explicitamente rotas com persistência inline em projetos já em camadas: a regra "Partially-layered projects" mandava não criar `controllers/` quando as rotas "já cumprem esse papel", e o critério para "já cumprem" era ausência de *duplicação* (AP-06), não ausência de acesso a dados. Como as queries eram únicas por rota, a regra deixava de ser uma permissão e virava uma proibição de criar o controller. Somado a isso, o catálogo de anti-patterns não tinha nenhuma entrada para o padrão — então a Fase 2 sequer o reportava como finding.
+
+**Por que a validação não pegou.** A validação seguiu o checklist da seção 8.4, preenchido projeto a projeto na [seção 5.7](#57-checklist-de-validação-preenchido), e cada projeto tem um `manual-tests.sh` na sua própria pasta cobrindo todos os endpoints reais via HTTP (sucesso, validação, 404/409 e os casos de segurança citados no respectivo relatório de auditoria). Mas esses são testes de caixa-preta: a resposta HTTP de uma rota que consulta o ORM diretamente é idêntica à de uma rota que delega a um controller/service. As evidências da seção 4.6 têm a mesma limitação. O bug só apareceu em revisão externa do código.
+
+**Correção aplicada.**
+
+1. `architecture-guidelines.md` — a exceção foi removida: chamada de ORM/query dentro de rota é sempre violação de Views/Routes, inclusive em projeto que já tem camadas.
+2. `anti-patterns-catalog.md` — criado o **AP-16 (Persistence/ORM Calls Inline in Routes)**, severidade HIGH, que cobre também finders de Model (`Model.get_by_id`, `Model.find_by_x`), não apenas ORM cru. Entrou como HIGH porque é violação forte de MVC pela escala da 8.2 — como LOW, seria detectado e despriorizado no mesmo relatório.
+3. `SKILL.md` — a checagem virou passo obrigatório da Fase 3 (passo 3.6) nas 3 cópias vendorizadas da skill, para que execuções futuras não dependam nem de o catálogo citar o padrão exato nem de revisão humana. É um passo mecânico, não um julgamento da IA.
+4. `refactoring-playbook.md` — criado o **RP-14 (Move persistence out of routes)**, com o antes/depois da transformação, para que a Fase 3 não tenha que reinventar a correção.
+5. `arch-check.sh` — a mesma checagem mecanizada, um script por projeto, ao lado do `manual-tests.sh` de cada um: o `manual-tests.sh` prova o comportamento via HTTP, o `arch-check.sh` prova a estrutura lendo o código. Sai com código diferente de zero em qualquer ocorrência.
+
+```bash
+cd code-smells-project    && ./arch-check.sh
+cd ../ecommerce-api-legacy && ./arch-check.sh
+cd ../task-manager-api     && ./arch-check.sh
+```
+
+**Status.** Os 3 projetos passam. O `task-manager-api` foi o último a fechar: as rotas foram refatoradas para `controllers/task_controller.py`, `controllers/user_controller.py` e `services/report_service.py` (categorias), e `./arch-check.sh` agora retorna `PASS: no route in task-manager-api touches persistence directly.` — auditoria de acompanhamento em [`reports/audit-project-3-part2.md`](reports/audit-project-3-part2.md).
+
+### 5.9 Re-auditoria do code-smells-project
+
+**O que motivou.** Uma segunda execução da Fase 2 no `code-smells-project`, feita após a entrega original (seção 5.2), revisitou os 13 achados de então e encontrou que dois dos CRITICAL/HIGH tinham sido corrigidos só pela metade, além de 5 achados novos — introduzidos pela própria Fase 3, não pelo código original.
+
+**Achados que sobreviveram parcialmente à Fase 3 original.**
+1. **[CRITICAL]** `POST /admin/query` — a correção original só adicionou autenticação (`requer_admin`); qualquer chamador com o token continuava podendo executar SQL arbitrário, incluindo `DROP TABLE` ou exclusão em massa.
+2. **[HIGH]** `admin_controller.py` continuava chamando `models.db.get_db()`/`cursor.execute()` diretamente — a mesma violação de "Controllers concentram o fluxo" da seção 5.7, só que movida de `app.py` (entrega original) para dentro do controller, sem nunca ter passado por um model.
+
+**Achados novos, introduzidos pela própria Fase 3.**
+3. **[HIGH]** paginação (`page`/`per_page`) reimplementada de forma idêntica em 3 controllers (`product`, `order`, `user`) em vez de um helper compartilhado.
+4. **[MEDIUM]** N+1 na criação de pedidos — `order_model.criar()` buscava um produto por item em vez de uma query `IN (...)`.
+5. **[MEDIUM]** `/produtos/busca` sem paginação, ao contrário de `/produtos`.
+6. **[LOW]** limiares/taxas de desconto do relatório de vendas hardcoded na função.
+7. **[LOW]** parâmetro `id` sobrescrevendo o builtin do Python em 3 handlers de produto.
+
+**Por que a validação original (seção 5.7) não pegou isso.** O checklist da seção 8.4 valida uma execução da Fase 2 seguida de uma Fase 3 — não prevê uma segunda passada para confirmar que a correção resolveu o espírito da recomendação, não só a letra. O achado 1 é o mesmo tipo de lacuna descrita na seção 5.8 para o projeto 3: a recomendação original dizia "delete estes endpoints, ou proteja com autenticação **e** nunca exponha execução de SQL bruto sobre HTTP" — a Fase 3 aplicou a primeira parte e ignorou a segunda. Os achados 3-7 simplesmente não existiam na auditoria original: foram introduzidos pela refatoração (paginação nova, endpoint de busca novo), então só uma re-auditoria depois da Fase 3 poderia pegá-los.
+
+**Correção aplicada.**
+1. `models/admin_model.py` criado — `reset_database()` e `executar_query()` movidos para lá; `executar_query()` agora rejeita qualquer instrução que não comece com `SELECT`.
+2. `controllers/admin_controller.py` — não importa mais `models.db`; delega tudo ao model novo.
+3. `utils/pagination.py` criado com `parse_pagination()`; os 3 controllers passaram a usá-lo em vez de reimplementar o parsing.
+4. `models/order_model.py` — `criar()` busca todos os produtos em uma única query `WHERE id IN (...)` em vez de uma por item.
+5. `models/product_model.py` / `controllers/product_controller.py` — `buscar()` (endpoint `/produtos/busca`) ganhou `page`/`per_page`.
+6. `config/settings.py` — faixas de desconto extraídas para `FAIXAS_DESCONTO_FATURAMENTO`.
+7. `routes/routes.py` / `controllers/product_controller.py` — parâmetro `id` renomeado para `produto_id`.
+
+Relatório completo da re-auditoria: [`reports/audit-project-1-part2.md`](reports/audit-project-1-part2.md).
+
+```bash
+cd code-smells-project
+./arch-check.sh
+# PASS: no route in code-smells-project touches persistence directly.
+
+# SQL destrutivo agora é bloqueado mesmo com token de admin válido:
+curl -s -X POST http://localhost:5000/admin/query -H "X-Admin-Token: <token>" \
+  -H "Content-Type: application/json" -d '{"sql":"DROP TABLE produtos"}'
+# {"erro":"Somente instruções SELECT são permitidas nesta ferramenta"}
+```
+
+**Status.** Os 7 achados fechados; `manual-tests.sh` e `arch-check.sh` passam sem regressão; nenhum endpoint (método + caminho) mudou — o único comportamento alterado foi o caminho destrutivo de `/admin/query`, que era justamente o objetivo da correção.
 
 ## 6. Estrutura Final do Projeto
 
@@ -660,7 +732,8 @@ mba-ia-refactor-projects-skill/
 │   ├── middlewares/
 │   ├── routes/
 │   ├── requirements.txt
-│   └── manual-tests.sh                    # curl de validação manual (seção 4.5)
+│   ├── manual-tests.sh                    # curl de validação manual (seção 4.5)
+│   └── arch-check.sh                      # checagem estrutural AP-16 (seções 4.5 e 5.8)
 │
 ├── ecommerce-api-legacy/                  # Projeto 2 — Node.js/Express (LMS)
 │   ├── .claude/skills/refactor-arch/      # cópia da skill
@@ -674,19 +747,23 @@ mba-ia-refactor-projects-skill/
 │   │   ├── routes/
 │   │   └── utils/
 │   ├── package.json
-│   └── manual-tests.sh                    # curl de validação manual (seção 4.5)
+│   ├── manual-tests.sh                    # curl de validação manual (seção 4.5)
+│   └── arch-check.sh                      # checagem estrutural AP-16 (seções 4.5 e 5.8)
 │
 ├── task-manager-api/                      # Projeto 3 — Python/Flask (Task Manager)
 │   ├── .claude/skills/refactor-arch/      # cópia da skill
 │   ├── app.py                             # composition root
 │   ├── config/settings.py                 # novo
+│   ├── controllers/                       # novo — task_controller.py, user_controller.py (fecha o AP-16, seção 5.8)
 │   ├── middlewares/error_handler.py       # novo — handler central de erros
 │   ├── models/
 │   ├── routes/
-│   ├── services/                          # report_service.py novo; notification_service.py removido
+│   ├── services/                          # report_service.py estendido (+ categorias); notification_service.py removido
+│   ├── tests/                             # novo — pytest unitário dos controllers (task/user)
 │   ├── utils/
-│   ├── requirements.txt
-│   └── manual-tests.sh                    # curl de validação manual (seção 4.5)
+│   ├── requirements.txt                   # inclui pytest
+│   ├── manual-tests.sh                    # curl de validação manual (seção 4.5)
+│   └── arch-check.sh                      # checagem estrutural AP-16 (seções 4.5 e 5.8)
 │
 ├── reports/
 │   ├── audit-project-1.md

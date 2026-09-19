@@ -80,7 +80,8 @@ Goal: restructure the project into MVC and prove it still works. Only start afte
    - The application boots without errors.
    - Every original endpoint still responds (exercise them, e.g. with `curl` or the project's existing HTTP client file).
    - Re-check the codebase against the catalog to confirm the confirmed findings are resolved.
-6. Print a completion summary in this exact shape:
+6. **Static AP-16 audit — mandatory, never skipped.** Endpoint tests from step 5 cannot substitute for this check (see `references/architecture-guidelines.md`, *Verifying AP-16 mechanically*, for why and for the exact detection patterns to grep for). Confirm zero direct-persistence hits in the route/view files before this phase can be reported complete — "the project already has folders" is not an exemption. Each project in this repository ships this check as `./arch-check.sh`, next to its `manual-tests.sh` — it exits non-zero on any hit.
+7. Print a completion summary in this exact shape:
 
 ```
 ================================
@@ -92,6 +93,7 @@ PHASE 3: REFACTORING COMPLETE
 ## Validation
   ✓ Application boots without errors
   ✓ All endpoints respond correctly
+  ✓ No route touches persistence directly (AP-16)
   ✓ <N> anti-patterns resolved
 ================================
 ```
@@ -102,4 +104,5 @@ PHASE 3: REFACTORING COMPLETE
 - Every finding must cite a real file and line range — verify by reading the file, never guess.
 - Do not assume Python/Flask: detect the stack fresh for every project this skill runs against.
 - Preserve existing functionality; refactoring must not change observable behavior or break any endpoint.
+- No route/view file may call persistence directly after Phase 3 — prove it with the mechanical check (Phase 3, step 6), never by eyeballing the diff.
 - If Phase 3 validation fails (boot error or broken endpoint), fix the regression before reporting completion — do not report success with known failures.

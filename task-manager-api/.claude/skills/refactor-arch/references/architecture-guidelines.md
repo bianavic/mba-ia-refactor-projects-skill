@@ -69,6 +69,24 @@ src/
 - If routes contain duplicated business logic (AP-06), move the shared rule into the existing Model/Service and have every route call it.
 - If a `services/` folder exists but is dead code (AP-10), either wire it into the appropriate route/controller or remove it — never leave it both present and unused. If a `services/` folder is already wired for *some* routes in a module (e.g. only report reads), extend it to cover every route in that same module rather than leaving a half-migrated file.
 
+### Verifying AP-16 mechanically (Phase 3, step 6)
+
+Endpoint tests cannot verify this rule: a route that queries the DB directly and one that
+properly delegates to a Controller/Service return exactly the same HTTP response, so functional
+testing alone cannot tell them apart. Verification has to be structural — grep the route/view
+files themselves and confirm there are zero direct persistence calls left:
+
+- ORM session calls (`db.session.add/commit/delete`)
+- query attributes (`Model.query...`)
+- Model finders/writers (`Model.find/findById/create/update/get_by_id/find_by_x(...)`)
+- driver/cursor calls (`cursor.execute`, `db.run/all/get`)
+- raw SQL literals
+
+Adapt the patterns to the detected stack. Any hit must be moved into a Controller/Service before
+Phase 3 can be reported complete — "the project already has folders" is not an exemption (see
+*Partially-layered projects* above). This check is mandatory and is never skipped, even when
+every endpoint from step 5 responds correctly.
+
 ## Non-negotiable output constraints
 
 - Every original endpoint (method + path) must still exist and behave the same after the refactor.

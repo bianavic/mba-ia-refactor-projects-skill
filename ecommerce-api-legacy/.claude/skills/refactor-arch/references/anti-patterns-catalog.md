@@ -36,6 +36,10 @@ Severity scale (see `SKILL.md` for the full definitions):
 - **Signals:** the same rule (a date/status computation, a validation, a derived field) is re-implemented inline in multiple route handlers instead of calling one shared model/service method.
 - **Impact:** the duplicated copies silently diverge the moment only one of them is fixed — a correctness bug waiting to happen, and a direct Controller/Model responsibility violation.
 
+### AP-16 — Persistence/ORM Calls Inline in Routes
+- **Signals:** a route/view handler reaches the persistence layer itself instead of making exactly one Controller/Service call — a query/session call (`Model.query...`, `db.session.add/commit/delete`, `Model.find/findOne/findById/create/update/destroy`, a raw SQL `execute`/`query`) or a Model finder classmethod (`Model.get_by_id(...)`, `Model.find_by_x(...)`). Report it even when the call appears only once, and even when the project already has `services/`/`controllers/` folders that other routes use.
+- **Impact:** the handler cannot be tested without a live database, and holds responsibilities beyond parse → call → serialize. Because each individual call looks harmless in isolation, the violation survives any review that only looks for duplication.
+
 ### AP-07 — Global Mutable State
 - **Signals:** module-level mutable variables (a plain object/dict used as a cache, a counter) that are written to from multiple request handlers with no synchronization.
 - **Impact:** race conditions and non-deterministic behavior under concurrent requests; also usually indicates a caching/aggregation concern that belongs in a dedicated layer.
@@ -81,4 +85,4 @@ Severity scale (see `SKILL.md` for the full definitions):
 
 ---
 
-This catalog has 15 entries across all four severities — well above the minimum of 8 — and always includes at least one CRITICAL/HIGH, several MEDIUM, and several LOW so any project audited against it can satisfy the required finding distribution, provided the underlying code actually exhibits the pattern.
+This catalog has 16 entries across all four severities — well above the minimum of 8 — and always includes at least one CRITICAL/HIGH, several MEDIUM, and several LOW so any project audited against it can satisfy the required finding distribution, provided the underlying code actually exhibits the pattern.
