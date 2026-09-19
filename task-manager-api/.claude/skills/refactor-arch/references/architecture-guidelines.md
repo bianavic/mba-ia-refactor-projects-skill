@@ -82,7 +82,11 @@ files themselves and confirm there are zero direct persistence calls left:
 - driver/cursor calls (`cursor.execute`, `db.run/all/get`)
 - raw SQL literals
 
-Adapt the patterns to the detected stack. Any hit must be moved into a Controller/Service before
+Adapt the patterns to the detected stack — `references/verification-recipes.md` has the signals per
+language, the bundled `scripts/arch-check.sh`, and the procedure for a stack not listed there. Note
+especially that languages exposing persistence as free functions rather than methods (Go, Elixir,
+Rust) need a different pattern shape: a receiver-based regex silently reports a clean result on a
+route file that is full of violations. Any hit must be moved into a Controller/Service before
 Phase 3 can be reported complete — "the project already has folders" is not an exemption (see
 *Partially-layered projects* above). This check is mandatory and is never skipped, even when
 every endpoint from step 5 responds correctly.
