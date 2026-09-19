@@ -25,6 +25,15 @@ resolved — GET /tasks and GET /tasks/search were fixed, but GET /users was not
 still returns the full table unpaginated. Carried into this report's MEDIUM findings below
 rather than counted as new.
 
+> **Correction (2026-09-19):** the "GET /users was not touched" claim above, and the
+> "Missing pagination on list endpoints" finding below, were already inaccurate for `GET
+> /users` at the time this report was written — `controllers/user_controller.py:22-23`
+> (`list_users`) already paginates via `User.query.paginate(page=page, per_page=per_page,
+> ...)`, and `routes/user_routes.py:9-10` already reads `page`/`per_page` from the query
+> string. The rest of this report is left as originally written; only `GET /users`
+> pagination should be treated as resolved, not open. `GET /categories`
+> (services/report_service.py:139-148) is unaffected by this correction and remains open.
+
 ## Summary
 CRITICAL: 0 | HIGH: 2 | MEDIUM: 2 | LOW: 3
 
@@ -61,7 +70,10 @@ File: routes/report_routes.py:29-31 → services/report_service.py:139-148 (`GET
 Description: Both endpoints return the entire table with no `page`/`per_page` or limit/offset parameters, unlike `GET /tasks` which already paginates.
 Impact: Response size and latency grow unbounded with table size; combined with the N+1 above, `GET /users` is the most expensive endpoint in the API today.
 Recommendation: See AP-09 / RP-07 — apply the same `.paginate(page=..., per_page=...)` pattern already used in `get_tasks`.
-Status: Still open (reappeared) for GET /users — audit-project-3.md flagged this exact endpoint and it was never fixed; GET /tasks and GET /tasks/search from that same old finding are now resolved. GET /categories is a new location, not in the old report.
+Status: ~~Still open (reappeared) for GET /users~~ — see "Correction (2026-09-19)" above:
+this was already resolved when this report was written (`controllers/user_controller.py`
+paginates `GET /users`). GET /tasks and GET /tasks/search from the original old finding are
+also resolved. GET /categories is a new location, not in the old report, and remains open.
 
 ### [LOW] print()-based logging instead of the standard logging module
 File: utils/helpers.py:32-36 (`log_action`)
