@@ -10,13 +10,14 @@ ecommerce-api-legacy/    Projeto 2 — Node.js/Express, sqlite3       (LMS/e-lea
 task-manager-api/        Projeto 3 — Python/Flask + SQLAlchemy      (task manager)
 reports/                 relatórios de auditoria (saída da Fase 2)
 evidence/                screenshots + logs citados na seção 3.4 do README
-docs/                    deep dives (análise manual, design da skill, resultados, etc.)
+docs/                    deep dives + `challenge-original.md` (o enunciado do desafio)
+scripts/                 `sync-docs.sh` — regenera as partes geradas do README e de docs/
 ```
 
 ## A skill vive em triplicata
 
 `.claude/skills/refactor-arch/` existe **idêntica** dentro dos 3 projetos — é exigência
-do enunciado ([seção 9.4.3 do enunciado original](docs/challenge-original.md#94-requisitos)),
+do enunciado ([seção 3 do enunciado](docs/challenge-original.md#3-execução-da-skill)),
 não duplicação acidental.
 
 - Qualquer edição em `SKILL.md`, `references/` ou `scripts/` deve ser replicada nas 3 cópias.
@@ -26,12 +27,14 @@ não duplicação acidental.
 
 ## Relatórios
 
-- `reports/audit-project-N.md` — N = 1 (code-smells), 2 (ecommerce), 3 (task-manager),
-  4 (projeto Go/Gin externo, só Fases 1 e 2 — o código-fonte dele não é versionado aqui).
+- `reports/audit-project-N.md` — N = 1 (code-smells), 2 (ecommerce), 3 (task-manager)
 - Re-auditoria de um projeto já refatorado vai para `audit-project-N-part2.md`, com uma
   seção `## Resolved since audit-project-N.md` no topo. **Nunca sobrescreva** um relatório
   anterior: ele é a evidência do estado "antes".
-- A Fase 2 da skill só imprime o relatório no terminal; salvar em `reports/` é passo manual.
+- A Fase 2 **salva sozinha** em `reports/`: quem manda é
+  `references/audit-report-template.md` (§ Execution order, passo 3), que resolve a raiz do
+  repo com `git rev-parse --show-toplevel`. Não é passo manual. O que continua manual é o
+  rollup para README/`docs/` — veja a seção abaixo.
 
 ## Antes de dar uma refatoração por concluída
 
@@ -53,12 +56,34 @@ os dois checam a mesma regra (AP-16) e ambos passam nos 3 projetos.
 
 ## README.md e docs/
 
+Depois de **toda** rodada da skill, na raiz do repo:
+
+```bash
+claude "/sync-docs"      # ou: scripts/sync-docs.sh + as partes de julgamento
+```
+
 O README é o documento entregue, em português, com índice e âncoras — o leitor primário é
 o avaliador do desafio, então nenhum item obrigatório (seções 1-4) pode ficar só atrás de
-um link para `docs/`. Ao mudar a estrutura de um projeto ou o resultado de uma auditoria,
-atualize também `docs/results.md` (auditorias, checklist, evidências) e
-`docs/project-structure.md` (árvore final) — e a tabela consolidada da seção 3 do README,
-se o resumo mudar. Atualize o índice do README se criar/renomear seção.
+um link para `docs/`. A tabela [Conformidade com o enunciado](README.md#conformidade-com-o-enunciado)
+é o que prova isso; atualize-a se criar/renomear seção, junto com o índice.
+
+Quem escreve o quê:
+
+| Alvo | Quem atualiza | Gatilho |
+|---|---|---|
+| README §3.1 (tabela de findings) | `scripts/sync-docs.sh`, entre marcadores | relatório novo em `reports/` |
+| README §3.2 + `docs/project-structure.md` (árvores antes/depois) | `scripts/sync-docs.sh`, entre marcadores | estrutura de um projeto mudou |
+| `docs/results.md` (rodada a rodada) | comando `/sync-docs` | relatório novo |
+| README §3.3 (checklist) e Critérios de Aceite | comando `/sync-docs` | fim de uma Fase 3 |
+| README §3.4 + `evidence/` | você, ao capturar a evidência | aplicação rodada após refatoração |
+| README §1, §2, §3.5 (`<!-- TODO -->`) | você | análise manual / design da skill |
+
+Blocos entre `<!-- BEGIN:x -->` e `<!-- END:x -->` são **gerados** — editá-los à mão é
+desfeito na rodada seguinte. Se o conteúdo está errado, o defeito está no
+`scripts/sync-docs.sh` ou no relatório de origem.
+
+`scripts/sync-docs.sh --check` sai 1 se README/`docs/` não refletirem `reports/` — rode
+antes de encerrar a tarefa, junto com o `arch-check.sh` do projeto alterado.
 
 ## Convenções
 

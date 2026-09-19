@@ -6,7 +6,7 @@
 
 ---
 
-## 2.1 code-smells-project
+## 1.1 code-smells-project
 | | |
 |---|---|
 | **Stack** | Flask 3.1.1 + flask-cors, SQLite (`loja.db`) |
@@ -66,13 +66,13 @@
 
 </details>
 
-## 2.2 ecommerce-api-legacy
+## 1.2 ecommerce-api-legacy
 | | |
 |---|---|
 | **Stack** | Node.js + Express 4.18.2, SQLite (`sqlite3`) |
 | **Domínio** | LMS — E-learning (usuários, cursos, matrículas, pagamentos, auditoria) |
 | **Arquivos** | 3 (`src/app.js`, `src/AppManager.js`, `src/utils.js`), ~180 linhas, sem separação de camadas |
-| **Resumo** | CRITICAL: 2 · HIGH: 1 · MEDIUM: 2 · LOW: 2 — **Total: 7** ||
+| **Resumo** | CRITICAL: 2 · HIGH: 1 · MEDIUM: 2 · LOW: 2 — **Total: 7** |
 
 | Severidade | Achado | Localização |
 |---|---|---|
@@ -125,7 +125,7 @@
 
 </details>
 
-## 2.3 task-manager-api
+## 1.3 task-manager-api
 | | |
 |---|---|
 | **Stack** | Flask + Flask-SQLAlchemy, SQLite (`tasks.db`) |
@@ -185,7 +185,7 @@
 - **Impacto:** ruído que dificulta entender as dependências reais de cada arquivo.
 </details>
 
-## 2.4 Observação transversal
+## 1.4 Observação transversal
 
 Apesar de stacks e níveis de organização diferentes, os 3 projetos convergem para os mesmos grupos de problema, o que moldou diretamente o catálogo de anti-patterns da skill:
 
@@ -195,4 +195,4 @@ Apesar de stacks e níveis de organização diferentes, os 3 projetos convergem 
 - **Performance:** N+1 e ausência de paginação aparecem nos 3 projetos, sempre em endpoints de listagem/relatório.
 - **Observabilidade:** os 3 usam `print()`/`console.log` como logging.
 
-Essa repetição é o motivo pelo qual o catálogo de anti-patterns (seção 3.5) foi desenhado como uma lista de sinais de detecção agnósticos de linguagem, e não como regras específicas de Flask ou Express: o mesmo `AP-01` (SQL Injection) precisa reconhecer tanto `"...WHERE id = " + str(id)` em Python quanto template literals em JavaScript.
+Essa repetição é o motivo pelo qual o catálogo de anti-patterns ([seção 2 do README](../README.md#2-construção-da-skill)) foi desenhado como uma lista de sinais de detecção agnósticos de linguagem, e não como regras específicas de Flask ou Express: o mesmo `AP-01` (SQL Injection) precisa reconhecer tanto `"...WHERE id = " + str(id)` em Python quanto template literals em JavaScript.

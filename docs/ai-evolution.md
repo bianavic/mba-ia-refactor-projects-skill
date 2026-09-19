@@ -16,8 +16,6 @@ O princípio que organiza tudo abaixo: **separar o que é da skill do que é do 
 
 **A skill foi executada num projeto externo, em stack não coberta.** Go/Gin/GORM, ~1 670 linhas, 10 achados — detalhado na [seção Comportamento entre Diferentes Stacks](results.md#comportamento-entre-diferentes-stacks) e em `reports/audit-project-4.md`. Esse teste é a razão de as duas primeiras entregas existirem na forma atual: ele produziu um falso PASS que nenhuma execução nos 3 projetos deste repositório poderia ter produzido, porque todos eles usam stacks cujo idioma de persistência a skill já conhecia.
 
-**Contexto persistente por projeto.** Cada projeto ganhou um `CLAUDE.md` com o que não é derivável do código: invariantes de segurança já corrigidas que não podem regredir, o contrato de validação (`arch-check.sh` prova estrutura, `manual-tests.sh` prova comportamento, e nenhum substitui o outro) e as convenções de idioma. Isso é o que impede uma sessão futura de "consertar" a vulnerabilidade conhecida do `qs` no Projeto 2 ou de traduzir os nomes de tabela em português do Projeto 1.
-
 ## 7.2 Hooks — Mover Regras do Prompt para o Harness
 
 Três das regras inegociáveis do `SKILL.md` hoje dependem de o modelo obedecer a uma instrução em texto. Hooks as tornariam garantias do harness:

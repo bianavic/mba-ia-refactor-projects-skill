@@ -80,7 +80,8 @@ Severity scale (see `SKILL.md` for the full definitions):
 - **Impact:** noise that obscures a file's real dependencies and slightly increases load time.
 
 ### AP-15 — Inconsistent Language/Naming Conventions
-- **Signals:** identifiers in one language (typically English) mixed with user-facing strings/comments in another, with no single convention applied consistently.
+- **Signals:** identifiers in one language (typically English) mixed with user-facing strings/comments in another, with **no single convention applied consistently**.
+- **Not a signal:** a structural/role word from the MVC pattern itself (`controller`, `model`, `service`, `config`) combined with a domain noun kept in the project's own business language (e.g. `produto_controller.py`, `listar_produtos`). If the project already applies that split uniformly — pattern vocabulary in English, domain vocabulary in its native language, never mixed within the same word — that *is* the single consistent convention; do not report it, and do not translate the domain noun to "fix" it (this would also violate a "never translate domain vocabulary" rule if the project has one). Only flag it if the split itself is inconsistent — e.g. some domain nouns translated to English and others not, or the role word appearing in both languages across sibling files (`produto_controller.py` next to `usuarioController.py`).
 - **Impact:** a maintainability/standardization issue rather than a functional one, but it slows down onboarding and code review.
 
 ---

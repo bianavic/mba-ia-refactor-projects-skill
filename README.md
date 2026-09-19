@@ -1,13 +1,25 @@
-# Criação de Skills — Refatoração Arquitetural Automatizada
+# Refatoração Arquitetural Automatizada com Skills
 
-Skill `refactor-arch` para Claude Code que analisa, audita e refatora projetos backend legados para o padrão MVC, agnóstica de linguagem e framework. Executada nos 3 projetos deste repositório — dois Python/Flask (um monolítico, um parcialmente em camadas) e um Node.js/Express — e testada, fora deles, num quarto projeto em Go/Gin para provar a independência de tecnologia.
+Entrega do desafio de MBA: a skill **`refactor-arch`**, que audita um backend legado,
+classifica os problemas por severidade e o refatora para MVC — executada em 3 projetos
+de stacks diferentes (Python/Flask com SQLite cru, Node.js/Express, Python/Flask com
+SQLAlchemy).
 
-> Este README documenta o processo do ponto de vista de quem vai **avaliar** a entrega: a seção logo abaixo mapeia cada item obrigatório do enunciado para onde ele está. O enunciado original, preservado na íntegra, está em [`docs/challenge-original.md`](docs/challenge-original.md).
+O enunciado original está preservado em [`docs/challenge-original.md`](docs/challenge-original.md).
+
+```
+code-smells-project/     Projeto 1 — Python/Flask, SQLite cru    (e-commerce)
+ecommerce-api-legacy/    Projeto 2 — Node.js/Express, sqlite3    (LMS/e-learning)
+task-manager-api/        Projeto 3 — Python/Flask + SQLAlchemy   (task manager)
+reports/                 relatórios de auditoria (saída da Fase 2)
+evidence/                screenshots e logs das aplicações rodando
+docs/                    deep dives e o enunciado original
+scripts/                 sync-docs.sh — regenera as tabelas e árvores deste README
+```
 
 ## Sumário
 
-- [Conformidade com o Enunciado](#conformidade-com-o-enunciado)
-- [Visão Geral](#visão-geral)
+- [Conformidade com o enunciado](#conformidade-com-o-enunciado)
 - [1. Análise Manual](#1-análise-manual)
 - [2. Construção da Skill](#2-construção-da-skill)
 - [3. Resultados](#3-resultados)
@@ -20,8 +32,8 @@ Skill `refactor-arch` para Claude Code que analisa, audita e refatora projetos b
   - [4.1 Pré-requisitos](#41-pré-requisitos)
   - [4.2 Comandos por Projeto](#42-comandos-por-projeto)
   - [4.3 Validação](#43-validação)
-- [Documentação](#documentação)
-- [Referências](#referências)
+- [Critérios de Aceite](#critérios-de-aceite)
+- [Manutenção da documentação](#manutenção-da-documentação)
 
 ## Conformidade com o Enunciado
 
@@ -79,9 +91,17 @@ A skill (`SKILL.md` + `references/` + `scripts/`) vive **idêntica** dentro dos 
 
 ## 1. Análise Manual
 
-Feita **antes** de existir a skill — o objetivo era entender os problemas reais o bastante para moldar o catálogo de anti-patterns, não catalogar tudo. Cada projeto tem no mínimo 5 achados documentados (o enunciado exige isso), com ≥1 CRITICAL/HIGH, ≥2 MEDIUM e ≥2 LOW; os 3 projetos têm 7. Detalhamento completo, com descrição técnica e trecho validado em execução para cada um dos 21 achados, em [`docs/manual-analysis.md`](docs/manual-analysis.md).
+Leitura manual dos 3 projetos **antes** de escrever a skill: **21 achados, 7 por projeto**,
+classificados pela [escala de severidade do enunciado](docs/challenge-original.md#definição-de-severidades).
+Vários foram confirmados executando as aplicações, não só lendo o código.
 
-### code-smells-project (Python/Flask, E-commerce — monolítico, 4 arquivos)
+O detalhamento de cada achado (descrição completa, linhas exatas e validação em execução)
+está em [`docs/manual-analysis.md`](docs/manual-analysis.md).
+
+### Projeto 1 — `code-smells-project`
+
+Flask 3.1.1 + SQLite cru · e-commerce · 4 arquivos, ~600 linhas, sem separação de camadas.
+**CRITICAL: 2 · HIGH: 1 · MEDIUM: 2 · LOW: 2**
 
 | Severidade | Problema | Local | Por que é relevante |
 |---|---|---|---|
@@ -93,7 +113,10 @@ Feita **antes** de existir a skill — o objetivo era entender os problemas reai
 | LOW | `print()` como logging | `controllers.py`, `app.py:56,83-86` | Sem níveis, sem estrutura, sem rotação — inviável em produção. |
 | LOW | Categorias válidas hardcoded inline | `controllers.py:52` | Qualquer categoria nova exige alterar código-fonte em vez de configuração. |
 
-### ecommerce-api-legacy (Node.js/Express, LMS — monolítico, 3 arquivos)
+### Projeto 2 — `ecommerce-api-legacy`
+
+Node.js + Express 4.18.2 (lockfile 4.22.1) + `sqlite3` 5.1.7 · LMS/e-learning · 3 arquivos, ~180 linhas, sem camadas.
+**CRITICAL: 2 · HIGH: 1 · MEDIUM: 2 · LOW: 2**
 
 | Severidade | Problema | Local | Por que é relevante |
 |---|---|---|---|
@@ -105,7 +128,11 @@ Feita **antes** de existir a skill — o objetivo era entender os problemas reai
 | LOW | `console.log` como logging | `utils.js:13`, `AppManager.js:45` | Mesma limitação do projeto 1: sem structured logging. |
 | LOW | Mistura de idiomas inconsistente | `AppManager.js` | Problema de padronização/manutenibilidade, não funcional. |
 
-### task-manager-api (Python/Flask, Task Manager — parcialmente em camadas)
+### Projeto 3 — `task-manager-api`
+
+Flask + Flask-SQLAlchemy + SQLite · task manager · já tem `models/routes/services/utils`,
+mas a separação é só estrutural — a disciplina por camada não é respeitada.
+**CRITICAL: 2 · HIGH: 1 · MEDIUM: 2 · LOW: 2**
 
 | Severidade | Problema | Local | Por que é relevante |
 |---|---|---|---|
@@ -157,58 +184,9 @@ Os 15 primeiros entraram porque apareceram, na prática, em pelo menos um dos 3 
 
 ### 3.1 Resumo das Auditorias
 
-| Projeto | CRITICAL | HIGH | MEDIUM | LOW | Total |
-|---|---|---|---|---|---|
-| code-smells-project | 4 | 3 | 2 | 4 | **13** |
-| ecommerce-api-legacy | 4 | 2 | 2 | 4 | **12** |
-| task-manager-api | 4 | 2 | 4 | 4 | **14** |
-| Go/Gin (externo, Fases 1-2 apenas) | 1 | 3 | 3 | 3 | **10** |
-
-Os 3 projetos da entrega superam o mínimo exigido (≥5 findings, ≥1 CRITICAL/HIGH, ≥2 MEDIUM, ≥2 LOW). Relatórios completos: [`reports/audit-project-1.md`](reports/audit-project-1.md), [`reports/audit-project-2.md`](reports/audit-project-2.md), [`reports/audit-project-3.md`](reports/audit-project-3.md). Resumo por projeto, com as principais correções aplicadas e commits, em [`docs/results.md`](docs/results.md#resumo-das-auditorias).
-
-### 3.2 Comparação Antes e Depois
-
-**code-smells-project** — de 4 arquivos monolíticos para MVC completo:
-
-```
-Antes                        Depois
-app.py                        app.py                       (composition root)
-controllers.py                config/settings.py
-models.py                     controllers/{admin,order,product,system,user}_controller.py
-database.py                   models/{db,order,product,user}_model.py
-                               middlewares/{auth,error_handler}.py
-                               routes/routes.py
-```
-
-**ecommerce-api-legacy** — de 1 God Class para MVC completo:
-
-```
-Antes                         Depois
-src/app.js                    src/app.js                   (composition root)
-src/AppManager.js             src/config/index.js
-src/utils.js                  src/controllers/{checkout,report,user}Controller.js
-                               src/models/{auditLog,course,enrollment,payment,user}Model.js
-                               src/services/{cache,paymentGateway}Service.js
-                               src/middlewares/errorHandler.js
-                               src/routes/index.js
-                               src/utils/{crypto,logger}.js
-```
-
-**task-manager-api** — camadas já existentes, ajustadas *in place*:
-
-```
-Antes (parcial)                        Depois
-app.py                                  app.py                        (SECRET_KEY/debug via env)
-models/{user,task,category}.py          models/{user,task,category}.py (hashing correto, sem duplicação)
-routes/{task,user,report}_routes.py     routes/{task,user,report}_routes.py (parse → 1 chamada → resposta)
-services/notification_service.py        controllers/{task,user}_controller.py (novo — fecha o AP-16)
-utils/helpers.py                        config/settings.py            (novo)
-                                         services/report_service.py    (novo — agregação + categorias)
-                                         middlewares/error_handler.py  (novo)
-                                         (notification_service.py removido — código morto)
-```
-
-Narrativa completa por projeto (achados corrigidos um a um) em [`docs/results.md`](docs/results.md#code-smells-project).
+Narrativa completa em [`reports/`](reports/). Cada execução da Fase 2 gera um arquivo
+novo (`audit-project-<N>-part<M>.md`) — relatórios anteriores nunca são sobrescritos,
+porque são a evidência do estado "antes".
 
 ### 3.3 Checklist de Validação Preenchido
 
@@ -240,12 +218,6 @@ As 5 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_c
 
 ### 3.4 Evidências de Execução
 
-```bash
-cd code-smells-project && python app.py     # porta 5000
-cd ecommerce-api-legacy && npm start        # porta 3000
-cd task-manager-api && python app.py        # porta 5000 — não simultâneo ao projeto 1
-```
-
 ![Boot do code-smells-project sem SECRET_KEY exposta](evidence/project1-boot.png)
 ![Boot do ecommerce-api-legacy](evidence/project2-boot.png)
 ![Boot do task-manager-api](evidence/project3-boot.png)
@@ -267,57 +239,62 @@ Logs reais dessa reprodução (o `FAIL` atual com os 26 hits, e o falso `PASS` r
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) instalado e autenticado (`claude --version`) — a skill deste repositório está no formato dele (`.claude/skills/refactor-arch/`). Gemini CLI e OpenAI Codex também são aceitos pelo enunciado; nesse caso, adapte o comando de invocação e o path da skill para a convenção da ferramenta escolhida — o conteúdo de `references/` permanece o mesmo.
 - **code-smells-project** e **task-manager-api**: Python 3.10+ (`pip install -r requirements.txt`).
 - **ecommerce-api-legacy**: Node.js 18+ (`npm install`).
-- A skill já está presente em `.claude/skills/refactor-arch/` dentro dos 3 projetos.
+- A skill já está presente em `.claude/skills/refactor-arch/` **dentro de cada projeto** —
+  nada a instalar, basta abrir o Claude Code na pasta do projeto
+
+> Projetos 1 e 3 sobem na mesma porta 5000: rode um por vez, ou sobrescreva `PORT`/`FLASK_PORT`.
 
 ### 4.2 Comandos por Projeto
 
 ```bash
-# Projeto 1 — Python/Flask
-cd code-smells-project
-pip install -r requirements.txt
-claude "/refactor-arch"          # confirme a Fase 2 com "y" para prosseguir com a Fase 3
+# Projeto 1 — Python/Flask, SQLite cru
+cd code-smells-project && claude "/refactor-arch"
 
 # Projeto 2 — Node.js/Express
-cd ../ecommerce-api-legacy
-npm install
-claude "/refactor-arch"
+cd ecommerce-api-legacy && claude "/refactor-arch"
 
-# Projeto 3 — Python/Flask, parcialmente em camadas
-cd ../task-manager-api
-pip install -r requirements.txt
-claude "/refactor-arch"
+# Projeto 3 — Python/Flask + SQLAlchemy
+cd task-manager-api && claude "/refactor-arch"
 ```
 
-`code-smells-project` e `task-manager-api` usam a mesma porta padrão (5000) ao rodar localmente — rode um de cada vez, ou sobrescreva a porta via variável de ambiente (`PORT`/`FLASK_PORT`). A Fase 2 só imprime o relatório no terminal; salvar em `reports/audit-project-N.md` é um passo manual, feito após cada execução.
+A skill roda as 3 fases em sequência e **pausa depois da Fase 2**, pedindo confirmação
+explícita antes de tocar em qualquer arquivo. O relatório da Fase 2 é salvo
+automaticamente em `reports/` na raiz do repositório.
 
 ### 4.3 Validação
 
-Depois da Fase 3, cada projeto tem dois scripts complementares na própria pasta — nenhum substitui o outro:
-
 ```bash
-cd code-smells-project     && ./manual-tests.sh && ./arch-check.sh
-cd ../ecommerce-api-legacy && ./manual-tests.sh && ./arch-check.sh
-cd ../task-manager-api     && ./manual-tests.sh && ./arch-check.sh
+# 1. estrutura: nenhuma rota toca persistência direto (AP-16)
+cd <projeto> && ./arch-check.sh        # exit 0 = passou
+
+# 2. a aplicação sobe e os endpoints originais respondem
+#    (projeto 2 tem api.http; projetos 1 e 3, curl nos endpoints do README do projeto)
+
+# 3. documentação em dia com os relatórios
+scripts/sync-docs.sh --check           # exit 0 = README e docs/ refletem reports/
 ```
 
-- **`manual-tests.sh`** valida **comportamento**: bate em cada endpoint real via `curl` e compara com o comportamento pré-refatoração. A única mudança de response shape esperada é a remoção de campos de senha/hash que antes vazavam.
-- **`arch-check.sh`** valida **estrutura**: falha se alguma rota ainda chamar persistência diretamente (AP-16) — algo que um teste de caixa-preta como o `manual-tests.sh` não detecta, porque a resposta HTTP é idêntica nos dois casos (foi exatamente assim que o bug documentado em [`docs/results.md`](docs/results.md#bug-encontrado-após-a-entrega) sobreviveu à validação original).
+`arch-check.sh` existe em duas formas: a versão específica de cada projeto (na raiz dele)
+e a versão genérica empacotada na skill (`scripts/arch-check.sh`), que detecta a stack
+sozinha para projetos que ainda não têm uma. As duas checam a mesma regra (AP-16).
 
-Saída real dos 3 `arch-check.sh` (specific + o checker genérico empacotado pela skill) em [`evidence/logs/`](evidence/logs/).
+## Critérios de Aceite
 
-## Documentação
+Mínimos exigidos pelo [enunciado](docs/challenge-original.md#critérios-de-aceite) —
+obrigatórios nos 3 projetos, sem exceção. Mantido por `/sync-docs`.
 
-| Documento | Conteúdo |
-|---|---|
-| [`docs/manual-analysis.md`](docs/manual-analysis.md) | Detalhamento completo dos 21 achados da análise manual, com descrição técnica e validação em execução |
-| [`docs/skill-design.md`](docs/skill-design.md) | Decisões de design completas do `SKILL.md`, tabela de `references/`, fluxo das 3 fases |
-| [`docs/results.md`](docs/results.md) | Auditorias completas, narrativa antes/depois, checklist com notas de rodapé, galeria de evidências, os dois postmortems |
-| [`docs/project-structure.md`](docs/project-structure.md) | Árvore final completa do repositório |
-| [`docs/ai-evolution.md`](docs/ai-evolution.md) | O que já foi aplicado para sustentar o agnosticismo de tecnologia, e o que ficou mapeado como próximo passo (hooks, CI, decomposição, evals) |
-| [`docs/challenge-original.md`](docs/challenge-original.md) | Enunciado original do desafio, na íntegra |
-| [`reports/`](reports) | Saída literal da Fase 2 de cada projeto (4 relatórios + 3 re-auditorias) |
-| [`evidence/`](evidence) | Screenshots e logs de execução reais |
 
-## Referências
+## Manutenção da documentação
 
-[Claude Code: Skills](https://docs.anthropic.com/en/docs/claude-code/skills) · [Claude Code: Overview](https://docs.anthropic.com/en/docs/claude-code/overview) · [The Complete Guide to Building Skills for Claude (PDF)](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf) · [Equipping Agents for the Real World with Agent Skills](https://claude.com/blog/equipping-agents-for-the-real-world-with-agent-skills)
+Depois de cada rodada da skill, na raiz do repositório:
+
+```bash
+claude "/sync-docs"
+```
+
+O comando roda `scripts/sync-docs.sh` (que regenera **3.1** e **3.2** a partir de
+`reports/` e do índice do git, entre os marcadores `<!-- BEGIN:... -->`), atualiza
+`docs/results.md`, preenche o checklist de **3.3** e os Critérios de Aceite com o
+resultado da rodada, e lista o que ficou faltando (evidência, `TODO`, relatório ausente).
+
+Blocos entre marcadores são gerados — editá-los à mão é desfeito na próxima rodada.
