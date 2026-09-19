@@ -9,13 +9,15 @@ code-smells-project/     Projeto 1 — Python/Flask, SQLite cru       (e-commerc
 ecommerce-api-legacy/    Projeto 2 — Node.js/Express, sqlite3       (LMS/e-learning)
 task-manager-api/        Projeto 3 — Python/Flask + SQLAlchemy      (task manager)
 reports/                 relatórios de auditoria (saída da Fase 2)
-evidence/                screenshots citados na seção 4.6 do README
+evidence/                screenshots + logs citados na seção 3.4 do README
+docs/                    deep dives (análise manual, design da skill, resultados, etc.)
 ```
 
 ## A skill vive em triplicata
 
 `.claude/skills/refactor-arch/` existe **idêntica** dentro dos 3 projetos — é exigência
-do enunciado (seção 9.4.3 do README), não duplicação acidental.
+do enunciado ([seção 9.4.3 do enunciado original](docs/challenge-original.md#94-requisitos)),
+não duplicação acidental.
 
 - Qualquer edição em `SKILL.md`, `references/` ou `scripts/` deve ser replicada nas 3 cópias.
 - Confirme antes de encerrar a tarefa:
@@ -49,11 +51,14 @@ continua sendo a validação desta entrega. A skill empacota separadamente
 `scripts/arch-check.sh`, genérico e detector de stack, para projetos que ainda não têm um —
 os dois checam a mesma regra (AP-16) e ambos passam nos 3 projetos.
 
-## README.md
+## README.md e docs/
 
-É o documento entregue, em português, com índice e âncoras. Ao mudar a estrutura de um
-projeto ou o resultado de uma auditoria, atualize também as seções 5 (Resultados) e
-6 (Estrutura Final) — e o índice, se criar/renomear seção.
+O README é o documento entregue, em português, com índice e âncoras — o leitor primário é
+o avaliador do desafio, então nenhum item obrigatório (seções 1-4) pode ficar só atrás de
+um link para `docs/`. Ao mudar a estrutura de um projeto ou o resultado de uma auditoria,
+atualize também `docs/results.md` (auditorias, checklist, evidências) e
+`docs/project-structure.md` (árvore final) — e a tabela consolidada da seção 3 do README,
+se o resumo mudar. Atualize o índice do README se criar/renomear seção.
 
 ## Convenções
 
