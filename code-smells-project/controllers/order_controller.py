@@ -2,8 +2,9 @@ import logging
 
 from flask import jsonify, request
 
-from config.settings import DEFAULT_PAGE, DEFAULT_PER_PAGE, PEDIDO_STATUS_VALIDOS
+from config.settings import PEDIDO_STATUS_VALIDOS
 from models import order_model
+from utils.pagination import parse_pagination
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +51,7 @@ def listar_por_usuario(usuario_id):
 
 def listar_todos():
     try:
-        page = int(request.args.get("page", DEFAULT_PAGE))
-        per_page = int(request.args.get("per_page", DEFAULT_PER_PAGE))
+        page, per_page = parse_pagination()
         pedidos = order_model.get_todos(page, per_page)
         return jsonify({"dados": pedidos, "sucesso": True}), 200
     except Exception as e:

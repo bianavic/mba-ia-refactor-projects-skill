@@ -29,13 +29,6 @@ def generate_id():
     return str(uuid.uuid4())
 
 
-def log_action(action, details=None):
-    timestamp = utc_now()
-    print(f"[{timestamp}] ACTION: {action}")
-    if details:
-        print(f"  DETAILS: {details}")
-
-
 def is_valid_color(color):
     if color and len(color) == 7 and color[0] == '#':
         return True

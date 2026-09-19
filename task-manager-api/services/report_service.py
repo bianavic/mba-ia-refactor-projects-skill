@@ -1,11 +1,16 @@
+import logging
+
+from flask import abort
 from sqlalchemy import func
 
 from database import db
 from models.task import Task
 from models.user import User
 from models.category import Category
-from utils.helpers import utc_now, calculate_percentage
+from utils.helpers import utc_now, calculate_percentage, DEFAULT_COLOR
 from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 
 
 def build_summary_report():
@@ -95,7 +100,11 @@ def build_summary_report():
     }
 
 
-def build_user_report(user):
+def build_user_report(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404, description='Usuário não encontrado')
+
     tasks = Task.query.filter_by(user_id=user.id).all()
 
     total = len(tasks)
@@ -136,13 +145,81 @@ def build_user_report(user):
     }
 
 
-def get_categories_with_task_counts():
+def get_categories_with_task_counts(page, per_page):
+    categories = Category.query.paginate(page=page, per_page=per_page, error_out=False).items
+
+    category_ids = [c.id for c in categories]
     category_counts = dict(
-        db.session.query(Task.category_id, func.count(Task.id)).group_by(Task.category_id).all()
+        db.session.query(Task.category_id, func.count(Task.id))
+        .filter(Task.category_id.in_(category_ids))
+        .group_by(Task.category_id).all()
     )
     result = []
-    for c in Category.query.all():
+    for c in categories:
         cat_data = c.to_dict()
         cat_data['task_count'] = category_counts.get(c.id, 0)
         result.append(cat_data)
     return result
+
+
+def create_category(data):
+    if not data:
+        abort(400, description='Dados inválidos')
+
+    name = data.get('name')
+    if not name:
+        abort(400, description='Nome é obrigatório')
+
+    category = Category()
+    category.name = name
+    category.description = data.get('description', '')
+    category.color = data.get('color', DEFAULT_COLOR)
+
+    try:
+        db.session.add(category)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error("Erro ao criar categoria", exc_info=e)
+        abort(500, description='Erro ao criar categoria')
+
+    return category.to_dict()
+
+
+def update_category(cat_id, data):
+    cat = db.session.get(Category, cat_id)
+    if not cat:
+        abort(404, description='Categoria não encontrada')
+
+    if not data:
+        abort(400, description='Dados inválidos')
+
+    if 'name' in data:
+        cat.name = data['name']
+    if 'description' in data:
+        cat.description = data['description']
+    if 'color' in data:
+        cat.color = data['color']
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error("Erro ao atualizar categoria", exc_info=e)
+        abort(500, description='Erro ao atualizar')
+
+    return cat.to_dict()
+
+
+def delete_category(cat_id):
+    cat = db.session.get(Category, cat_id)
+    if not cat:
+        abort(404, description='Categoria não encontrada')
+
+    try:
+        db.session.delete(cat)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error("Erro ao deletar categoria", exc_info=e)
+        abort(500, description='Erro ao deletar')

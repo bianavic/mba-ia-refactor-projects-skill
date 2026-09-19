@@ -1,0 +1,18 @@
+# REPRODUÇÃO DO BUG com o padrão de função livre desativado — NÃO é a execução original (nunca foi commitada).
+# Script: cópia de scripts/arch-check.sh no scratchpad, com as linhas do padrão Go de função livre removidas,
+# reproduzindo exatamente a causa raiz descrita na seção 5.6 (detecção baseada só em receptor, sem cobrir Find/Save/Delete<Verbo> free functions).
+
+==========================================================
+arch-check — repo
+AP-16: routes must not touch persistence directly
+Detected sources: go
+==========================================================
+
+  OK   articles/routers.go
+  OK   users/routers.go
+
+==========================================================
+PASS: no route in repo touches persistence directly.
+(2 route file(s) checked)
+==========================================================
+exit code: 0

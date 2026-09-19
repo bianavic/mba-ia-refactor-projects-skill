@@ -36,6 +36,10 @@ Severity scale (see `SKILL.md` for the full definitions):
 - **Signals:** the same rule (a date/status computation, a validation, a derived field) is re-implemented inline in multiple route handlers instead of calling one shared model/service method.
 - **Impact:** the duplicated copies silently diverge the moment only one of them is fixed — a correctness bug waiting to happen, and a direct Controller/Model responsibility violation.
 
+### AP-16 — Persistence/ORM Calls Inline in Routes
+- **Signals:** a route/view handler reaches the persistence layer itself instead of making exactly one Controller/Service call — a query/session call (`Model.query...`, `db.session.add/commit/delete`, `Model.find/findOne/findById/create/update/destroy`, a raw SQL `execute`/`query`) or a Model finder classmethod (`Model.get_by_id(...)`, `Model.find_by_x(...)`). In languages that expose persistence as package-level functions rather than methods (Go, Elixir, Rust, some Node service modules), the same violation looks like a bare verb-first call — `FindOneUser(...)`, `SaveOne(...)`, `DeleteArticleModel(...)` — with no receiver at all; scan for that shape too, or the finding is missed entirely. Report it even when the call appears only once, and even when the project already has `services/`/`controllers/` folders that other routes use.
+- **Impact:** the handler cannot be tested without a live database, and holds responsibilities beyond parse → call → serialize. Because each individual call looks harmless in isolation, the violation survives any review that only looks for duplication.
+
 ### AP-07 — Global Mutable State
 - **Signals:** module-level mutable variables (a plain object/dict used as a cache, a counter) that are written to from multiple request handlers with no synchronization.
 - **Impact:** race conditions and non-deterministic behavior under concurrent requests; also usually indicates a caching/aggregation concern that belongs in a dedicated layer.
@@ -76,9 +80,10 @@ Severity scale (see `SKILL.md` for the full definitions):
 - **Impact:** noise that obscures a file's real dependencies and slightly increases load time.
 
 ### AP-15 — Inconsistent Language/Naming Conventions
-- **Signals:** identifiers in one language (typically English) mixed with user-facing strings/comments in another, with no single convention applied consistently.
+- **Signals:** identifiers in one language (typically English) mixed with user-facing strings/comments in another, with **no single convention applied consistently**.
+- **Not a signal:** a structural/role word from the MVC pattern itself (`controller`, `model`, `service`, `config`) combined with a domain noun kept in the project's own business language (e.g. `produto_controller.py`, `listar_produtos`). If the project already applies that split uniformly — pattern vocabulary in English, domain vocabulary in its native language, never mixed within the same word — that *is* the single consistent convention; do not report it, and do not translate the domain noun to "fix" it (this would also violate a "never translate domain vocabulary" rule if the project has one). Only flag it if the split itself is inconsistent — e.g. some domain nouns translated to English and others not, or the role word appearing in both languages across sibling files (`produto_controller.py` next to `usuarioController.py`).
 - **Impact:** a maintainability/standardization issue rather than a functional one, but it slows down onboarding and code review.
 
 ---
 
-This catalog has 15 entries across all four severities — well above the minimum of 8 — and always includes at least one CRITICAL/HIGH, several MEDIUM, and several LOW so any project audited against it can satisfy the required finding distribution, provided the underlying code actually exhibits the pattern.
+This catalog has 16 entries across all four severities — well above the minimum of 8 — and always includes at least one CRITICAL/HIGH, several MEDIUM, and several LOW so any project audited against it can satisfy the required finding distribution, provided the underlying code actually exhibits the pattern.

@@ -2,16 +2,15 @@ import logging
 
 from flask import jsonify, request
 
-from config.settings import DEFAULT_PAGE, DEFAULT_PER_PAGE
 from models import user_model
+from utils.pagination import parse_pagination
 
 logger = logging.getLogger(__name__)
 
 
 def listar():
     try:
-        page = int(request.args.get("page", DEFAULT_PAGE))
-        per_page = int(request.args.get("per_page", DEFAULT_PER_PAGE))
+        page, per_page = parse_pagination()
         usuarios = user_model.get_todos(page, per_page)
         return jsonify({"dados": usuarios, "sucesso": True}), 200
     except Exception as e:

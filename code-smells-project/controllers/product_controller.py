@@ -2,21 +2,15 @@ import logging
 
 from flask import jsonify, request
 
-from config.settings import DEFAULT_PAGE, DEFAULT_PER_PAGE
 from models import product_model
+from utils.pagination import parse_pagination
 
 logger = logging.getLogger(__name__)
 
 
-def _paginacao():
-    page = int(request.args.get("page", DEFAULT_PAGE))
-    per_page = int(request.args.get("per_page", DEFAULT_PER_PAGE))
-    return page, per_page
-
-
 def listar():
     try:
-        page, per_page = _paginacao()
+        page, per_page = parse_pagination()
         produtos = product_model.get_todos(page, per_page)
         logger.info("Listando %d produtos (page=%d)", len(produtos), page)
         return jsonify({"dados": produtos, "sucesso": True}), 200
@@ -25,9 +19,9 @@ def listar():
         return jsonify({"erro": str(e)}), 500
 
 
-def buscar_por_id(id):
+def buscar_por_id(produto_id):
     try:
-        produto = product_model.get_por_id(id)
+        produto = product_model.get_por_id(produto_id)
         if produto:
             return jsonify({"dados": produto, "sucesso": True}), 200
         return jsonify({"erro": "Produto não encontrado", "sucesso": False}), 404
@@ -60,9 +54,9 @@ def criar():
         return jsonify({"erro": str(e)}), 500
 
 
-def atualizar(id):
+def atualizar(produto_id):
     try:
-        if not product_model.get_por_id(id):
+        if not product_model.get_por_id(produto_id):
             return jsonify({"erro": "Produto não encontrado"}), 404
 
         dados = request.get_json()
@@ -73,7 +67,7 @@ def atualizar(id):
                 return jsonify({"erro": f"{rotulo} é obrigatório"}), 400
 
         product_model.atualizar(
-            id,
+            produto_id,
             nome=dados["nome"],
             descricao=dados.get("descricao", ""),
             preco=dados["preco"],
@@ -87,12 +81,12 @@ def atualizar(id):
         return jsonify({"erro": str(e)}), 500
 
 
-def deletar(id):
+def deletar(produto_id):
     try:
-        if not product_model.get_por_id(id):
+        if not product_model.get_por_id(produto_id):
             return jsonify({"erro": "Produto não encontrado"}), 404
-        product_model.deletar(id)
-        logger.info("Produto %s deletado", id)
+        product_model.deletar(produto_id)
+        logger.info("Produto %s deletado", produto_id)
         return jsonify({"sucesso": True, "mensagem": "Produto deletado"}), 200
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
@@ -104,13 +98,14 @@ def buscar():
         categoria = request.args.get("categoria", None)
         preco_min = request.args.get("preco_min", None)
         preco_max = request.args.get("preco_max", None)
+        page, per_page = parse_pagination()
 
         if preco_min:
             preco_min = float(preco_min)
         if preco_max:
             preco_max = float(preco_max)
 
-        resultados = product_model.buscar(termo, categoria, preco_min, preco_max)
+        resultados = product_model.buscar(termo, categoria, preco_min, preco_max, page, per_page)
         return jsonify({"dados": resultados, "total": len(resultados), "sucesso": True}), 200
     except Exception as e:
         return jsonify({"erro": str(e)}), 500

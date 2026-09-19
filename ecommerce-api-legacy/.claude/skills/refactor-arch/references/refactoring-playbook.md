@@ -247,6 +247,61 @@ Always confirm the replacement against the installed version's own docs/changelo
 - Delete imports with no remaining reference in the file.
 - Move inline literal lists that represent configuration (valid categories, limits) into the config module or a database-backed table, and read them from there.
 
+## RP-14 — Move persistence out of routes (fixes AP-16)
+
+**Before (Flask):** the route talks to the ORM itself.
+```python
+# routes/task_routes.py
+@bp.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task = Task.query.get(task_id)      # persistence inside the route
+    if not task:
+        return jsonify({"error": "task not found"}), 404
+    db.session.delete(task)
+    db.session.commit()
+    return "", 204
+```
+
+**After:** query and commit move one layer down; the route only parses, calls once, and serializes.
+```python
+# controllers/task_controller.py
+def delete_task(task_id):
+    task = task_model.get(task_id)
+    if not task:
+        raise NotFound("task not found")   # handled by the central error handler (RP-11)
+    task_model.delete(task)
+
+# routes/task_routes.py
+@bp.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task_controller.delete_task(task_id)
+    return "", 204
+```
+
+Same shape in Node/Express: `router.delete('/tasks/:id', taskController.remove)`, with the `Task.findByPk`/`destroy` calls living in the controller or model.
+
+If a `services/` module already exists for that domain, put the function there instead of creating `controllers/`. What is never acceptable is leaving the call in the route because "the project is already layered" — and a Model finder called straight from the route (`Task.get_by_id(...)`) is the same violation: the route must make exactly one Controller/Service call.
+
+## RP-15 — Apply one naming/language convention (fixes AP-15)
+
+**Before:** identifiers in two languages inside the same layer, with no rule for which goes where.
+```python
+# routes/product_routes.py
+def listar_produtos():
+    product_list = Produto.query.all()          # "product_list" here, "produtos" three lines below
+    return jsonify([p.to_dict() for p in product_list])
+```
+
+**After:** adopt the convention already dominant in the project and apply it consistently to the code it owns.
+```python
+# routes/product_routes.py
+def listar_produtos():
+    produtos = produto_controller.listar()
+    return jsonify(produtos)
+```
+
+**Scope limit — this one is deliberately narrow.** Rename only what is internal: local variables, helper functions, private methods. Route paths, request/response field names, and database column names are part of the contract the refactor promised not to change (see `architecture-guidelines.md`, *Non-negotiable output constraints*), so leave them exactly as they are even when they do not match the chosen convention. Same for user-facing message strings: they stay in the language the API already answers in. If a name can only be fixed by changing a response field, it is not an AP-15 fix — report it and leave it.
+
 ---
 
 Every finding reported in Phase 2 must map to one of the RP-xx patterns above (or a project-specific variant following the same before/after principle) before Phase 3 starts making changes.

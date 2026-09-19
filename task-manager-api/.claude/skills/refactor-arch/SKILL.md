@@ -20,6 +20,13 @@ Load these on demand, only when the current phase needs them — do not read all
 | [references/audit-report-template.md](references/audit-report-template.md) | Phase 2 | Exact audit report format to produce |
 | [references/architecture-guidelines.md](references/architecture-guidelines.md) | Phase 3 | Target MVC layer rules and responsibilities |
 | [references/refactoring-playbook.md](references/refactoring-playbook.md) | Phase 3 | Before/after transformation patterns per anti-pattern |
+| [references/verification-recipes.md](references/verification-recipes.md) | Phase 3, step 6 | Per-stack AP-16 detection signals and how to derive them for an unknown stack |
+
+## Bundled scripts
+
+| Script | Used in | Purpose |
+|---|---|---|
+| [scripts/arch-check.sh](scripts/arch-check.sh) | Phase 3, step 6 | Stack-agnostic structural check for AP-16; run against the audited project when it does not already ship an equivalent check |
 
 ## Severity scale
 
@@ -80,7 +87,12 @@ Goal: restructure the project into MVC and prove it still works. Only start afte
    - The application boots without errors.
    - Every original endpoint still responds (exercise them, e.g. with `curl` or the project's existing HTTP client file).
    - Re-check the codebase against the catalog to confirm the confirmed findings are resolved.
-6. Print a completion summary in this exact shape:
+6. **Static AP-16 audit — mandatory, never skipped.** Endpoint tests from step 5 cannot substitute for this check (see `references/verification-recipes.md` for why, and for the detection signals per stack). Confirm zero direct-persistence hits in the route/view files before this phase can be reported complete — "the project already has folders" is not an exemption. Run it in this order:
+   - If the audited project already ships an equivalent structural check (a script named like `arch-check`, an ArchUnit test, a custom lint rule), run that one and do not replace it.
+   - Otherwise run the bundled `scripts/arch-check.sh <project-dir>`, configuring it for the stack if needed (`ROUTE_DIRS`, `EXTRA_PATTERN` — see the recipes file). Install a copy in the project so the check outlives this session.
+
+   Exit 0 = pass, 1 = violations listed as file:line, 2 = inconclusive. **Exit 2 is not a pass** — it means no route file was identified, so nothing was verified; fix the configuration and re-run.
+7. Print a completion summary in this exact shape:
 
 ```
 ================================
@@ -92,6 +104,7 @@ PHASE 3: REFACTORING COMPLETE
 ## Validation
   ✓ Application boots without errors
   ✓ All endpoints respond correctly
+  ✓ No route touches persistence directly (AP-16)
   ✓ <N> anti-patterns resolved
 ================================
 ```
@@ -102,4 +115,5 @@ PHASE 3: REFACTORING COMPLETE
 - Every finding must cite a real file and line range — verify by reading the file, never guess.
 - Do not assume Python/Flask: detect the stack fresh for every project this skill runs against.
 - Preserve existing functionality; refactoring must not change observable behavior or break any endpoint.
+- No route/view file may call persistence directly after Phase 3 — prove it with the mechanical check (Phase 3, step 6), never by eyeballing the diff.
 - If Phase 3 validation fails (boot error or broken endpoint), fix the regression before reporting completion — do not report success with known failures.

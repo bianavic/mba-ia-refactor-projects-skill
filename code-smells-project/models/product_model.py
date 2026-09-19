@@ -77,7 +77,7 @@ def deletar(produto_id):
     return True
 
 
-def buscar(termo, categoria=None, preco_min=None, preco_max=None):
+def buscar(termo, categoria=None, preco_min=None, preco_max=None, page=1, per_page=20):
     db = get_db()
     cursor = db.cursor()
 
@@ -96,6 +96,10 @@ def buscar(termo, categoria=None, preco_min=None, preco_max=None):
     if preco_max is not None:
         query += " AND preco <= ?"
         params.append(preco_max)
+
+    offset = (page - 1) * per_page
+    query += " LIMIT ? OFFSET ?"
+    params.extend([per_page, offset])
 
     cursor.execute(query, params)
     return [_to_dict(row) for row in cursor.fetchall()]

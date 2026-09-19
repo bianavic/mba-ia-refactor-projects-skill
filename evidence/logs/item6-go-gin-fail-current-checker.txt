@@ -1,0 +1,42 @@
+# arch-check.sh (current, with the free-function pattern) against gothinkster/golang-gin-realworld-example-app @ 626c372
+# repo cloned to scratchpad, not committed to this repository
+==========================================================
+arch-check — repo
+AP-16: routes must not touch persistence directly
+Detected sources: go
+==========================================================
+
+  FAIL articles/routers.go — 19 inline call(s)
+         46:	if err := SaveOne(&articleModelValidator.articleModel); err != nil {
+         61:	articleModels, modelCount, err := FindManyArticle(tag, author, limit, offset, favorited)
+         78:	articleUserModel := GetArticleUserModel(myUserModel)
+         90:	articleModel, err := FindOneArticle(&ArticleModel{Slug: slug})
+         101:	articleModel, err := FindOneArticle(&ArticleModel{Slug: slug})
+         108:	articleUserModel := GetArticleUserModel(myUserModel)
+         131:	articleModel, err := FindOneArticle(&ArticleModel{Slug: slug})
+         135:		articleUserModel := GetArticleUserModel(myUserModel)
+         142:	if err := DeleteArticleModel(&ArticleModel{Slug: slug}); err != nil {
+         151:	articleModel, err := FindOneArticle(&ArticleModel{Slug: slug})
+         157:	if err = articleModel.favoriteBy(GetArticleUserModel(myUserModel)); err != nil {
+         167:	articleModel, err := FindOneArticle(&ArticleModel{Slug: slug})
+         173:	if err = articleModel.unFavoriteBy(GetArticleUserModel(myUserModel)); err != nil {
+         183:	articleModel, err := FindOneArticle(&ArticleModel{Slug: slug})
+         195:	if err := SaveOne(&commentModelValidator.commentModel); err != nil {
+         210:	commentModel, err := FindOneComment(&CommentModel{Model: gorm.Model{ID: id}})
+         214:		articleUserModel := GetArticleUserModel(myUserModel)
+         221:	if err := DeleteCommentModel([]uint{id}); err != nil {
+         230:	articleModel, err := FindOneArticle(&ArticleModel{Slug: slug})
+  FAIL users/routers.go — 7 inline call(s)
+         34:	userModel, err := FindOneUser(&UserModel{Username: username})
+         45:	userModel, err := FindOneUser(&UserModel{Username: username})
+         62:	userModel, err := FindOneUser(&UserModel{Username: username})
+         85:	if err := SaveOne(&userModelValidator.userModel); err != nil {
+         100:	userModel, err := FindOneUser(&UserModel{Email: loginValidator.userModel.Email})
+         111:	UpdateContextUserModel(c, userModel.ID)
+         134:	UpdateContextUserModel(c, myUserModel.ID)
+
+==========================================================
+FAIL: 26 inline persistence call(s) across 2 route file(s).
+Move each call into a Controller/Service; the route may only call that function.
+==========================================================
+exit code: 1

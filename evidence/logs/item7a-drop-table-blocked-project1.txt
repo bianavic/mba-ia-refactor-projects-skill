@@ -1,0 +1,16 @@
+# POST /admin/query com token de admin válido, tentando DROP TABLE (deve ser bloqueado — só SELECT é permitido)
+$ curl -s -X POST http://localhost:5000/admin/query -H "X-Admin-Token: <token>" -H "Content-Type: application/json" -d '{"sql":"DROP TABLE produtos"}'
+{
+    "erro": "Somente instru\u00e7\u00f5es SELECT s\u00e3o permitidas nesta ferramenta"
+}
+
+# confirmando que um SELECT com o mesmo token ainda funciona (a proteção é seletiva, não um bloqueio geral)
+$ curl -s -X POST http://localhost:5000/admin/query -H "X-Admin-Token: <token>" -H "Content-Type: application/json" -d '{"sql":"SELECT COUNT(*) FROM produtos"}'
+{
+    "dados": [
+        {
+            "COUNT(*)": 10
+        }
+    ],
+    "sucesso": true
+}
