@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Manual test suite for ecommerce-api-legacy (Frankenstein LMS).
-# Prereq: npm install && ADMIN_TOKEN=<algo> npm start  (server on :3000)
+# Suite de testes manuais do ecommerce-api-legacy (Frankenstein LMS).
+# Pré-requisito: npm install && ADMIN_TOKEN=<algo> npm start  (servidor em :3000)
 # DB é em memória (sqlite ':memory:') e reseta a cada restart do processo, já
 # seedada com: user id=1 (leonan@fullcycle.com.br), course id=1 "Clean Architecture" (997.00),
 # course id=2 "Docker" (497.00), 1 matrícula/pagamento do user 1 no curso 1.
@@ -20,7 +20,7 @@
 # "Joao" criado no checkout recusado abaixo) e polui o relatório financeiro
 # com dados de execuções passadas.
 #
-# Run whole file with `bash manual-tests.sh`, or copy/paste sections one at a time.
+# Rode o arquivo inteiro com `bash manual-tests.sh`, ou copie/cole seções uma de cada vez.
 
 BASE="${BASE:-http://localhost:3000}"
 ADMIN_TOKEN="${ADMIN_TOKEN:-}"
