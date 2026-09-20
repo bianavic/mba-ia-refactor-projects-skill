@@ -1,20 +1,22 @@
 const express = require('express');
-const config = require('./config');
 const routes = require('./routes');
+const notFoundHandler = require('./middlewares/notFoundHandler');
 const errorHandler = require('./middlewares/errorHandler');
-const logger = require('./utils/logger');
-const { initSchema } = require('./database/connection');
 
-const app = express();
-app.use(express.json());
+/**
+ * Composition root: monta a aplicação e devolve. Sem efeito colateral — quem
+ * abre porta e cria schema é o server.js, para que testes possam importar a
+ * app sem subir um servidor.
+ */
+function createApp() {
+    const app = express();
 
-initSchema();
+    app.use(express.json());
+    app.use(routes);
+    app.use(notFoundHandler);
+    app.use(errorHandler);
 
-app.use(routes);
-app.use(errorHandler);
+    return app;
+}
 
-app.listen(config.port, () => {
-    logger.info(`Frankenstein LMS rodando na porta ${config.port}...`);
-});
-
-module.exports = app;
+module.exports = createApp;
