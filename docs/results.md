@@ -85,6 +85,38 @@ barrado pelos limites agora vindos de `config/settings.py`.
 Nenhuma screenshot nova foi capturada nesta rodada — as imagens em `evidence/` continuam sendo das
 rodadas anteriores; ver [Lacunas de Evidência](#lacunas-de-evidência).
 
+**Rodada 4 — [`audit-project-1-part4.md`](../reports/audit-project-1-part4.md), 2026-09-20.**
+Re-auditoria manual e pontual, não uma passada completa Fase 1-3 — disparada ao escrever
+`code-smells-project/api-tests.http` (cobertura manual de todos os endpoints) e cair em dois bugs
+de comportamento que as seções de edge case/sad path desse arquivo foram desenhadas pra pegar.
+Nenhum dos dois estava em `manual-tests.sh` nem em nenhum relatório anterior; não questiona nem
+contradiz a rodada 3 (commit `83bfaa3`) ou sua validação — são achados novos em código que a
+rodada 3 não tocou:
+
+- **[HIGH] `PUT /pedidos/<id>/status` reporta sucesso para pedido inexistente.**
+  `models/order_model.atualizar_status` roda o `UPDATE` e sempre retorna `True`, sem checar
+  `cursor.rowcount`; o controller sempre responde 200 `"sucesso": true`, mesmo quando nenhuma
+  linha foi afetada. Mesma classe de bug do HIGH "Cascade delete swallows errors" da rodada 3 de
+  `ecommerce-api-legacy` — mutação que nunca confere se mutou algo de fato.
+- **[MEDIUM] parâmetro não numérico em paginação/filtro derruba pra 500 em vez de 400.**
+  `utils/pagination.parse_pagination()` (`int(...)` sem `try/except`) e o `float(preco_min)`/
+  `float(preco_max)` de `product_controller.buscar` deixam `?page=abc` ou `?preco_min=abc`
+  virarem `ValueError`, capturado pelo `except Exception` genérico de cada handler e devolvido
+  como 500 com a mensagem crua da exceção Python no corpo — afeta os 5 endpoints paginados/
+  filtráveis do projeto (produtos, produtos/busca, pedidos, pedidos/usuário, usuários).
+
+Total: 2 findings (1 HIGH, 1 MEDIUM) — abaixo do mínimo de 5, mesma justificativa da rodada 4 de
+`ecommerce-api-legacy`: é re-auditoria pontual sobre dois bugs específicos, não uma passada
+completa, e o template proíbe inventar finding pra preencher vaga.
+
+**Esta rodada também parou no gate da Fase 2 — a Fase 3 não rodou ainda.** Os dois achados
+seguem **abertos e sem correção**. Nenhum AP-xx do catálogo atual cobre exatamente nenhum dos
+dois (mutação sem checar linha afetada; coerção de tipo sem guard virando 500) — o relatório
+propõe candidatos a AP-18/AP-19, mas não os adiciona ao catálogo nesta rodada, mesma decisão
+tomada para o AP-17 antes de ele ser formalizado. Sem refatoração, não há
+`evidence/logs/code-smells-project-round4-validation.txt` ainda — ver
+[Lacunas de Evidência](#lacunas-de-evidência).
+
 ### ecommerce-api-legacy
 
 **Rodada 1 — [`audit-project-2.md`](../reports/audit-project-2.md).**
@@ -387,6 +419,16 @@ parou no gate da Fase 2: a Fase 3 não rodou**, então o novo CRITICAL (ausênci
 autenticação/autorização) segue **aberto e sem correção** nesta sincronização, e não existe
 ainda log de validação para essa rodada.
 
+⁷ — nota de `code-smells-project` (células "Mínimo de 5 findings" em §3.3 e "Fase 2 encontra
+≥ 5 findings" nos Critérios de Aceite). A rodada 4
+([`audit-project-1-part4.md`](../reports/audit-project-1-part4.md), 2026-09-20) achou só 2
+findings (1 HIGH + 1 MEDIUM) — abaixo do mínimo de 5, mesma justificativa da nota ⁶: re-auditoria
+pontual sobre dois bugs específicos encontrados escrevendo `api-tests.http`, não uma passada
+completa. O mínimo de 5 continua demonstrado pela rodada 3 (5 findings, as 3 fases completas) —
+ver [Rodada 4](#code-smells-project) acima. **A rodada 4 também parou no gate da Fase 2: a Fase 3
+não rodou**, os dois achados seguem **abertos e sem correção**, e não existe ainda log de
+validação para essa rodada.
+
 ## Evidências de Execução
 
 Galeria em [`evidence/`](../evidence/), citada em
@@ -437,6 +479,12 @@ rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
   aplicação corrigida para validar com app de pé. É por isso que
   `scripts/sync-docs.sh --check` sai 1 nesta sincronização. Fecha quando a Fase 3 desta rodada
   rodar e a validação for capturada seguindo o gate do `CLAUDE.md`.
+- **Pendente (bloqueante, não opcional):** `code-smells-project` rodada 4
+  ([`audit-project-1-part4.md`](../reports/audit-project-1-part4.md), 2026-09-20) também parou
+  no gate da Fase 2 — a Fase 3 não rodou, os 2 achados (HIGH + MEDIUM) seguem sem correção, e por
+  isso não existe `evidence/logs/code-smells-project-round4-validation.txt`. Mesmo motivo do
+  item acima: sem refatoração, não há o que validar com app de pé. Fecha quando a Fase 3 desta
+  rodada rodar e a validação for capturada seguindo o gate do `CLAUDE.md`.
 - **TODO (opcional):** capturar screenshot nova da rodada 3 de `code-smells-project`
   (2026-09-19) — `evidence/project1-*` ainda são das rodadas anteriores. Opcional porque o log
   de validação completo já cobre essa rodada em

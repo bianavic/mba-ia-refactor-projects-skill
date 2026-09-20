@@ -185,7 +185,7 @@ porque são a evidência do estado "antes".
 <!-- BEGIN:audit-summary -->
 | # | Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |
 |---|---|---|---:|---:|---:|---:|---:|---|
-| 1 | `code-smells-project` | Python / Flask 3.1.1 | 1 | 0 | 2 | 2 | **5** | [`audit-project-1-part3.md`](reports/audit-project-1-part3.md) |
+| 1 | `code-smells-project` | Python / Flask 3.1.1 | 0 | 1 | 1 | 0 | **2** | [`audit-project-1-part4.md`](reports/audit-project-1-part4.md) |
 | 2 | `ecommerce-api-legacy` | JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | 1 | 0 | 0 | 2 | **3** | [`audit-project-2-part4.md`](reports/audit-project-2-part4.md) |
 | 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 3 | 4 | 4 | **11** | [`audit-project-3-part3.md`](reports/audit-project-3-part3.md) |
 
@@ -459,7 +459,7 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Relatório segue o template | ✓ ⁵ | ✓ ¹ | ✓ |
 | Finding com arquivo/linha exatos | ✓ | ✓ | ✓ |
 | Ordenado CRITICAL → LOW | ✓ | ✓ | ✓ |
-| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 16 (rodada 3) ⁶ | ✓ 11 (rodada 3) |
+| Mínimo de 5 findings | ✓ 5 (rodada 3) ⁷ | ✓ 16 (rodada 3) ⁶ | ✓ 11 (rodada 3) |
 | Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 (rodada 1) |
 | Pausa e pede confirmação antes da Fase 3 | ✓ | ✓ | ✓ |
 | Estrutura de diretórios segue MVC | ✓ | ✓ | ✓ camadas existentes ajustadas ² |
@@ -472,7 +472,7 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Aplicação inicia sem erros | ✓ `evidence/project1-boot.png` | ✓ `evidence/project2-boot.png` + log da rodada 3 | ✓ `evidence/project3-boot.png` |
 | Endpoints originais respondem | ✓ | ✓ `manual-tests.sh` na rodada 3 | ✓ |
 
-As 6 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵, e o status pendente da rodada 4 de `ecommerce-api-legacy` ⁶) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
+As 7 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵, e o status pendente das rodadas 4 de `ecommerce-api-legacy` ⁶ e `code-smells-project` ⁷) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 ### 3.4 Evidências de Execução
 
@@ -539,6 +539,16 @@ A skill roda as 3 fases em sequência e **pausa depois da Fase 2**, pedindo conf
 explícita antes de tocar em qualquer arquivo. O relatório da Fase 2 é salvo
 automaticamente em `reports/` na raiz do repositório.
 
+**Subir cada aplicação** (para ver o resultado da Fase 3 rodando, fora da skill):
+
+| Projeto | Comando | Porta |
+|---|---|---|
+| `code-smells-project` | `pip install -r requirements.txt && python app.py` | `5000` |
+| `ecommerce-api-legacy` | `npm install && npm start` | `3000` (`PORT=3100 npm start` se ocupada) |
+| `task-manager-api` | `pip install -r requirements.txt && cp .env.example .env && python seed.py && python app.py` | `5000` |
+
+`task-manager-api` precisa do `seed.py` antes do primeiro boot (senão os endpoints devolvem listas vazias) e falha ao subir sem `SECRET_KEY` no `.env` — o `.env.example` já traz `FLASK_ENV=development`, que dispensa configurar uma chave real para teste local. Detalhes completos (variáveis, seeds, exemplos de requisição) ficam no `README.md` de cada projeto.
+
 ### 4.3 Validação
 
 ```bash
@@ -565,9 +575,9 @@ relatório ou a evidência que o sustenta; célula em branco significa não veri
 | Critério | code-smells-project | ecommerce-api-legacy | task-manager-api |
 |---|---|---|---|
 | Fase 1 detecta stack corretamente | ✓ Python / Flask 3.1.1 | ✓ JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | ✓ Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 |
-| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) | ✓ 16 ([part3](reports/audit-project-2-part3.md)) ⁶ | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
+| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) ⁷ | ✓ 16 ([part3](reports/audit-project-2-part3.md)) ⁶ | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
 | Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL | ✓ 1 CRITICAL + 5 HIGH | ✓ 3 HIGH |
-| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) ⁶ | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
+| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) ⁷ | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) ⁶ | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
 
 A linha "Fase 1 detecta stack" sai da linha `Stack:` de cada relatório; as duas seguintes, da
 tabela de [§3.1](#31-resumo-das-auditorias). "Aplicação funciona" só está marcada onde há registro
@@ -575,8 +585,12 @@ de execução real — boot mais endpoints respondendo. ⁶ `ecommerce-api-legac
 ([`audit-project-2-part4.md`](reports/audit-project-2-part4.md), 2026-09-20) mais recente que a
 citada aqui: achou um novo CRITICAL (ausência de autenticação/autorização em todos os endpoints),
 mas parou no gate da Fase 2 — a Fase 3 não rodou, o achado segue **aberto e sem correção**, e as
-duas marcações acima refletem apenas o que a rodada 3 (com Fase 3 completa) já comprova. Detalhe
-em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
+duas marcações acima refletem apenas o que a rodada 3 (com Fase 3 completa) já comprova. ⁷
+`code-smells-project` tem uma rodada 4 análoga
+([`audit-project-1-part4.md`](reports/audit-project-1-part4.md), 2026-09-20): achou 1 HIGH + 1
+MEDIUM (mutação sem checar linha afetada; coerção de tipo sem guard virando 500), também parou no
+gate da Fase 2, e os dois seguem **abertos e sem correção**. Detalhe de ambas em
+[`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 
 ## Manutenção da documentação
