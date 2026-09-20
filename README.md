@@ -49,7 +49,7 @@ Cada item exigido em ["README.md deve conter"](docs/challenge-original.md#readme
 | **B2.** Anti-patterns incluídos no catálogo e por quê | [2. Construção da Skill](#2-construção-da-skill) |
 | **B3.** Como garantiu que a skill é agnóstica de tecnologia | [2. Construção da Skill](#2-construção-da-skill) |
 | **B4.** Desafios encontrados e como resolveu | [2. Construção da Skill](#2-construção-da-skill) |
-| **C1.** Resumo dos relatórios de auditoria dos 3 projetos | [3.1 Resumo das Auditorias](#31-resumo-das-auditorias) |
+| **C1.** Resumo dos relatórios de auditoria dos 3 projetos (findings por severidade) | [3.1 Resumo das Auditorias](#31-resumo-das-auditorias) |
 | **C2.** Comparação antes/depois da estrutura de cada projeto | [3.2 Comparação Antes e Depois](#32-comparação-antes-e-depois) |
 | **C3.** Checklist de validação preenchido para cada projeto | [3.3 Checklist de Validação Preenchido](#33-checklist-de-validação-preenchido) |
 | **C4.** Screenshots ou logs das aplicações rodando após refatoração | [3.4 Evidências de Execução](#34-evidências-de-execução) |
@@ -176,11 +176,26 @@ Os 15 primeiros entraram porque apareceram, na prática, em pelo menos um dos 3 
 
 ## 3. Resultados
 
+Os 5 itens exigidos pelo enunciado em [C) Resultados](docs/challenge-original.md#readmemd-deve-conter),
+um por subseção, nesta ordem:
+
+| # | Item exigido (enunciado, seção C) | Subseção |
+|---|---|---|
+| 1 | Resumo dos relatórios de auditoria dos 3 projetos (findings por severidade) | [3.1 Resumo das Auditorias](#31-resumo-das-auditorias) |
+| 2 | Comparação antes/depois da estrutura de cada projeto | [3.2 Comparação Antes e Depois](#32-comparação-antes-e-depois) |
+| 3 | Checklist de validação preenchido para cada projeto | [3.3 Checklist de Validação Preenchido](#33-checklist-de-validação-preenchido) |
+| 4 | Screenshots ou logs das aplicações rodando após refatoração | [3.4 Evidências de Execução](#34-evidências-de-execução) |
+| 5 | Observações sobre o comportamento em stacks diferentes | [3.5 Comportamento entre Diferentes Stacks](#35-comportamento-entre-diferentes-stacks) |
+
+(3.6, logo depois, não é um dos 5 — é uma seção extra sobre limitações do repositório, fora do escopo obrigatório.)
+
 ### 3.1 Resumo das Auditorias
 
 Narrativa completa em [`reports/`](reports/). Cada execução da Fase 2 gera um arquivo
 novo (`audit-project-<N>-part<M>.md`) — relatórios anteriores nunca são sobrescritos,
-porque são a evidência do estado "antes".
+porque são a evidência do estado "antes". Abaixo, a tabela é a contagem por severidade
+exigida pelo enunciado; o texto logo depois resume o que cada auditoria efetivamente achou,
+rodada a rodada — histórico completo, achado por achado, em [`docs/results.md`](docs/results.md#resultados-por-projeto).
 
 <!-- BEGIN:audit-summary -->
 | # | Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |
@@ -191,6 +206,32 @@ porque são a evidência do estado "antes".
 
 <sub>Gerado por `scripts/sync-docs.sh` a partir de `reports/`. Não edite à mão.</sub>
 <!-- END:audit-summary -->
+
+**`code-smells-project`** — rodada 1 (13 findings): 4 CRITICAL — SQL injection generalizada em
+`models.py` (~20 pontos), `SECRET_KEY` hardcoded e vazada em `/health`. A Fase 3 corrigiu os 4
+CRITICAL e reestruturou em MVC. Rodadas 2-3 acharam e fecharam achados menores herdados (SQL cru
+ainda chegando a `cursor.execute` em `/admin/query`, paginação ausente, validação duplicada) —
+rodada 3 fechou tudo (5 findings, 1 CRITICAL). A rodada 4 (tabela acima, 2 findings) é uma
+re-auditoria pontual disparada por `api-tests.http`, não uma passada completa: achou e a Fase 3
+já corrigiu 1 HIGH (update de pedido sem checar se afetou alguma linha) e 1 MEDIUM (parâmetro não
+numérico derrubando endpoint com 500 em vez de 400).
+
+**`ecommerce-api-legacy`** — rodada 1 (12 findings): 4 CRITICAL — classe-Deus `AppManager`,
+segredos hardcoded incluindo uma chave `pk_live_` de gateway de pagamento, "hash" de senha que
+era base64, número de cartão em log em texto plano. A Fase 3 corrigiu os 4 e quebrou em MVC.
+Rodadas 2-3 reabriram e fecharam 14 dos 16 achados (checkout sem transação, cascade delete sem
+checar erro, ausência de camada de serviço), com 2 LOW deixados abertos de propósito (contrato de
+API, RP-15). A rodada 4 (tabela acima, 3 findings) achou 1 CRITICAL novo — nenhum endpoint tinha
+autenticação/autorização — já corrigido nesta entrega com uma guarda por API key.
+
+**`task-manager-api`** — rodada 1 (14 findings): 4 CRITICAL — hash de senha (MD5 sem sal) vazado
+em toda resposta de API, `SECRET_KEY` hardcoded, token de login forjável
+(`'fake-jwt-token-' + id`). A Fase 3 corrigiu os 4. Rodada 2 achou rotas chamando o ORM
+diretamente (motivo de o catálogo ganhar o AP-16, ver [§2](#2-construção-da-skill)) e validação
+duplicada. A rodada 3 (tabela acima, 11 findings, 0 CRITICAL) fechou os achados estruturais e, por
+decisão explícita do usuário durante a Fase 3, implementou autenticação/autorização real
+(token assinado + roles) no lugar do token forjável da rodada 1 — o único dos 3 projetos onde a
+Fase 3 mudou comportamento observável por design, não por correção de bug.
 
 ### 3.2 Comparação Antes e Depois
 
@@ -566,6 +607,10 @@ scripts/sync-docs.sh --check           # exit 0 = README e docs/ refletem report
 `arch-check.sh` existe em duas formas: a versão específica de cada projeto (na raiz dele)
 e a versão genérica empacotada na skill (`scripts/arch-check.sh`), que detecta a stack
 sozinha para projetos que ainda não têm uma. As duas checam a mesma regra (AP-16).
+
+Este é o resumo consolidado dos 3 projetos — cada um detalha, no próprio `README.md`,
+suas ferramentas de validação adicionais (`pytest` no `task-manager-api`,
+`npm run test:internal` no `ecommerce-api-legacy`, `manual-tests.sh`/`api-tests.http` nos três).
 
 ## Critérios de Aceite
 

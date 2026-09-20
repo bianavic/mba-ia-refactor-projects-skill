@@ -11,7 +11,10 @@ npm start
 
 A aplicação sobe em `http://localhost:3000`. O banco SQLite é em memória e já carrega seeds automaticamente no boot.
 
-Exemplos de requisições estão em `api.http`.
+Exemplos de requisições estão em `api.http` (boilerplate original). Para uma cobertura completa
+e interativa (todos os endpoints, edge cases, e os casos de auth do `X-Admin-Token`), use
+`api-tests.http` com a extensão "REST Client" do VS Code ou equivalente — ajuste a variável
+`@adminToken` para o mesmo valor usado em `ADMIN_TOKEN` ao subir o servidor.
 
 ## Validação
 

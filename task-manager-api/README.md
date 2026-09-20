@@ -43,6 +43,10 @@ Regras aplicadas:
 
 O token é verificado em `middlewares/auth.py`, que **recarrega o usuário do banco a cada request** — um token de conta apagada devolve 401 e de conta inativa devolve 403, sem esperar a expiração (`TOKEN_MAX_AGE_SECONDS`, default 24h).
 
+Para explorar a API interativamente, use `api-tests.http` com a extensão "REST Client" do VS
+Code ou equivalente — cobre todos os 22 endpoints, incluindo os cenários de permissão acima
+(manager vs. admin vs. usuário comum, conta desativada, auto-promoção bloqueada) um a um.
+
 ## Validação
 
 ```bash
