@@ -14,6 +14,8 @@ def listar():
         produtos = product_model.get_todos(page, per_page)
         logger.info("Listando %d produtos (page=%d)", len(produtos), page)
         return jsonify({"dados": produtos, "sucesso": True}), 200
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
     except Exception as e:
         logger.exception("Erro ao listar produtos")
         return jsonify({"erro": str(e)}), 500
@@ -108,11 +110,19 @@ def buscar():
         page, per_page = parse_pagination()
 
         if preco_min:
-            preco_min = float(preco_min)
+            try:
+                preco_min = float(preco_min)
+            except ValueError:
+                raise ValueError("preco_min deve ser um número")
         if preco_max:
-            preco_max = float(preco_max)
+            try:
+                preco_max = float(preco_max)
+            except ValueError:
+                raise ValueError("preco_max deve ser um número")
 
         resultados = product_model.buscar(termo, categoria, preco_min, preco_max, page, per_page)
         return jsonify({"dados": resultados, "total": len(resultados), "sucesso": True}), 200
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
     except Exception as e:
         return jsonify({"erro": str(e)}), 500

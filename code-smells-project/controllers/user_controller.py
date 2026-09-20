@@ -13,6 +13,8 @@ def listar():
         page, per_page = parse_pagination()
         usuarios = user_model.get_todos(page, per_page)
         return jsonify({"dados": usuarios, "sucesso": True}), 200
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
