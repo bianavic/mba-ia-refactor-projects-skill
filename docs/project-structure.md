@@ -52,6 +52,7 @@ code-smells-project/
 │   ├── product_controller.py
 │   ├── system_controller.py
 │   └── user_controller.py
+├── internal-tests.py
 ├── manual-tests.sh
 ├── middlewares/
 │   ├── __init__.py
@@ -243,6 +244,7 @@ task-manager-api/
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_auth.py
+│   ├── test_n_plus_one_queries.py
 │   ├── test_task_controller.py
 │   └── test_user_controller.py
 └── utils/
