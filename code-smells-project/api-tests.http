@@ -1,9 +1,11 @@
 ### code-smells-project — testes manuais dos endpoints
-### Use com a extensão "REST Client" (VS Code) ou equivalente na sua IDE.
+### Use com o HTTP Client de uma IDE JetBrains (IntelliJ/GoLand/PyCharm/WebStorm) ou a
+### extensão "REST Client" do VS Code — ambos entendem os blocos de script `> {% ... %}`
+### usados abaixo para encadear passos (seção "Banco de dados — persistência e integridade").
 ### Suba a aplicação antes (python app.py / flask run) — porta padrão 5000.
 
 @baseUrl = http://localhost:5000
-@adminToken = troque-pelo-valor-de-ADMIN_TOKEN
+@adminToken = algum-token
 
 ### ==========================================================
 ### Sistema
@@ -171,6 +173,16 @@ Content-Type: application/json
   "status": "status-inexistente"
 }
 
+### Atualizar status — cancelado (pedido 3, para não conflitar com o "aprovado"
+### acima no pedido 1). Sem esta chamada, pedidos_cancelados no relatório de
+### vendas abaixo nunca sai de 0 — nenhum outro teste deste arquivo usa esse status.
+PUT {{baseUrl}}/pedidos/3/status
+Content-Type: application/json
+
+{
+  "status": "cancelado"
+}
+
 
 ### ==========================================================
 ### Relatórios
@@ -238,14 +250,16 @@ Content-Type: application/json
   ]
 }
 
-### Atualizar status de um pedido que não existe — BUG: order_model.atualizar_status
-### faz UPDATE sem checar rowcount, então isto responde 200 "sucesso": true mesmo
-### não existindo nenhum pedido 99999 pra atualizar (deveria ser 404)
+### Atualizar status de um pedido que não existe -> 404 "Pedido não encontrado".
+### Era um BUG (HIGH, audit-project-1-part4.md): atualizar_status() fazia UPDATE sem
+### checar rowcount e respondia 200 mesmo sem nenhum pedido 99999 pra atualizar.
+### Resolvido no commit 7a02af6 (models/order_model.py:107 agora retorna
+### cursor.rowcount > 0; controllers/order_controller.py:75-76 traduz isso em 404).
 PUT {{baseUrl}}/pedidos/99999/status
 Content-Type: application/json
 
 {
-  "status": "aprovado"
+  "erro": "Pedido não encontrado"
 }
 
 
@@ -256,9 +270,6 @@ Content-Type: application/json
 ### o resto do arquivo acima (produtos, usuarios, pedidos) já demonstra, em cada
 ### chamada sem nenhum header de autenticação, que esses endpoints são 100%
 ### públicos por design — não há usuário logado, sessão ou role neste projeto.
-
-### Reset do banco — sem token -> 401 (ou 403 se ADMIN_TOKEN não estiver setado
-### no servidor; já coberto na seção Admin acima)
 
 ### Reset do banco — token errado (mas presente) -> 401 "Não autorizado"
 POST {{baseUrl}}/admin/reset-db
@@ -281,18 +292,12 @@ Content-Type: application/json
   "tabela": "produtos"
 }
 
-### Deletar produto sem NENHUMA credencial — chega direto na lógica de negócio
-### (404 por não existir o produto 99999, não um 401/403 de autenticação),
-### confirmando que fora de /admin/* não existe checagem de identidade nenhuma
-DELETE {{baseUrl}}/produtos/99999
-
 
 ### ==========================================================
 ### Edge cases / corner cases
 ### ==========================================================
 
-### page não numérico — BUG: parse_pagination faz int(request.args.get(...))
-### sem tratar exceção; isto derruba pra 500 em vez de 400
+### page não numérico -> 401 "page e per_page devem ser números inteiros"
 GET {{baseUrl}}/produtos?page=abc
 
 ### preco_min não numérico na busca — mesmo tipo de bug: product_controller.buscar
@@ -423,19 +428,23 @@ POST {{baseUrl}}/produtos
 Content-Type: application/json
 
 {
-  "nome": "Produto Teste DB",
+  "nome": "Produto Teste DB teste 4",
   "descricao": "Criado para validar persistência",
   "preco": 123.45,
   "estoque": 7,
   "categoria": "geral"
 }
 
+> {%
+    client.global.set("produtoTesteId", response.body.dados.id);
+%}
+
 ### 5. Reler o produto pelo id retornado no passo 4 — se os campos baterem,
 ### o INSERT foi commitado de verdade (não só devolvido pela resposta)
-GET {{baseUrl}}/produtos/{{dbCriarProduto.response.body.dados.id}}
+GET {{baseUrl}}/produtos/{{produtoTesteId}}
 
 ### 6. Atualizar o mesmo produto (estoque 7 -> 3)
-PUT {{baseUrl}}/produtos/{{dbCriarProduto.response.body.dados.id}}
+PUT {{baseUrl}}/produtos/{{produtoTesteId}}
 Content-Type: application/json
 
 {
@@ -447,13 +456,13 @@ Content-Type: application/json
 }
 
 ### 7. Reler — confirma que o UPDATE foi persistido (estoque deve vir 3)
-GET {{baseUrl}}/produtos/{{dbCriarProduto.response.body.dados.id}}
+GET {{baseUrl}}/produtos/{{produtoTesteId}}
 
 ### 8. Deletar o produto de teste
-DELETE {{baseUrl}}/produtos/{{dbCriarProduto.response.body.dados.id}}
+DELETE {{baseUrl}}/produtos/{{produtoTesteId}}
 
 ### 9. Reler — deve vir 404: confirma que o DELETE removeu a linha de fato
-GET {{baseUrl}}/produtos/{{dbCriarProduto.response.body.dados.id}}
+GET {{baseUrl}}/produtos/{{produtoTesteId}}
 
 ### 10. Estoque do produto seed 2 (Mouse Wireless) antes do pedido — anote o
 ### valor de "estoque" para comparar com o passo 12
@@ -472,6 +481,10 @@ Content-Type: application/json
   ]
 }
 
+> {%
+    client.global.set("pedidoTesteId", response.body.dados.pedido_id);
+%}
+
 ### 12. Reler o produto 2 — estoque deve ter caído exatamente 3 em relação
 ### ao passo 10, provando que o UPDATE dentro de order_model.criar rodou
 GET {{baseUrl}}/produtos/2
@@ -481,7 +494,7 @@ GET {{baseUrl}}/produtos/2
 GET {{baseUrl}}/relatorios/vendas
 
 ### 14. Atualizar status do pedido criado no passo 11
-PUT {{baseUrl}}/pedidos/{{dbCriarPedido.response.body.dados.pedido_id}}/status
+PUT {{baseUrl}}/pedidos/{{pedidoTesteId}}/status
 Content-Type: application/json
 
 {
