@@ -10,6 +10,7 @@ const config = {
     logLevel: process.env.LOG_LEVEL || 'info',
     defaultPageSize: Number(process.env.DEFAULT_PAGE_SIZE) || DEFAULT_PAGE_SIZE,
     maxPageSize: Number(process.env.MAX_PAGE_SIZE) || MAX_PAGE_SIZE,
+    adminToken: process.env.ADMIN_TOKEN,
 };
 
 module.exports = config;

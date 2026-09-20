@@ -1,0 +1,164 @@
+==================================================
+BOOT (round 4 — AP-17 fix: X-Admin-Token on financial-report + user delete)
+==================================================
+
+> ecommerce-api-legacy@1.0.0 start
+> node src/server.js
+
+{"timestamp":"2026-09-20T17:45:21.844Z","level":"info","message":"ecommerce-api-legacy rodando na porta 3100..."}
+==========================================================
+arch-check — ecommerce-api-legacy
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ src/routes/index.js
+
+==========================================================
+PASS: no route in ecommerce-api-legacy touches persistence directly.
+(1 arquivo(s) de rota verificado(s))
+==========================================================
+exit: 0
+==================================================
+AUTH (AP-17: financial-report e delete de usuário exigem X-Admin-Token)
+==================================================
+--- GET /api/admin/financial-report SEM token (esperado 401, ou 403 se o servidor não tem ADMIN_TOKEN) ---
+Não autorizado
+HTTP 401
+--- GET /api/admin/financial-report com token FORJADO (esperado 401, ou 403 se o servidor não tem ADMIN_TOKEN) ---
+Não autorizado
+HTTP 401
+--- DELETE /api/users/9999 SEM token (esperado 401, ou 403 se o servidor não tem ADMIN_TOKEN) ---
+Não autorizado
+HTTP 401
+==================================================
+CHECKOUT
+==================================================
+--- POST /api/checkout (sucesso - cartão começando em 4, cria usuário novo) ---
+{"msg":"Sucesso","enrollment_id":2}
+  -> conferir no terminal do servidor: o log de 'Processing payment' deve mostrar o cartão mascarado, nunca em texto plano
+--- POST /api/checkout (pagamento recusado - cartão não começa em 4) ---
+Pagamento recusado
+--- POST /api/checkout (usuário já existente - reutiliza o cadastro pelo email) ---
+{"msg":"Sucesso","enrollment_id":3}
+--- POST /api/checkout (curso inexistente, esperado 404) ---
+HTTP 404
+--- POST /api/checkout (campo obrigatório faltando, esperado 400) ---
+HTTP 400
+==================================================
+FINANCIAL REPORT
+==================================================
+--- GET /api/admin/financial-report (com X-Admin-Token) ---
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    },
+    {
+        "course": "Docker",
+        "revenue": 994,
+        "students": [
+            {
+                "student": "Guilherme",
+                "paid": 497
+            },
+            {
+                "student": "Leonan",
+                "paid": 497
+            }
+        ]
+    }
+]
+--- GET /api/admin/financial-report?page=1&per_page=1 (paginação, com X-Admin-Token) ---
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    }
+]
+==================================================
+USERS
+==================================================
+--- DELETE /api/users/3 (com X-Admin-Token; remove o usuário 'Joao', criado no checkout recusado acima; cascade em matrículas/pagamentos) ---
+Usuário e seus registros associados (matrículas e pagamentos) foram deletados.
+--- DELETE /api/users/9999 (com X-Admin-Token, id inexistente, esperado 404) ---
+HTTP 404
+==================================================
+SERVER LOG (stdout durante a rodada acima — confirma cartão mascarado)
+==================================================
+
+> ecommerce-api-legacy@1.0.0 start
+> node src/server.js
+
+{"timestamp":"2026-09-20T17:45:21.844Z","level":"info","message":"ecommerce-api-legacy rodando na porta 3100..."}
+{"timestamp":"2026-09-20T17:45:35.815Z","level":"warn","message":"Não autorizado","status":401,"path":"/api/admin/financial-report"}
+{"timestamp":"2026-09-20T17:45:35.832Z","level":"warn","message":"Não autorizado","status":401,"path":"/api/admin/financial-report"}
+{"timestamp":"2026-09-20T17:45:35.844Z","level":"warn","message":"Não autorizado","status":401,"path":"/api/users/9999"}
+{"timestamp":"2026-09-20T17:45:35.923Z","level":"info","message":"Processing payment","card":"4111********4444","amount":497,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T17:45:35.995Z","level":"info","message":"Processing payment","card":"5111********4444","amount":997,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T17:45:35.995Z","level":"warn","message":"Pagamento recusado","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T17:45:36.009Z","level":"info","message":"Processing payment","card":"4222********4444","amount":497,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T17:45:36.022Z","level":"warn","message":"Curso não encontrado","status":404,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T17:45:36.035Z","level":"warn","message":"Bad Request","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T17:45:36.181Z","level":"warn","message":"Usuário não encontrado","status":404,"path":"/api/users/9999"}
+==================================================
+ROUND 4 FIX — targeted verification per audit-project-2-part4.md CRITICAL
+==================================================
+--- [CRITICAL] GET /api/admin/financial-report com Authorization forjado (não é o header checado) -> 401, antes respondia 200 igual à chamada sem header ---
+Não autorizado
+HTTP 401
+
+--- [CRITICAL] DELETE /api/users/999999 sem nenhuma credencial -> 401, antes seguia normalmente (funcionava = 'ignorado') ---
+Não autorizado
+HTTP 401
+
+--- controle positivo: GET /api/admin/financial-report com X-Admin-Token correto -> 200 (sem regressão) ---
+n Architecture","revenue":997,"students":[{"student":"Leonan","paid":997}]},{"course":"Docker","revenue":994,"students":[{"student":"Guilherme","paid":497},{"student":"Leonan","paid":497}]}]
+HTTP 200
+
+--- servidor SEM ADMIN_TOKEN configurado: endpoints ficam desabilitados por padrão (não abertos) ---
+--- reinício SEM ADMIN_TOKEN no ambiente ---
+
+> ecommerce-api-legacy@1.0.0 start
+> node src/server.js
+
+{"timestamp":"2026-09-20T17:46:07.612Z","level":"info","message":"ecommerce-api-legacy rodando na porta 3100..."}
+--- GET /api/admin/financial-report -> 403 (desabilitado, não aberto) ---
+Endpoints administrativos desabilitados
+HTTP 403
+--- DELETE /api/users/1 -> 403 (desabilitado, não aberto) ---
+Endpoints administrativos desabilitados
+HTTP 403
+
+> ecommerce-api-legacy@1.0.0 test:internal
+> node internal-tests.js
+
+==========================================================
+internal-tests — ecommerce-api-legacy
+Checagens em processo (sem servidor)
+==========================================================
+
+  ✓ rollback: matricula nao sobra quando o pagamento falha
+      erro propagado: falha simulada gravando o pagamento | enrollments 1 -> 1
+  ✓ controle negativo: sem transacao a linha orfa persiste (prova que a checagem acima mede algo)
+      enrollments 1 -> 2
+  ✓ app: src/app.js importavel sem abrir porta nem criar schema
+      quem chama listen() e o src/server.js
+  ✓ paginacao: per_page limitado ao teto e default vindo do config
+      per_page=999999999 -> 100 (teto 100) | sem per_page -> 20
+
+==========================================================
+PASS: 4 checagem(ns) internas OK.
+==========================================================
+exit: 0

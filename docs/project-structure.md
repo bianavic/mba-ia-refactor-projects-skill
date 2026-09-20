@@ -134,6 +134,7 @@ ecommerce-api-legacy/
     │   ├── asyncHandler.js
     │   ├── errorHandler.js
     │   ├── notFoundHandler.js
+    │   ├── requireAdminToken.js
     │   └── validators.js
     ├── models/
     │   ├── auditLogModel.js

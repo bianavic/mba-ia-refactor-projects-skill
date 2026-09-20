@@ -326,6 +326,7 @@ ecommerce-api-legacy/
     │   ├── asyncHandler.js
     │   ├── errorHandler.js
     │   ├── notFoundHandler.js
+    │   ├── requireAdminToken.js
     │   └── validators.js
     ├── models/
     │   ├── auditLogModel.js
@@ -472,7 +473,7 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Aplicação inicia sem erros | ✓ `evidence/project1-boot.png` | ✓ `evidence/project2-boot.png` + log da rodada 3 | ✓ `evidence/project3-boot.png` |
 | Endpoints originais respondem | ✓ | ✓ `manual-tests.sh` na rodada 3 | ✓ |
 
-As 7 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵, o status pendente da rodada 4 de `ecommerce-api-legacy` ⁶, e a rodada 4 de `code-smells-project` — já corrigida e validada — ⁷) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
+As 7 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵, e as rodadas 4 de `ecommerce-api-legacy` ⁶ e `code-smells-project` ⁷ — ambas já corrigidas e validadas — que explicam por que a contagem de findings da rodada mais recente fica abaixo de 5) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 ### 3.4 Evidências de Execução
 
@@ -577,22 +578,24 @@ relatório ou a evidência que o sustenta; célula em branco significa não veri
 | Fase 1 detecta stack corretamente | ✓ Python / Flask 3.1.1 | ✓ JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | ✓ Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 |
 | Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) ⁷ | ✓ 16 ([part3](reports/audit-project-2-part3.md)) ⁶ | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
 | Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL | ✓ 1 CRITICAL + 5 HIGH | ✓ 3 HIGH |
-| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) + [log rodada 4](evidence/logs/code-smells-project-round4-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) ⁶ | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
+| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) + [log rodada 4](evidence/logs/code-smells-project-round4-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) + [log rodada 4](evidence/logs/ecommerce-api-legacy-round4-validation.txt) | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
 
 A linha "Fase 1 detecta stack" sai da linha `Stack:` de cada relatório; as duas seguintes, da
 tabela de [§3.1](#31-resumo-das-auditorias). "Aplicação funciona" só está marcada onde há registro
 de execução real — boot mais endpoints respondendo. ⁶ `ecommerce-api-legacy` tem uma rodada 4
-([`audit-project-2-part4.md`](reports/audit-project-2-part4.md), 2026-09-20) mais recente que a
-citada aqui: achou um novo CRITICAL (ausência de autenticação/autorização em todos os endpoints),
-mas parou no gate da Fase 2 — a Fase 3 não rodou, o achado segue **aberto e sem correção**, e as
-duas marcações acima refletem apenas o que a rodada 3 (com Fase 3 completa) já comprova. ⁷
-`code-smells-project` também teve uma rodada 4
-([`audit-project-1-part4.md`](reports/audit-project-1-part4.md), 2026-09-20): achou 1 HIGH + 1
-MEDIUM (mutação sem checar linha afetada; coerção de tipo sem guard virando 500) — abaixo do
-mínimo de 5, mas essa Fase 3 **já rodou e foi validada**
-([log rodada 4](evidence/logs/code-smells-project-round4-validation.txt)); a nota existe só para
-explicar por que a contagem de findings da rodada mais recente é 2, não para sinalizar pendência.
-Detalhe de ambas em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
+([`audit-project-2-part4.md`](reports/audit-project-2-part4.md), 2026-09-20) com só 3 findings
+(1 CRITICAL + 2 LOW herdados) — abaixo do mínimo de 5, mas essa Fase 3 **já rodou e foi
+validada**: o CRITICAL (ausência de autenticação/autorização) foi fechado com uma guarda por
+API key (`X-Admin-Token`) em `GET /api/admin/financial-report` e `DELETE /api/users/:id`
+([log rodada 4](evidence/logs/ecommerce-api-legacy-round4-validation.txt)). ⁷ Mesma situação em
+`code-smells-project`: a rodada 4
+([`audit-project-1-part4.md`](reports/audit-project-1-part4.md), 2026-09-20) achou 1 HIGH + 1
+MEDIUM (mutação sem checar linha afetada; coerção de tipo sem guard virando 500), também abaixo
+do mínimo de 5, e também já corrigida e validada
+([log rodada 4](evidence/logs/code-smells-project-round4-validation.txt)). As duas notas existem
+só para explicar por que a contagem de findings da rodada mais recente fica abaixo de 5, não para
+sinalizar pendência. Detalhe de ambas em
+[`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 
 ## Manutenção da documentação

@@ -240,12 +240,24 @@ um projeto que já resolveu 14 dos 16 achados anteriores legitimamente sobra pou
 do gap novo que motivou a rodada. Ver nota ⁶ em
 [Checklist de Validação Preenchido](#checklist-de-validação-preenchido).
 
-**Esta rodada parou no gate da Fase 2 — a Fase 3 não rodou.** `git log -- ecommerce-api-legacy`
-não tem nenhum commit depois de `4ddb14e`; o CRITICAL de autenticação/autorização segue **aberto
-e sem correção** nesta sincronização. Sem refatoração, não há o que validar com app de pé — por
-isso não existe `evidence/logs/ecommerce-api-legacy-round4-validation.txt` ainda, e
-`scripts/sync-docs.sh --check` acusa a rodada 4 como evidência faltando (ver
-[Lacunas de Evidência](#lacunas-de-evidência)).
+**Fase 3 desta rodada:** adicionado `src/middlewares/requireAdminToken.js` — guarda mínima por
+API key (`X-Admin-Token`), não um sistema de contas completo (o projeto nunca teve login/sessão,
+então inventar um seria decisão de produto, fora do escopo mecânico do RP-16). Sem `ADMIN_TOKEN`
+configurado no servidor, as duas rotas ficam **desabilitadas** (403) em vez de abertas por
+padrão — mesma convenção já usada e validada em `code-smells-project` (`middlewares/auth.py`).
+Aplicada em `GET /api/admin/financial-report` e `DELETE /api/users/:id` via `src/routes/index.js`.
+`manual-tests.sh` ganhou uma seção AUTH (sem token / token forjado -> 401) e passou a exigir
+`ADMIN_TOKEN` no ambiente para exercitar o resto do fluxo com token válido; `api-tests.http`
+ganhou `@adminToken` e o header nas ~15 chamadas às duas rotas, e sua seção "Limites de
+permissão" foi reescrita para demonstrar a checagem em vez de documentar a ausência dela.
+
+**Validação real desta rodada:** log completo em
+[`evidence/logs/ecommerce-api-legacy-round4-validation.txt`](../evidence/logs/ecommerce-api-legacy-round4-validation.txt) —
+boot com e sem `ADMIN_TOKEN` (confirma "desabilitado" vs. "autenticado", nunca "aberto"),
+`arch-check.sh` (exit 0), `manual-tests.sh` inteiro sem regressão, `npm run test:internal` (4/4),
+e verificação dirigida do CRITICAL: `Authorization: Bearer` forjado e ausência total de header
+agora respondem 401 em ambas as rotas (antes respondiam 200 igual a uma chamada legítima), com
+controle positivo (`X-Admin-Token` correto continua 200).
 
 Achado colateral, registrado no relatório mas fora do formato da Fase 2: nem
 `references/anti-patterns-catalog.md` nem `references/refactoring-playbook.md` (nas 3 cópias)
@@ -422,17 +434,18 @@ finalmente fechou: `models/admin_model.py` não aceita mais SQL do cliente — s
 allow-list fixa (`produtos`, `usuarios`, `pedidos`, `itens_pedido`), cada uma resolvendo para uma
 query parametrizada hardcoded. Ver [rodada 3 de `code-smells-project`](#code-smells-project) acima.
 
-⁶ — nota de `ecommerce-api-legacy` (células "Mínimo de 5 findings" em §3.3 e "Fase 2 encontra
-≥ 5 findings" nos Critérios de Aceite). A rodada 4
+⁶ — nota de `ecommerce-api-legacy` (célula "Mínimo de 5 findings" em §3.3). A rodada 4
 ([`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20) achou só 3
 findings (1 CRITICAL novo + 2 LOW herdados) — abaixo do mínimo de 5. É uma re-auditoria manual e
 pontual, não uma passada completa Fase 1-3, e o próprio template proíbe inventar finding para
 preencher vaga: um projeto que já resolveu 14 dos 16 achados da rodada 3 legitimamente sobra
 pouco a reportar além do gap novo. O mínimo de 5 continua demonstrado pela rodada 3 (16
-findings, as 3 fases completas) — ver [Rodada 4](#ecommerce-api-legacy) acima. **A rodada 4
-parou no gate da Fase 2: a Fase 3 não rodou**, então o novo CRITICAL (ausência de
-autenticação/autorização) segue **aberto e sem correção** nesta sincronização, e não existe
-ainda log de validação para essa rodada.
+findings, as 3 fases completas). **A Fase 3 desta rodada já rodou**: o CRITICAL (ausência de
+autenticação/autorização) foi corrigido com `requireAdminToken` e validado com a aplicação de pé
+em
+[`evidence/logs/ecommerce-api-legacy-round4-validation.txt`](../evidence/logs/ecommerce-api-legacy-round4-validation.txt) —
+ver [Rodada 4](#ecommerce-api-legacy) acima. A nota existe só para explicar a contagem de
+findings, não para sinalizar pendência.
 
 ⁷ — nota de `code-smells-project` (célula "Mínimo de 5 findings" em §3.3). A rodada 4
 ([`audit-project-1-part4.md`](../reports/audit-project-1-part4.md), 2026-09-20) achou só 2
@@ -486,14 +499,11 @@ rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
 
 ## Lacunas de Evidência
 
-- **Pendente (bloqueante, não opcional):** `ecommerce-api-legacy` rodada 4
-  ([`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20) parou no gate
-  da Fase 2 — a Fase 3 não rodou, o CRITICAL de autenticação/autorização segue sem correção, e
-  por isso não existe `evidence/logs/ecommerce-api-legacy-round4-validation.txt`. Diferente dos
-  itens "opcional" abaixo, aqui não há nada para capturar ainda: sem refatoração, não há
-  aplicação corrigida para validar com app de pé. É por isso que
-  `scripts/sync-docs.sh --check` sai 1 nesta sincronização. Fecha quando a Fase 3 desta rodada
-  rodar e a validação for capturada seguindo o gate do `CLAUDE.md`.
+- ~~`ecommerce-api-legacy` rodada 4 sem Fase 3/evidência.~~ **Fechado em 2026-09-20**: Fase 3
+  rodou (`middlewares/requireAdminToken.js`, guarda por API key nas duas rotas do CRITICAL),
+  validada com a aplicação de pé em
+  [`evidence/logs/ecommerce-api-legacy-round4-validation.txt`](../evidence/logs/ecommerce-api-legacy-round4-validation.txt) —
+  ver [Rodada 4](#ecommerce-api-legacy) acima.
 - ~~`code-smells-project` rodada 4 sem Fase 3/evidência.~~ **Fechado em 2026-09-20**: Fase 3 rodou
   (rowcount check em `atualizar_status`, guard de tipo em `parse_pagination`/`buscar`), validada
   com a aplicação de pé em
