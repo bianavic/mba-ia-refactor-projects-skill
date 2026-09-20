@@ -46,12 +46,17 @@ def _make_category(name='Backend'):
     return category
 
 
-def _make_tasks(count, user_id=None, category_id=None):
-    for i in range(count):
+def _make_tasks_with_distinct_owners(count, offset=0):
+    """Each task gets its own user and category. A shared owner would let
+    SQLAlchemy's per-session identity map serve every lazy-load after the first
+    from cache, hiding a real N+1 instead of proving the query count is flat."""
+    for i in range(offset, offset + count):
+        user = _make_user(name=f'User {i}', email=f'user{i}@example.com')
+        category = _make_category(name=f'Category {i}')
         task_controller.create_task({
             'title': f'Task {i}',
-            'user_id': user_id,
-            'category_id': category_id,
+            'user_id': user.id,
+            'category_id': category.id,
         })
 
 
@@ -59,15 +64,12 @@ class TestListTasksQueryCount:
     """controllers/task_controller.py:58-61 — joinedload(Task.user, Task.category)."""
 
     def test_query_count_does_not_grow_with_row_count(self, app):
-        user = _make_user()
-        category = _make_category()
-
-        _make_tasks(3, user_id=user.id, category_id=category.id)
+        _make_tasks_with_distinct_owners(3)
         with count_queries() as statements:
             small = task_controller.list_tasks(page=1, per_page=50)
         small_count = len(statements)
 
-        _make_tasks(12, user_id=user.id, category_id=category.id)
+        _make_tasks_with_distinct_owners(12, offset=3)
         with count_queries() as statements:
             large = task_controller.list_tasks(page=1, per_page=50)
         large_count = len(statements)
