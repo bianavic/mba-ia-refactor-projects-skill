@@ -40,6 +40,7 @@ code-smells-project/
 │           └── scripts/
 │               └── arch-check.sh
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/
@@ -110,6 +111,7 @@ ecommerce-api-legacy/
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── api-tests.http
 ├── api.http
 ├── arch-check.sh
 ├── internal-tests.js
@@ -202,6 +204,7 @@ task-manager-api/
 │               └── arch-check.sh
 ├── .env.example
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/

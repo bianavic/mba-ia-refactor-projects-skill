@@ -161,6 +161,52 @@ de `per_page`, que são propriedades que nenhuma resposta HTTP revela. A porta 3
 ocupada pelo Docker na máquina, então a validação rodou em `PORT=3100`; `manual-tests.sh` passou
 a aceitar `BASE` do ambiente por causa disso.
 
+**Rodada 4 — [`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20.**
+Re-auditoria manual e pontual, não uma passada completa Fase 1-3 — disparada ao escrever
+`ecommerce-api-legacy/api-tests.http` (testes manuais de endpoint/DB) e notar que o projeto não
+tem nenhuma camada de autenticação, uma lacuna que nenhuma das três rodadas anteriores tinha
+levantado. Antes de registrar o achado, os 16 findings de `-part3.md` foram reverificados um a
+um contra o código atual, porque `git log -- ecommerce-api-legacy` mostra um commit de refatoração
+(`4ddb14e refactor(ecommerce-api-legacy): resolve round-3 findings and add internal checks`)
+depois de `-part3.md` sem nenhum relatório de auditoria confirmando o que ele corrigiu.
+
+14 dos 16 achados da rodada 3 estão resolvidos (fallback de senha removido, checkout em
+transação, lógica de negócio em `services/`, tratamento de erro centralizado em `asyncHandler`/
+`AppError`, cascade delete transacional, cache write-only removido, camada de validação,
+paginação com teto, `verifyPassword` morto removido, `app.js` sem side effect de boot, config
+morta limpa, default de paginação centralizado, contrato 404 para rota desconhecida, metadata do
+`package.json` atualizada). Os 2 LOW de convenção (nomes abreviados de campo, formato de
+resposta ora texto ora JSON) seguem abertos de propósito, quarta rodada consecutiva, por limite
+de escopo do RP-15 (contrato de API, não código interno).
+
+O achado novo: **[CRITICAL] nenhum endpoint tem autenticação ou autorização.**
+`GET /api/admin/financial-report` expõe a receita completa por aluno para qualquer chamador não
+autenticado; `DELETE /api/users/:id` apaga qualquer usuário (cascade para matrículas/pagamentos)
+para quem conseguir adivinhar ou enumerar um id inteiro pequeno — nenhuma sessão, API key ou
+token é checado em lugar nenhum (`grep -rni "auth\|token\|role\|permission\|credential" src/` não
+acha nada). Nenhum AP-xx/RP-xx existente cobre exatamente "endpoint sem checagem de identidade do
+chamador" — o relatório não força um encaixe em AP-02/AP-06 e propõe um AP-17 novo.
+
+Total: 3 findings (1 CRITICAL novo, 2 LOW herdados) — abaixo do mínimo de 5 do enunciado para uma
+primeira passada de Fase 2, mas o próprio template proíbe inventar finding para preencher vaga;
+um projeto que já resolveu 14 dos 16 achados anteriores legitimamente sobra pouco a reportar além
+do gap novo que motivou a rodada. Ver nota ⁶ em
+[Checklist de Validação Preenchido](#checklist-de-validação-preenchido).
+
+**Esta rodada parou no gate da Fase 2 — a Fase 3 não rodou.** `git log -- ecommerce-api-legacy`
+não tem nenhum commit depois de `4ddb14e`; o CRITICAL de autenticação/autorização segue **aberto
+e sem correção** nesta sincronização. Sem refatoração, não há o que validar com app de pé — por
+isso não existe `evidence/logs/ecommerce-api-legacy-round4-validation.txt` ainda, e
+`scripts/sync-docs.sh --check` acusa a rodada 4 como evidência faltando (ver
+[Lacunas de Evidência](#lacunas-de-evidência)).
+
+Achado colateral, registrado no relatório mas fora do formato da Fase 2: nem
+`references/anti-patterns-catalog.md` nem `references/refactoring-playbook.md` (nas 3 cópias)
+tem entrada para "ausência de autenticação/autorização" — é o motivo mecânico do gap ter
+atravessado três rodadas sem ser pego. Próximo id livre: AP-17. `code-smells-project` e
+`task-manager-api` nunca foram auditados especificamente para esse gap, então o mesmo pode
+existir neles sem ter sido reportado ainda.
+
 ### task-manager-api
 
 **Rodada 1 — [`audit-project-3.md`](../reports/audit-project-3.md).**
@@ -329,6 +375,18 @@ finalmente fechou: `models/admin_model.py` não aceita mais SQL do cliente — s
 allow-list fixa (`produtos`, `usuarios`, `pedidos`, `itens_pedido`), cada uma resolvendo para uma
 query parametrizada hardcoded. Ver [rodada 3 de `code-smells-project`](#code-smells-project) acima.
 
+⁶ — nota de `ecommerce-api-legacy` (células "Mínimo de 5 findings" em §3.3 e "Fase 2 encontra
+≥ 5 findings" nos Critérios de Aceite). A rodada 4
+([`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20) achou só 3
+findings (1 CRITICAL novo + 2 LOW herdados) — abaixo do mínimo de 5. É uma re-auditoria manual e
+pontual, não uma passada completa Fase 1-3, e o próprio template proíbe inventar finding para
+preencher vaga: um projeto que já resolveu 14 dos 16 achados da rodada 3 legitimamente sobra
+pouco a reportar além do gap novo. O mínimo de 5 continua demonstrado pela rodada 3 (16
+findings, as 3 fases completas) — ver [Rodada 4](#ecommerce-api-legacy) acima. **A rodada 4
+parou no gate da Fase 2: a Fase 3 não rodou**, então o novo CRITICAL (ausência de
+autenticação/autorização) segue **aberto e sem correção** nesta sincronização, e não existe
+ainda log de validação para essa rodada.
+
 ## Evidências de Execução
 
 Galeria em [`evidence/`](../evidence/), citada em
@@ -371,6 +429,14 @@ rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
 
 ## Lacunas de Evidência
 
+- **Pendente (bloqueante, não opcional):** `ecommerce-api-legacy` rodada 4
+  ([`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20) parou no gate
+  da Fase 2 — a Fase 3 não rodou, o CRITICAL de autenticação/autorização segue sem correção, e
+  por isso não existe `evidence/logs/ecommerce-api-legacy-round4-validation.txt`. Diferente dos
+  itens "opcional" abaixo, aqui não há nada para capturar ainda: sem refatoração, não há
+  aplicação corrigida para validar com app de pé. É por isso que
+  `scripts/sync-docs.sh --check` sai 1 nesta sincronização. Fecha quando a Fase 3 desta rodada
+  rodar e a validação for capturada seguindo o gate do `CLAUDE.md`.
 - **TODO (opcional):** capturar screenshot nova da rodada 3 de `code-smells-project`
   (2026-09-19) — `evidence/project1-*` ainda são das rodadas anteriores. Opcional porque o log
   de validação completo já cobre essa rodada em

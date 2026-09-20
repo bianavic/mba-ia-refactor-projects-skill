@@ -28,6 +28,7 @@ scripts/                 sync-docs.sh — regenera as tabelas e árvores deste R
   - [3.3 Checklist de Validação Preenchido](#33-checklist-de-validação-preenchido)
   - [3.4 Evidências de Execução](#34-evidências-de-execução)
   - [3.5 Comportamento entre Diferentes Stacks](#35-comportamento-entre-diferentes-stacks)
+  - [3.6 Limitações Conhecidas e Melhorias Futuras](#36-limitações-conhecidas-e-melhorias-futuras)
 - [4. Como Executar](#4-como-executar)
   - [4.1 Pré-requisitos](#41-pré-requisitos)
   - [4.2 Comandos por Projeto](#42-comandos-por-projeto)
@@ -185,7 +186,7 @@ porque são a evidência do estado "antes".
 | # | Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |
 |---|---|---|---:|---:|---:|---:|---:|---|
 | 1 | `code-smells-project` | Python / Flask 3.1.1 | 1 | 0 | 2 | 2 | **5** | [`audit-project-1-part3.md`](reports/audit-project-1-part3.md) |
-| 2 | `ecommerce-api-legacy` | JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | 1 | 5 | 5 | 5 | **16** | [`audit-project-2-part3.md`](reports/audit-project-2-part3.md) |
+| 2 | `ecommerce-api-legacy` | JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | 1 | 0 | 0 | 2 | **3** | [`audit-project-2-part4.md`](reports/audit-project-2-part4.md) |
 | 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 3 | 4 | 4 | **11** | [`audit-project-3-part3.md`](reports/audit-project-3-part3.md) |
 
 <sub>Gerado por `scripts/sync-docs.sh` a partir de `reports/`. Não edite à mão.</sub>
@@ -231,6 +232,7 @@ code-smells-project/
 │           └── scripts/
 │               └── arch-check.sh
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/
@@ -301,6 +303,7 @@ ecommerce-api-legacy/
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── api-tests.http
 ├── api.http
 ├── arch-check.sh
 ├── internal-tests.js
@@ -393,6 +396,7 @@ task-manager-api/
 │               └── arch-check.sh
 ├── .env.example
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/
@@ -455,7 +459,7 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Relatório segue o template | ✓ ⁵ | ✓ ¹ | ✓ |
 | Finding com arquivo/linha exatos | ✓ | ✓ | ✓ |
 | Ordenado CRITICAL → LOW | ✓ | ✓ | ✓ |
-| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 16 (rodada 3) | ✓ 11 (rodada 3) |
+| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 16 (rodada 3) ⁶ | ✓ 11 (rodada 3) |
 | Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 (rodada 1) |
 | Pausa e pede confirmação antes da Fase 3 | ✓ | ✓ | ✓ |
 | Estrutura de diretórios segue MVC | ✓ | ✓ | ✓ camadas existentes ajustadas ² |
@@ -468,7 +472,7 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Aplicação inicia sem erros | ✓ `evidence/project1-boot.png` | ✓ `evidence/project2-boot.png` + log da rodada 3 | ✓ `evidence/project3-boot.png` |
 | Endpoints originais respondem | ✓ | ✓ `manual-tests.sh` na rodada 3 | ✓ |
 
-As 5 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
+As 6 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵, e o status pendente da rodada 4 de `ecommerce-api-legacy` ⁶) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 ### 3.4 Evidências de Execução
 
@@ -481,6 +485,30 @@ Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout s
 ### 3.5 Comportamento entre Diferentes Stacks
 
 A mesma skill, sem qualquer alteração, produziu relatórios e refatorações corretos em Python/Flask monolítico, Node.js/Express monolítico e Python/Flask parcialmente em camadas — a única diferença entre as 3 execuções foi o conteúdo do relatório e da refatoração, nunca o processo (`claude "/refactor-arch"` e o mesmo `SKILL.md` nos 3 casos). Detalhe rodada a rodada em [`docs/results.md`](docs/results.md#comportamento-entre-diferentes-stacks).
+
+### 3.6 Limitações Conhecidas e Melhorias Futuras
+
+Não faz parte do escopo obrigatório do desafio, mas ficou evidente durante a auditoria manual do
+Projeto 2 e vale registrar para uma próxima iteração deste repositório:
+
+- **Sem branch protection no `main`.** Confirmado via `gh api repos/.../branches/main/protection`
+  → `404 Branch not protected`. Nenhum PR é obrigado a passar por review ou por um check antes do
+  merge.
+- **Sem CI/CD.** Não existe `.github/workflows/` — nenhum pipeline roda em PR, então não há
+  execução automática de `arch-check.sh`/`manual-tests.sh`/testes unitários nem de um scanner de
+  segredos antes do merge.
+- **Sem scanner de segredos automatizado.** O único mecanismo existente é o `.gitignore`
+  (raiz e `ecommerce-api-legacy/.gitignore`), que exclui `.env`, `*.db`, `node_modules/`,
+  `instance/` — mas isso só impede que certos *tipos de arquivo* entrem no repo. Não pega segredo
+  hardcoded dentro do código-fonte (`.js`/`.py`), que foi exatamente a classe de achado CRITICAL
+  da rodada 1 em ambos os Projetos 1 e 2 (`SECRET_KEY`/`dbPass`/`pk_live_...` como string literal
+  em arquivo versionado).
+- Hoje, a única coisa que impede um segredo real de chegar ao `main` é revisão humana manual —
+  sem nenhum gate técnico forçando essa revisão a acontecer.
+
+Melhoria proposta: adicionar um workflow do GitHub Actions rodando um scanner de segredos
+(`gitleaks` ou `trufflehog`) em todo PR, e habilitar branch protection no `main` exigindo esse
+check (e ao menos 1 review) antes do merge.
 
 ## 4. Como Executar
 
@@ -537,13 +565,18 @@ relatório ou a evidência que o sustenta; célula em branco significa não veri
 | Critério | code-smells-project | ecommerce-api-legacy | task-manager-api |
 |---|---|---|---|
 | Fase 1 detecta stack corretamente | ✓ Python / Flask 3.1.1 | ✓ JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | ✓ Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 |
-| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) | ✓ 16 ([part3](reports/audit-project-2-part3.md)) | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
+| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) | ✓ 16 ([part3](reports/audit-project-2-part3.md)) ⁶ | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
 | Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL | ✓ 1 CRITICAL + 5 HIGH | ✓ 3 HIGH |
-| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
+| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) ⁶ | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
 
 A linha "Fase 1 detecta stack" sai da linha `Stack:` de cada relatório; as duas seguintes, da
 tabela de [§3.1](#31-resumo-das-auditorias). "Aplicação funciona" só está marcada onde há registro
-de execução real — boot mais endpoints respondendo.
+de execução real — boot mais endpoints respondendo. ⁶ `ecommerce-api-legacy` tem uma rodada 4
+([`audit-project-2-part4.md`](reports/audit-project-2-part4.md), 2026-09-20) mais recente que a
+citada aqui: achou um novo CRITICAL (ausência de autenticação/autorização em todos os endpoints),
+mas parou no gate da Fase 2 — a Fase 3 não rodou, o achado segue **aberto e sem correção**, e as
+duas marcações acima refletem apenas o que a rodada 3 (com Fase 3 completa) já comprova. Detalhe
+em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 
 ## Manutenção da documentação
