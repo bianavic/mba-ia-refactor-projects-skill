@@ -478,21 +478,29 @@ arquivo em 2026-09-20 — cada linha descreve o que a imagem ou o log realmente 
 | `project3-tasks-paginacao.png` | 3 | Postman: `GET /tasks?page=1&per_page=2` → exatamente 2 tarefas. Prova a paginação que o legado não tinha. |
 | `project3-users-sem-senha.png` | 3 | Postman: `GET /users/1` → 200 com `tasks` aninhadas e **sem campo de senha**. |
 
-### Logs de terminal (11)
+### Logs de terminal (15)
+
+Nomeados `<projeto>-<o-que-prova>.txt`, agrupados por projeto e ordenados por rodada; os que não
+citam rodada são anteriores à convenção `-round<N>-validation` e cobrem uma prova pontual, não a
+suíte completa de uma rodada.
 
 | Arquivo | Projeto | O que mostra |
 |---|---|---|
+| `code-smells-project-admin-query-drop-table-blocked.txt` | 1 | `POST /admin/query` com token válido tentando `DROP TABLE produtos` → recusado ("Somente instruções SELECT são permitidas"), seguido de um `SELECT COUNT(*)` com o mesmo token que funciona — a proteção é seletiva, não bloqueio geral. |
+| `code-smells-project-arch-check-specific.txt` | 1 | `arch-check.sh` da raiz do projeto: PASS, 2 arquivos de rota, exit 0. |
+| `code-smells-project-arch-check-generic.txt` | 1 | A versão genérica empacotada na skill no mesmo projeto: mesmo PASS, com `Detected sources: py` — prova que as duas formas checam a mesma regra. |
+| `code-smells-project-manual-tests.txt` | 1 | Suíte `manual-tests.sh` completa. |
 | `code-smells-project-round3-validation.txt` | 1 | Validação completa da rodada 3: boot, `arch-check.sh`, correções específicas da rodada e `manual-tests.sh` inteiro. |
+| `code-smells-project-round4-validation.txt` | 1 | Validação da rodada 4: boot, `arch-check.sh`, `manual-tests.sh` inteiro sem regressão, e um `curl` por finding corrigido (rowcount check + guard de tipo na paginação). |
+| `code-smells-project-skill-run-phase1-2-gate.txt` | 1 | A skill rodando de verdade em modo headless (`claude -p`, só leitura, worktree isolado no commit pré-Fase 3): Fase 1, Fase 2 completa e a **pergunta** do gate. Interrompido ali de propósito — a Fase 3 não roda nesta captura. |
+| `ecommerce-api-legacy-checkout-server-log.txt` | 2 | Log do servidor durante os checkouts, com os três cartões mascarados. ⚠️ Anterior à rodada 3 (mesma ressalva de nome/entry point). |
+| `ecommerce-api-legacy-manual-tests.txt` | 2 | Suíte `manual-tests.sh` completa. ⚠️ Anterior à rodada 3 — o caso `DELETE /api/users/9999` ainda aparece respondendo 200; hoje responde 404. |
 | `ecommerce-api-legacy-round3-validation.txt` | 2 | Validação completa da rodada 3: boot, `arch-check.sh` (com o detector validado antes contra uma violação plantada), `manual-tests.sh`, log do servidor, um `curl` por finding corrigido e a saída de `npm run test:internal`. |
-| `item1-2-skill-phase1-phase2-gate-code-smells-project.txt` | 1 | A skill rodando de verdade em modo headless (`claude -p`, só leitura, worktree isolado no commit pré-Fase 3): Fase 1, Fase 2 completa e a **pergunta** do gate. Interrompido ali de propósito — a Fase 3 não roda nesta captura. |
-| `item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt` | 2 | O que faltava no anterior: execução **interativa**, com o gate **respondido** (`y` digitado pelo desenvolvedor, com timestamp) e a Fase 3 executando até o resumo de conclusão. Extraído do transcript da própria sessão. |
-| `item3-arch-check-project-specific.txt` | 1 | `arch-check.sh` da raiz do projeto: PASS, 2 arquivos de rota, exit 0. |
-| `item4-arch-check-bundled-generic.txt` | 1 | A versão genérica empacotada na skill no mesmo projeto: mesmo PASS, com `Detected sources: py` — prova que as duas formas checam a mesma regra. |
-| `item5-manual-tests-project1.txt` | 1 | Suíte `manual-tests.sh` completa. |
-| `item5-manual-tests-project2.txt` | 2 | Suíte `manual-tests.sh` completa. ⚠️ Anterior à rodada 3 — o caso `DELETE /api/users/9999` ainda aparece respondendo 200; hoje responde 404. |
-| `item5-manual-tests-project3.txt` | 3 | Suíte `manual-tests.sh` completa. É a evidência que sustenta "aplicação funciona" do Projeto 3 nos Critérios de Aceite. |
-| `item7a-drop-table-blocked-project1.txt` | 1 | `POST /admin/query` com token válido tentando `DROP TABLE produtos` → recusado ("Somente instruções SELECT são permitidas"), seguido de um `SELECT COUNT(*)` com o mesmo token que funciona — a proteção é seletiva, não bloqueio geral. |
-| `item9-project2-checkout-server-log.txt` | 2 | Log do servidor durante os checkouts, com os três cartões mascarados. ⚠️ Anterior à rodada 3 (mesma ressalva de nome/entry point). |
+| `ecommerce-api-legacy-round4-validation.txt` | 2 | Validação da rodada 4: boot com/sem `ADMIN_TOKEN` (desabilitado vs. autenticado, nunca aberto), `arch-check.sh`, `manual-tests.sh` sem regressão, `npm run test:internal` (4/4), e o CRITICAL de auth fechado (header forjado/ausente agora 401 nas duas rotas, antes 200). |
+| `ecommerce-api-legacy-skill-run-gate-answered.txt` | 2 | O que faltava no anterior: execução **interativa**, com o gate **respondido** (`y` digitado pelo desenvolvedor, com timestamp) e a Fase 3 executando até o resumo de conclusão. Extraído do transcript da própria sessão. |
+| `task-manager-api-manual-tests.txt` | 3 | Suíte `manual-tests.sh` completa. É a evidência que sustenta "aplicação funciona" do Projeto 3 nos Critérios de Aceite. |
+| `task-manager-api-round3-validation.txt` | 3 | Validação completa da rodada 3: estrutura MVC/AP-16 e os achados estruturais da rodada. |
+| `task-manager-api-round4-validation.txt` | 3 | Validação da rodada 4 (auth/autorização): boot com/sem `SECRET_KEY`, tokens forjados/expirados/de contas apagadas ou inativas rejeitados, `pytest` 67/67. |
 
 Os itens marcados com ⚠️ continuam válidos para o que provam, mas foram capturados antes da
 rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
@@ -532,16 +540,16 @@ rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
   validadores e um `curl` por finding, capturados com a aplicação de pé.
 - ~~A skill rodando as 3 fases interativamente e o gate de confirmação da Fase 2 sem evidência
   gravada.~~ **Fechado em 2026-09-20** por
-  `evidence/logs/item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt`: execução
+  `evidence/logs/ecommerce-api-legacy-skill-run-gate-answered.txt`: execução
   interativa no Projeto 2 com o `y` do desenvolvedor registrado com timestamp e a Fase 3
-  rodando em seguida. O `item1-2-...-code-smells-project.txt` continua cobrindo o outro ângulo
-  — modo headless, somente leitura, parando na pergunta do gate.
+  rodando em seguida. O `code-smells-project-skill-run-phase1-2-gate.txt` continua cobrindo o
+  outro ângulo — modo headless, somente leitura, parando na pergunta do gate.
 - Narrativa de evidências para `ecommerce-api-legacy` e `task-manager-api` (rodada a rodada)
   foram escritas nesta rodada de merge (2026-09-20) — ver
   [Resultados por Projeto](#resultados-por-projeto). Nenhuma pendência de narrativa restante
   para os 3 projetos no estado atual.
 - Três capturas do Projeto 2 (`project2-boot.png`, `project2-checkout-sem-cartao-log.png`,
-  `item9-project2-checkout-server-log.txt`) são anteriores à rodada 3 e ainda mostram o nome
+  `ecommerce-api-legacy-checkout-server-log.txt`) são anteriores à rodada 3 e ainda mostram o nome
   antigo do pacote, `node src/app.js` e "Frankenstein LMS". Continuam válidas para o que provam
   (cartão mascarado, boot com log estruturado), mas não refletem o entry point atual.
 
