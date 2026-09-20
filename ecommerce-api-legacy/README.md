@@ -11,6 +11,17 @@ npm start
 
 A aplicação sobe em `http://localhost:3000`. O banco SQLite é em memória e já carrega seeds automaticamente no boot.
 
+Por padrão `GET /api/admin/financial-report` e `DELETE /api/users/:id` ficam desabilitados
+(403) — para testar essa parte, suba o servidor com um token antes:
+
+```bash
+ADMIN_TOKEN=algum-token npm start
+```
+
+(ou defina `ADMIN_TOKEN=algum-token` em um `.env` — veja `.env.example` — já que o projeto
+carrega variáveis de ambiente via `dotenv`) e envie o header `X-Admin-Token: algum-token`
+nas chamadas a essas duas rotas.
+
 Exemplos de requisições estão em `api.http` (boilerplate original). Para uma cobertura completa
 e interativa (todos os endpoints, edge cases, e os casos de auth do `X-Admin-Token`), use
 `api-tests.http` com a extensão "REST Client" do VS Code ou equivalente — ajuste a variável

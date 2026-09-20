@@ -5,7 +5,7 @@
 ### (AP-17/RP-16) — suba o servidor com ADMIN_TOKEN=<algo> e ajuste @adminToken abaixo.
 
 @baseUrl = http://localhost:3000
-@adminToken = troque-pelo-valor-de-ADMIN_TOKEN
+@adminToken = algum-token
 
 ### ==========================================================
 ### Checkout
@@ -67,7 +67,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/admin/financial-report
 X-Admin-Token: {{adminToken}}
 
-### Relatório financeiro — paginado
+### Relatório financeiro — paginado (necessario ter mais de 10 cursos cadastrados para vizualizar a pagina 2)
 GET {{baseUrl}}/api/admin/financial-report?page=2&per_page=10
 X-Admin-Token: {{adminToken}}
 
