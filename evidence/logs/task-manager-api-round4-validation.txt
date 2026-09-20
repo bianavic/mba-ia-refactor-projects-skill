@@ -1,0 +1,673 @@
+==================================================
+SECRET_KEY fail-fast (Achado 1 adaptado)
+==================================================
+--- sem SECRET_KEY e sem FLASK_ENV=development: boot deve ABORTAR ---
+  File "/Users/admin/Downloads/fullcycle-correcao/mba-ia-refactor-projects-skill/task-manager-api/app.py", line 57, in create_app
+    _ensure_secret_key(app)
+  File "/Users/admin/Downloads/fullcycle-correcao/mba-ia-refactor-projects-skill/task-manager-api/app.py", line 42, in _ensure_secret_key
+    raise RuntimeError(
+RuntimeError: SECRET_KEY não definida. Defina a variável de ambiente SECRET_KEY (veja .env.example) antes de iniciar a aplicação, ou rode com FLASK_ENV=development para uma chave efêmera de desenvolvimento.
+exit: 
+
+--- FLASK_ENV=development sem SECRET_KEY: sobe com chave efêmera + warning ---
+2026-09-20 00:54:32,499 WARNING app: SECRET_KEY ausente: usando chave efêmera de desenvolvimento. Os tokens emitidos serão invalidados no próximo restart.
+boot OK, SECRET_KEY efêmera com 64 chars
+
+==================================================
+seed + boot (com SECRET_KEY real do ambiente)
+==================================================
+Seed concluído com sucesso!
+  3 usuários
+  4 categorias
+  10 tasks
+seed exit: 0
+
+--- app boot log ---
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-09-20 00:54:36,937 INFO werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.15.6:5000
+2026-09-20 00:54:36,937 INFO werkzeug: [33mPress CTRL+C to quit[0m
+
+==================================================
+AUTH (novo: escritas exigem token)
+==================================================
+--- token de admin obtido: eyJ1c2VyX2lkIjoxfQ.aq9ZA... ---
+--- token de user comum obtido: eyJ1c2VyX2lkIjoyfQ.aq9ZA... ---
+--- POST /tasks SEM token (esperado 401) ---
+{"error":"Token ausente"}
+
+HTTP 401
+--- DELETE /users/1 SEM token (esperado 401) ---
+{"error":"Token ausente"}
+
+HTTP 401
+--- POST /tasks com token INVÁLIDO (esperado 401) ---
+{"error":"Token inv\u00e1lido"}
+
+HTTP 401
+--- PUT /users/1 com token de OUTRO usuário (esperado 403) ---
+{"error":"Permiss\u00e3o negada"}
+
+HTTP 403
+--- POST /users tentando virar admin sem ser admin (esperado 403) ---
+{"error":"Apenas um admin pode atribuir esse role"}
+
+HTTP 403
+--- POST /categories com role 'user' comum (esperado 403) ---
+{"error":"Permiss\u00e3o negada"}
+
+HTTP 403
+==================================================
+APP
+==================================================
+--- GET / ---
+{
+    "message": "Task Manager API",
+    "version": "1.0"
+}
+--- GET /health ---
+{
+    "status": "ok",
+    "timestamp": "2026-09-20 03:54:42.510558"
+}
+--- GET /rota-inexistente (esperado 404 em JSON, via middlewares/error_handler.py) ---
+{"error":"The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."}
+
+HTTP 404
+--- DELETE /health (método não suportado pela rota, esperado 405 em JSON) ---
+{"error":"The method is not allowed for the requested URL."}
+
+HTTP 405
+==================================================
+USERS
+==================================================
+--- GET /users (senha não deve aparecer em nenhum item) ---
+[
+    {
+        "active": true,
+        "created_at": "2026-09-20 03:54:36.579193",
+        "email": "joao@email.com",
+        "id": 1,
+        "name": "Jo\u00e3o Silva",
+        "role": "admin",
+        "task_count": 4
+    },
+    {
+        "active": true,
+        "created_at": "2026-09-20 03:54:36.579202",
+        "email": "maria@email.com",
+        "id": 2,
+        "name": "Maria Santos",
+        "role": "user",
+        "task_count": 3
+    },
+    {
+        "active": true,
+        "created_at": "2026-09-20 03:54:36.579207",
+        "email": "pedro@email.com",
+        "id": 3,
+        "name": "Pedro Oliveira",
+        "role": "manager",
+        "task_count": 3
+    }
+]
+--- GET /users/1 ---
+{
+    "active": true,
+    "created_at": "2026-09-20 03:54:36.579193",
+    "email": "joao@email.com",
+    "id": 1,
+    "name": "Jo\u00e3o Silva",
+    "role": "admin",
+    "tasks": [
+        {
+            "category_id": 1,
+            "created_at": "2026-09-20 03:54:36.587566",
+            "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+            "due_date": "2026-09-17 03:54:36.585225",
+            "id": 1,
+            "overdue": true,
+            "priority": 1,
+            "status": "pending",
+            "tags": [],
+            "title": "Implementar autentica\u00e7\u00e3o JWT",
+            "updated_at": "2026-09-20 03:54:36.587569",
+            "user_id": 1
+        },
+        {
+            "category_id": 4,
+            "created_at": "2026-09-20 03:54:36.587576",
+            "description": "Filtro n\u00e3o funciona com caracteres especiais",
+            "due_date": "2026-09-19 03:54:36.586404",
+            "id": 4,
+            "overdue": true,
+            "priority": 1,
+            "status": "pending",
+            "tags": [],
+            "title": "Corrigir bug no filtro de busca",
+            "updated_at": "2026-09-20 03:54:36.587577",
+            "user_id": 1
+        },
+        {
+            "category_id": 1,
+            "created_at": "2026-09-20 03:54:36.587578",
+            "description": "Endpoints retornam todos os registros",
+            "due_date": "2026-09-30 03:54:36.586410",
+            "id": 5,
+            "overdue": false,
+            "priority": 3,
+            "status": "pending",
+            "tags": [],
+            "title": "Adicionar pagina\u00e7\u00e3o na API",
+            "updated_at": "2026-09-20 03:54:36.587579",
+            "user_id": 1
+        },
+        {
+            "category_id": 1,
+            "created_at": "2026-09-20 03:54:36.587589",
+            "description": "Usar marshmallow ou pydantic",
+            "due_date": null,
+            "id": 10,
+            "overdue": false,
+            "priority": 3,
+            "status": "pending",
+            "tags": [
+                "improvement",
+                "validation"
+            ],
+            "title": "Melhorar valida\u00e7\u00f5es de input",
+            "updated_at": "2026-09-20 03:54:36.587590",
+            "user_id": 1
+        }
+    ]
+}
+--- GET /users/1/tasks ---
+[
+    {
+        "created_at": "2026-09-20 03:54:36.587566",
+        "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+        "due_date": "2026-09-17 03:54:36.585225",
+        "id": 1,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "title": "Implementar autentica\u00e7\u00e3o JWT"
+    },
+    {
+        "created_at": "2026-09-20 03:54:36.587576",
+        "description": "Filtro n\u00e3o funciona com caracteres especiais",
+        "due_date": "2026-09-19 03:54:36.586404",
+        "id": 4,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "title": "Corrigir bug no filtro de busca"
+    },
+    {
+        "created_at": "2026-09-20 03:54:36.587578",
+        "description": "Endpoints retornam todos os registros",
+        "due_date": "2026-09-30 03:54:36.586410",
+        "id": 5,
+        "overdue": false,
+        "priority": 3,
+        "status": "pending",
+        "title": "Adicionar pagina\u00e7\u00e3o na API"
+    },
+    {
+        "created_at": "2026-09-20 03:54:36.587589",
+        "description": "Usar marshmallow ou pydantic",
+        "due_date": null,
+        "id": 10,
+        "overdue": false,
+        "priority": 3,
+        "status": "pending",
+        "title": "Melhorar valida\u00e7\u00f5es de input"
+    }
+]
+--- GET /users/9999 (esperado 404) ---
+{
+    "error": "Usu\u00e1rio n\u00e3o encontrado"
+}
+--- POST /users (cria usuário novo, guarde o id retornado) ---
+{
+    "active": true,
+    "created_at": "2026-09-20 03:54:43.003814",
+    "email": "ana@email.com",
+    "id": 4,
+    "name": "Ana Costa",
+    "role": "user"
+}
+--- POST /users (email duplicado, esperado 409) ---
+{
+    "error": "Email j\u00e1 cadastrado"
+}
+--- POST /users (senha curta, esperado 400) ---
+{
+    "error": "Senha deve ter no m\u00ednimo 4 caracteres"
+}
+--- PUT /users/<id> (admin altera o usuário criado acima) ---
+{
+    "active": true,
+    "created_at": "2026-09-20 03:54:43.003814",
+    "email": "ana@email.com",
+    "id": 4,
+    "name": "Ana Costa Silva",
+    "role": "user"
+}
+--- POST /login (credenciais válidas do seed; token deve ser assinado, não 'fake-jwt-token-<id>') ---
+{
+    "message": "Login realizado com sucesso",
+    "token": "eyJ1c2VyX2lkIjoxfQ.aq9ZAw.-0ydQ1gn7l7bv_TqBLyLolSb9bQ",
+    "user": {
+        "active": true,
+        "created_at": "2026-09-20 03:54:36.579193",
+        "email": "joao@email.com",
+        "id": 1,
+        "name": "Jo\u00e3o Silva",
+        "role": "admin"
+    }
+}
+--- POST /login (senha errada, esperado 401) ---
+{
+    "error": "Credenciais inv\u00e1lidas"
+}
+--- DELETE /users/<id> (admin remove o usuário criado acima, não um do seed) ---
+{
+    "message": "Usu\u00e1rio deletado com sucesso"
+}
+==================================================
+TASKS
+==================================================
+--- GET /tasks?page=1&per_page=5 (paginação) ---
+[
+    {
+        "category_id": 1,
+        "category_name": "Backend",
+        "created_at": "2026-09-20 03:54:36.587566",
+        "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+        "due_date": "2026-09-17 03:54:36.585225",
+        "id": 1,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "tags": [],
+        "title": "Implementar autentica\u00e7\u00e3o JWT",
+        "updated_at": "2026-09-20 03:54:36.587569",
+        "user_id": 1,
+        "user_name": "Jo\u00e3o Silva"
+    },
+    {
+        "category_id": 2,
+        "category_name": "Frontend",
+        "created_at": "2026-09-20 03:54:36.587571",
+        "description": "Tela de login responsiva",
+        "due_date": "2026-09-25 03:54:36.585791",
+        "id": 2,
+        "overdue": false,
+        "priority": 2,
+        "status": "in_progress",
+        "tags": [],
+        "title": "Criar tela de login",
+        "updated_at": "2026-09-20 03:54:36.587572",
+        "user_id": 2,
+        "user_name": "Maria Santos"
+    },
+    {
+        "category_id": 3,
+        "category_name": "DevOps",
+        "created_at": "2026-09-20 03:54:36.587573",
+        "description": "Pipeline com GitHub Actions",
+        "due_date": null,
+        "id": 3,
+        "overdue": false,
+        "priority": 2,
+        "status": "done",
+        "tags": [
+            "devops",
+            "ci",
+            "github"
+        ],
+        "title": "Configurar CI/CD",
+        "updated_at": "2026-09-20 03:54:36.587574",
+        "user_id": 3,
+        "user_name": "Pedro Oliveira"
+    },
+    {
+        "category_id": 4,
+        "category_name": "Bug",
+        "created_at": "2026-09-20 03:54:36.587576",
+        "description": "Filtro n\u00e3o funciona com caracteres especiais",
+        "due_date": "2026-09-19 03:54:36.586404",
+        "id": 4,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "tags": [],
+        "title": "Corrigir bug no filtro de busca",
+        "updated_at": "2026-09-20 03:54:36.587577",
+        "user_id": 1,
+        "user_name": "Jo\u00e3o Silva"
+    },
+    {
+        "category_id": 1,
+        "category_name": "Backend",
+        "created_at": "2026-09-20 03:54:36.587578",
+        "description": "Endpoints retornam todos os registros",
+        "due_date": "2026-09-30 03:54:36.586410",
+        "id": 5,
+        "overdue": false,
+        "priority": 3,
+        "status": "pending",
+        "tags": [],
+        "title": "Adicionar pagina\u00e7\u00e3o na API",
+        "updated_at": "2026-09-20 03:54:36.587579",
+        "user_id": 1,
+        "user_name": "Jo\u00e3o Silva"
+    }
+]
+--- GET /tasks/1 ---
+{
+    "category_id": 1,
+    "created_at": "2026-09-20 03:54:36.587566",
+    "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+    "due_date": "2026-09-17 03:54:36.585225",
+    "id": 1,
+    "overdue": true,
+    "priority": 1,
+    "status": "pending",
+    "tags": [],
+    "title": "Implementar autentica\u00e7\u00e3o JWT",
+    "updated_at": "2026-09-20 03:54:36.587569",
+    "user_id": 1
+}
+--- GET /tasks/9999 (esperado 404) ---
+{
+    "error": "Task n\u00e3o encontrada"
+}
+--- GET /tasks/search?q=bug&status=pending ---
+[
+    {
+        "category_id": 4,
+        "created_at": "2026-09-20 03:54:36.587576",
+        "description": "Filtro n\u00e3o funciona com caracteres especiais",
+        "due_date": "2026-09-19 03:54:36.586404",
+        "id": 4,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "tags": [],
+        "title": "Corrigir bug no filtro de busca",
+        "updated_at": "2026-09-20 03:54:36.587577",
+        "user_id": 1
+    }
+]
+--- GET /tasks/stats ---
+{
+    "cancelled": 1,
+    "completion_rate": 10.0,
+    "done": 1,
+    "in_progress": 2,
+    "overdue": 2,
+    "pending": 6,
+    "total": 10
+}
+--- POST /tasks (cria task nova, guarde o id retornado) ---
+{
+    "category_id": 1,
+    "created_at": "2026-09-20 03:54:43.670896",
+    "description": "criada via curl",
+    "due_date": "2026-12-01 00:00:00",
+    "id": 11,
+    "overdue": false,
+    "priority": 2,
+    "status": "pending",
+    "tags": [
+        "teste",
+        "curl"
+    ],
+    "title": "Nova task de teste",
+    "updated_at": "2026-09-20 03:54:43.670901",
+    "user_id": 1
+}
+--- POST /tasks (título curto, esperado 400) ---
+{
+    "error": "T\u00edtulo muito curto"
+}
+--- PUT /tasks/<id> (ajuste <id> para o retornado no POST acima) ---
+{
+    "category_id": 1,
+    "created_at": "2026-09-20 03:54:43.670896",
+    "description": "criada via curl",
+    "due_date": "2026-12-01 00:00:00",
+    "id": 11,
+    "overdue": false,
+    "priority": 1,
+    "status": "in_progress",
+    "tags": [
+        "teste",
+        "curl"
+    ],
+    "title": "Nova task de teste",
+    "updated_at": "2026-09-20 03:54:43.737793",
+    "user_id": 1
+}
+--- DELETE /tasks/<id> (remove a task criada acima) ---
+{
+    "message": "Task deletada com sucesso"
+}
+==================================================
+REPORTS / CATEGORIES
+==================================================
+--- GET /reports/summary ---
+{
+    "generated_at": "2026-09-20 03:54:43.812748",
+    "overdue": {
+        "count": 2,
+        "tasks": [
+            {
+                "days_overdue": 3,
+                "due_date": "2026-09-17 03:54:36.585225",
+                "id": 1,
+                "title": "Implementar autentica\u00e7\u00e3o JWT"
+            },
+            {
+                "days_overdue": 1,
+                "due_date": "2026-09-19 03:54:36.586404",
+                "id": 4,
+                "title": "Corrigir bug no filtro de busca"
+            }
+        ]
+    },
+    "overview": {
+        "total_categories": 4,
+        "total_tasks": 10,
+        "total_users": 3
+    },
+    "recent_activity": {
+        "tasks_completed_last_7_days": 1,
+        "tasks_created_last_7_days": 10
+    },
+    "tasks_by_priority": {
+        "critical": 2,
+        "high": 3,
+        "low": 2,
+        "medium": 3,
+        "minimal": 0
+    },
+    "tasks_by_status": {
+        "cancelled": 1,
+        "done": 1,
+        "in_progress": 2,
+        "pending": 6
+    },
+    "user_productivity": [
+        {
+            "completed_tasks": 0,
+            "completion_rate": 0.0,
+            "total_tasks": 4,
+            "user_id": 1,
+            "user_name": "Jo\u00e3o Silva"
+        },
+        {
+            "completed_tasks": 0,
+            "completion_rate": 0.0,
+            "total_tasks": 3,
+            "user_id": 2,
+            "user_name": "Maria Santos"
+        },
+        {
+            "completed_tasks": 1,
+            "completion_rate": 33.33,
+            "total_tasks": 3,
+            "user_id": 3,
+            "user_name": "Pedro Oliveira"
+        }
+    ]
+}
+--- GET /reports/user/1 ---
+{
+    "statistics": {
+        "cancelled": 0,
+        "completion_rate": 0.0,
+        "done": 0,
+        "high_priority": 2,
+        "in_progress": 0,
+        "overdue": 2,
+        "pending": 4,
+        "total_tasks": 4
+    },
+    "user": {
+        "email": "joao@email.com",
+        "id": 1,
+        "name": "Jo\u00e3o Silva"
+    }
+}
+--- GET /categories ---
+[
+    {
+        "color": "#3498db",
+        "created_at": "2026-09-20 03:54:36.581464",
+        "description": "Tarefas de backend",
+        "id": 1,
+        "name": "Backend",
+        "task_count": 6
+    },
+    {
+        "color": "#2ecc71",
+        "created_at": "2026-09-20 03:54:36.581470",
+        "description": "Tarefas de frontend",
+        "id": 2,
+        "name": "Frontend",
+        "task_count": 1
+    },
+    {
+        "color": "#e74c3c",
+        "created_at": "2026-09-20 03:54:36.581472",
+        "description": "Tarefas de infraestrutura",
+        "id": 3,
+        "name": "DevOps",
+        "task_count": 2
+    },
+    {
+        "color": "#e67e22",
+        "created_at": "2026-09-20 03:54:36.581473",
+        "description": "Corre\u00e7\u00e3o de bugs",
+        "id": 4,
+        "name": "Bug",
+        "task_count": 1
+    }
+]
+--- POST /categories (cria categoria nova, guarde o id retornado) ---
+{
+    "color": "#9b59b6",
+    "created_at": "2026-09-20 03:54:43.916353",
+    "description": "Testes",
+    "id": 5,
+    "name": "QA"
+}
+--- PUT /categories/<id> (ajuste <id> para o retornado no POST acima) ---
+{
+    "color": "#9b59b6",
+    "created_at": "2026-09-20 03:54:43.916353",
+    "description": "Testes manuais e automatizados",
+    "id": 5,
+    "name": "QA"
+}
+--- DELETE /categories/<id> (remove a categoria criada acima) ---
+{
+    "message": "Categoria deletada"
+}
+manual-tests exit: 0
+
+==================================================
+PROVA: token forjado e revalidação do sujeito
+==================================================
+--- token forjado com a constante 'dev-secret-change-in-production' (esperado 401) ---
+{"error":"Token inv\u00e1lido"}
+
+HTTP 401
+
+--- token VÁLIDO de usuário depois DESATIVADO (esperado 403, sem esperar expirar) ---
+token de maria emitido; desativando a conta via admin:
+  active = False
+usando o token antigo de maria:
+{"error":"Usu\u00e1rio inativo"}
+
+HTTP 403
+
+--- token VÁLIDO de usuário depois APAGADO (esperado 401) ---
+conta 4 apagada; usando o token dela:
+{"error":"Credenciais inv\u00e1lidas"}
+
+HTTP 401
+
+==================================================
+arch-check (AP-16) + pytest
+==================================================
+==========================================================
+arch-check — task-manager-api
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ routes/__init__.py
+  ✓ routes/meta_routes.py
+  ✓ routes/report_routes.py
+  ✓ routes/task_routes.py
+  ✓ routes/user_routes.py
+
+==========================================================
+PASS: no route in task-manager-api touches persistence directly.
+(5 arquivo(s) de rota verificado(s))
+==========================================================
+arch-check exit: 0
+
+==========================================================
+arch-check — task-manager-api
+AP-16: routes must not touch persistence directly
+Detected sources: py
+==========================================================
+
+  OK   routes/__init__.py
+  OK   routes/meta_routes.py
+  OK   routes/report_routes.py
+  OK   routes/task_routes.py
+  OK   routes/user_routes.py
+
+==========================================================
+PASS: no route in task-manager-api touches persistence directly.
+(5 route file(s) checked)
+==========================================================
+bundled arch-check exit: 0
+
+...................................................................      [100%]
+67 passed in 5.32s
+pytest exit: 0
+
+================================
+Nota de fechamento (2026-09-20)
+================================
+Este log é a evidência citada no adendo de reports/audit-project-3-part3.md que
+resolve o finding [HIGH] "Login issues a token that nothing ever verifies".

@@ -95,10 +95,132 @@ verificada nesta sessão. Ver os relatórios diretamente enquanto isso não é p
 
 ### task-manager-api
 
-Rodadas registradas em [`audit-project-3.md`](../reports/audit-project-3.md) (14 findings: 4
-CRITICAL, 2 HIGH, 4 MEDIUM, 4 LOW) e [`audit-project-3-part2.md`](../reports/audit-project-3-part2.md)
-(7 findings: 0 CRITICAL, 2 HIGH, 2 MEDIUM, 3 LOW). Mesma situação do projeto 2: narrativa ainda não
-escrita neste documento, não verificada nesta sessão. Ver os relatórios diretamente.
+**Rodada 1 — [`audit-project-3.md`](../reports/audit-project-3.md).**
+14 findings (4 CRITICAL, 2 HIGH, 4 MEDIUM, 4 LOW) sobre o projeto original de 15 arquivos
+(~1158 linhas), que já tinha `models/`, `routes/`, `services/`, `utils/` mas ainda concentrava
+lógica e persistência nas rotas. Os CRITICAL: `User.to_dict()` devolvia o hash da senha em
+toda resposta; senha hasheada com MD5 sem sal; `SECRET_KEY` hardcoded + `debug=True` em
+`0.0.0.0` + credenciais SMTP hardcoded em `services/notification_service.py`; e `POST /login`
+devolvia `'fake-jwt-token-' + str(user.id)`, um token forjável por qualquer um. A Fase 3
+corrigiu os 4 CRITICAL, extraiu `config/settings.py`, passou a usar `werkzeug.security` e
+`itsdangerous`, e centralizou agregação/serialização no model.
+
+**Rodada 2 — [`audit-project-3-part2.md`](../reports/audit-project-3-part2.md).** Re-auditoria
+pós-Fase 3: os 4 CRITICAL confirmados resolvidos. Reapareceram, em locais novos:
+- Rotas ainda chamando o ORM diretamente (`Task.query`, `User.query`, `Category.query`,
+  `db.session.add/commit/delete`) em vez de delegar a um Controller/Service — novo HIGH.
+- Validação de título/status/prioridade/due_date/tags duplicada entre `create_task` e
+  `update_task`, e `update_category` sem o guard de corpo vazio que os demais endpoints já
+  tinham — novo HIGH.
+- N+1 em `get_users` (uma query por usuário) e em `delete_user` (um delete por task) — novo
+  MEDIUM.
+- `GET /categories` sem paginação (nota: a correção de 2026-09-19 no próprio relatório
+  esclareceu que `GET /users` já paginava desde essa rodada — o achado original estava errado
+  nesse ponto).
+- `log_action` morto usando `print()`; defaults `'#000000'`/`3` duplicados em vez de reusar
+  `DEFAULT_COLOR`/`DEFAULT_PRIORITY`; strings de usuário em português dentro de um código em
+  inglês (deixado aberto de propósito, ver RP-15).
+
+Total: 7 findings (0 CRITICAL, 2 HIGH, 2 MEDIUM, 3 LOW) — usuário confirmou Fase 3.
+
+**Rodada 3 — [`audit-project-3-part3.md`](../reports/audit-project-3-part3.md), 2026-09-20.**
+Antes de auditar de novo, confirmamos que os 2 HIGH e os 2 MEDIUM da rodada 2 já estavam
+resolvidos: AP-16 fechado (nenhuma rota toca persistência, confirmado por `arch-check.sh`);
+validação de task centralizada em `controllers/task_controller.py`
+(`_validate_title/_validate_status/_validate_priority/_resolve_user/_resolve_category/_apply_due_date`);
+`update_category` ganhou o guard de corpo vazio; N+1 de `get_users`/`delete_user` viraram
+query agrupada / bulk delete; `GET /categories` pagina; `log_action` foi deletado; os defaults
+passaram a vir de `DEFAULT_COLOR`/`DEFAULT_PRIORITY`. A auditoria desta rodada achou 3 HIGH, 4
+MEDIUM e 4 LOW novos:
+- **[HIGH] Sem application factory** — `app.py` era um módulo que criava o app, configurava
+  CORS/DB e chamava `db.create_all()` em tempo de import; `tests/conftest.py` tinha um segundo
+  Flask app duplicado só para não importar `app.py`.
+- **[HIGH] Agregação de status implementada 3 vezes** — `Task.get_statistics`,
+  `build_summary_report` e `build_user_report` cada um recontava os mesmos status por conta
+  própria, já divergentes entre si e nenhum deles derivado de `VALID_STATUSES`.
+- **[HIGH] Login emite um token que nada verifica** — `POST /login` assinava um token com
+  `itsdangerous`, mas não existia nenhum `loads`/decorator/`before_request` que o lesse; toda
+  escrita (`PUT`/`DELETE /users`, `POST`/`PUT`/`DELETE /tasks`, escrita em `/categories`) era
+  anônima. Relatado, mas **não resolvido nesta Fase 3** — mudar isso significa novos 401s ou
+  mudar o payload de login, o que a Fase 3 não tem autorização para decidir sozinha.
+- MEDIUM: carregamento de tabela inteira em `is_overdue()`/loops Python para relatórios;
+  `?priority=`/`?user_id=` sem coerção de tipo virando 500 em vez de 400; coleções aninhadas
+  (`tasks` de um usuário, `overdue.tasks` do resumo) sem paginação; `CORS(app)` liberado para
+  qualquer origem e a única config não vinda de `config/settings.py`.
+- LOW: 4 helpers mortos + `User.is_admin` mal escrito; literais de status espalhados em vez de
+  `VALID_STATUSES`; `requirements.txt` desalinhado com os imports reais; `get_user_tasks`
+  montando a resposta apagando chaves de outro serializer.
+
+Total: 11 findings (0 CRITICAL, 3 HIGH, 4 MEDIUM, 4 LOW) — usuário confirmou Fase 3.
+
+**Fase 3 desta rodada** resolveu os 2 HIGH estruturais e todos os MEDIUM/LOW exceto o de
+linguagem inconsistente (mantido de propósito, RP-15) e o de token — inicialmente também
+deixado em aberto, pela mesma regra de "Fase 3 não muda comportamento observável sem decisão
+explícita". O usuário determinou explicitamente que o finding do token fosse resolvido
+nesta rodada, com o escopo: leituras (`GET`) continuam públicas; toda escrita exige
+`Authorization: Bearer <token>`; `PUT`/`DELETE /users/<id>` exigem ser o próprio usuário ou
+admin; `PUT`/`DELETE /tasks/<id>` exigem ser o dono da task ou admin; escrita em `/categories`
+exige role `admin`/`manager`; cadastro anônimo só pode criar role `user`. Implementação:
+`services/token_service.py` (emissão/leitura do token, dono único — nem controller nem
+middleware o reimplementam), `services/authorization.py` (regras de dono/role, sem nenhum
+acoplamento a Flask/HTTP) e `middlewares/auth.py` (o guard, que recarrega o usuário do banco
+a cada request — uma conta apagada devolve 401 e uma inativa devolve 403, sem esperar o token
+expirar). `SECRET_KEY` deixou de ter qualquer default: o boot aborta fora de
+`FLASK_ENV=development`, que gera uma chave efêmera em memória (perdida a cada restart,
+portanto inútil para forjar uma sessão persistente). Ver o adendo datado no corpo do
+[relatório desta rodada](../reports/audit-project-3-part3.md) para o registro formal da
+decisão.
+
+**Validação real desta rodada:** dois logs —
+[`evidence/logs/task-manager-api-round3-validation.txt`](../evidence/logs/task-manager-api-round3-validation.txt)
+(649 linhas, estrutura MVC/AP-16 e os achados estruturais da rodada 3) e
+[`evidence/logs/task-manager-api-round4-validation.txt`](../evidence/logs/task-manager-api-round4-validation.txt)
+(auth/autorização). Destaques do segundo: boot aborta com `RuntimeError` claro quando
+`SECRET_KEY` está ausente fora de dev; `FLASK_ENV=development` sobe com chave efêmera de 64
+caracteres + warning; `manual-tests.sh` com casos negativos retornando 401/401/401/403/403/403
+exatamente como desenhado; um token forjado com a string antiga `'dev-secret-change-in-production'`
+recebe 401; token de usuário desativado recebe 403; token de usuário apagado recebe 401;
+`arch-check.sh` (do projeto e o genérico da skill) sai 0; `python -m pytest` 67/67 passando
+(40 originais + 27 novos de token/autorização/rotas).
+
+## Bug Encontrado Após a Entrega
+
+Referenciado em [§2 do README](../README.md#2-construção-da-skill) como o motivo de AP-16
+("Persistência/ORM Chamada Direto na Rota") ter entrado no catálogo depois dos outros 15.
+
+**O que aconteceu:** [`audit-project-3.md`](../reports/audit-project-3.md) (rodada 1) auditou
+`task-manager-api` contra um catálogo de 15 anti-patterns — nenhum deles cobria "a rota chama
+o ORM/persistência diretamente em vez de delegar a um Controller/Service". O projeto já tinha
+`routes/`/`services/` como pastas, então a violação (rotas chamando `Task.query`,
+`db.session.add/commit/delete` etc. diretamente) passou pela Fase 2 sem ser sinalizada, e a
+Fase 3 da rodada 1 não a corrigiu — não porque fosse difícil, mas porque não havia regra no
+catálogo que a nomeasse.
+
+**Como foi descoberto:** a rodada 2 ([`audit-project-3-part2.md`](../reports/audit-project-3-part2.md))
+reauditou o projeto já refatorado e achou o padrão de novo, agora como o novo finding [HIGH]
+"Routes call the ORM directly instead of delegating to a Controller/Service" —
+`routes/task_routes.py`, `routes/user_routes.py` e `routes/report_routes.py` inteiros
+reimplementavam a chamada de persistência em vez de delegar. Ficou claro que o problema não era
+específico dessa rodada: tinha atravessado a entrega original porque não estava catalogado, e
+nenhum teste de endpoint (`manual-tests.sh`) o pega — um `curl` não distingue uma rota que
+delega de uma que consulta o ORM direto, só o código-fonte revela isso.
+
+**Correção:** o commit `c4d523d` (2026-09-18) adicionou o **AP-16** ao catálogo (16 entradas
+no total), com sinal explícito de detecção mesmo quando a chamada aparece uma única vez ou
+quando o projeto já tem pastas `services/`/`controllers/` usadas por outras rotas. O commit
+`a6527c1` (2026-09-19) foi além: tornou a verificação **mecânica e agnóstica de stack** —
+`scripts/arch-check.sh`, empacotado pela skill, detecta a linguagem, seleciona os arquivos de
+rota e aplica os sinais de persistência corretos por stack (Python, JS/TS, Go, Java/Kotlin,
+Ruby, PHP, C#), documentados em `references/verification-recipes.md`. Um Go real expôs mais um
+ajuste necessário: lá persistência é função de pacote, não método de receiver, então o padrão
+inicial (baseado em `Model.find(...)`) dava falso PASS numa rota cheia de violações — corrigido
+no mesmo commit. Desde então, a Fase 3 do `SKILL.md` trata esse check como **obrigatório e
+nunca substituível** por teste de endpoint (passo 6, "Static AP-16 audit").
+
+**Confirmação em `task-manager-api`:** a rodada 3 ([`audit-project-3-part3.md`](../reports/audit-project-3-part3.md))
+fechou o finding — nenhuma rota toca persistência, confirmado por `./arch-check.sh` (exit 0) —
+ver [nota ² acima](#task-manager-api) e
+[`evidence/logs/task-manager-api-round3-validation.txt`](../evidence/logs/task-manager-api-round3-validation.txt).
 
 ## Checklist de Validação Preenchido
 
@@ -107,9 +229,24 @@ Notas de rodapé referenciadas pela tabela da [§3.3 do README](../README.md#33-
 ¹ — nota de `ecommerce-api-legacy` (célula "Relatório segue o template"). **Pendente** — não
 verificada nesta sessão; preencher ao revisar o relatório desse projeto diretamente.
 
-², ³, ⁴ — notas de `task-manager-api` (células "Estrutura de diretórios segue MVC", "Controllers
-concentram o fluxo" e "Error handling centralizado", respectivamente). **Pendentes** — não
-verificadas nesta sessão; preencher ao revisar esse projeto diretamente.
+² — nota de `task-manager-api` (célula "Estrutura de diretórios segue MVC"). O projeto já tinha
+`models/`/`routes/`/`services/`/`utils/` desde o boilerplate original, mas as rotas chamavam o
+ORM diretamente (finding [HIGH] AP-16 da [rodada 3](#task-manager-api)). Fechado nessa mesma
+rodada: `routes/*.py` passaram a só parsear → chamar `controllers/`/`services/` → serializar,
+confirmado mecanicamente por `arch-check.sh` (exit 0, tanto o específico do projeto quanto o
+genérico da skill) — ver
+[`evidence/logs/task-manager-api-round3-validation.txt`](../evidence/logs/task-manager-api-round3-validation.txt).
+
+³ — nota de `task-manager-api` (célula "Controllers concentram o fluxo"). `controllers/task_controller.py`
+e `controllers/user_controller.py` concentram parsing/validação/autorização e delegam
+persistência ao model; recebem `actor` explícito (`SYSTEM` por padrão, `None` para chamador
+HTTP anônimo) em vez de ler estado global, o que manteve os 40 testes de controller originais
+passando sem alteração ao acrescentar autorização na rodada 4.
+
+⁴ — nota de `task-manager-api` (célula "Error handling centralizado"). `middlewares/error_handler.py`
+registra dois handlers globais via `register_error_handlers(app)`: um para `HTTPException`
+(preserva código e mensagem) e um catch-all para exceção não tratada (loga e devolve 500
+genérico) — nenhuma rota trata exceção por conta própria.
 
 ⁵ — **O achado de `admin_controller.py` que motivou a re-auditoria de `code-smells-project`.**
 Entre a rodada 1 e a rodada 2, a Fase 3 corrigiu o vazamento de segredo e a injeção de SQL nas
@@ -128,23 +265,60 @@ não verificado nesta sessão.
 
 ## Lacunas de Evidência
 
-- A rodada 3 de `code-smells-project` (2026-09-19) tem log de validação completo em
-  `evidence/logs/code-smells-project-round3-validation.txt`, mas **não** tem screenshot nova —
-  as imagens `evidence/project1-*` ainda são das rodadas anteriores. A primeira tentativa desta
-  rodada terminou sem nenhuma evidência: a captura era uma linha passiva numa tabela de referência
-  do `CLAUDE.md`, lida só no rollup de documentação, quando a aplicação já havia sido derrubada.
-  Corrigido em duas frentes — a captura virou gate obrigatório na seção "Antes de dar uma
-  refatoração por concluída" do `CLAUDE.md` (executada com o app de pé, não depois), e
-  `scripts/sync-docs.sh --check` agora falha com exit 1 quando um relatório em `reports/` é mais
-  novo que a evidência do mesmo projeto.
+- **TODO (opcional):** capturar screenshot nova da rodada 3 de `code-smells-project`
+  (2026-09-19) — `evidence/project1-*` ainda são das rodadas anteriores. Opcional porque o log
+  de validação completo já cobre essa rodada em
+  `evidence/logs/code-smells-project-round3-validation.txt`; a screenshot só reforçaria o que
+  o log já prova, não fecha uma lacuna real de evidência. A primeira tentativa desta rodada
+  tinha terminado sem nenhuma evidência: a captura era uma linha passiva numa tabela de
+  referência do `CLAUDE.md`, lida só no rollup de documentação, quando a aplicação já havia
+  sido derrubada. Corrigido em duas frentes — a captura virou gate obrigatório na seção "Antes
+  de dar uma refatoração por concluída" do `CLAUDE.md` (executada com o app de pé, não depois),
+  e `scripts/sync-docs.sh --check` agora falha com exit 1 quando um relatório em `reports/` é
+  mais novo que a evidência do mesmo projeto.
+- **TODO (opcional):** capturar screenshot nova do auth/autorização de `task-manager-api`
+  (rodada 4, 2026-09-20) — `evidence/project3-boot.png` ainda é de uma rodada anterior.
+  Opcional pelo mesmo motivo acima: a evidência da rodada 4 já está completa em
+  `evidence/logs/task-manager-api-round4-validation.txt` (boot com/sem `SECRET_KEY`, tokens
+  forjados/expirados/de contas apagadas ou inativas rejeitados, `pytest` 67/67); uma screenshot
+  só ilustraria o mesmo resultado.
 - A skill rodando as 3 fases interativamente (prompt real, não reconstruído) e o gate de
-  confirmação da Fase 2 continuam sem evidência gravada, conforme já apontado no README.
-- Narrativa de evidências para `ecommerce-api-legacy` e `task-manager-api` (rodada a rodada)
-  ainda não foi escrita — ver [Resultados por Projeto](#resultados-por-projeto).
+  confirmação da Fase 2 continuam sem evidência gravada, conforme já apontado no README. Este
+  não tem log substituto — não é opcional, é uma lacuna real.
+- Narrativa de evidências para `ecommerce-api-legacy` (rodada a rodada) ainda não foi escrita —
+  ver [Resultados por Projeto](#resultados-por-projeto). Fora do escopo desta sessão; será
+  resolvida na branch `test/check-project-2`. A de `task-manager-api` foi escrita nesta rodada
+  (2026-09-20).
 
 ## Comportamento entre Diferentes Stacks
 
-A comparação entre Python/Flask monolítico (`code-smells-project`), Node.js/Express monolítico
-(`ecommerce-api-legacy`) e Python/Flask parcialmente em camadas (`task-manager-api`) — ver
-[§3.5 do README](../README.md#35-comportamento-entre-diferentes-stacks) — ainda não tem a
-narrativa completa registrada aqui — pendente, não verificado nesta sessão.
+A mesma skill (`SKILL.md` + `references/` + `scripts/`, sem nenhuma edição entre execuções)
+produziu relatórios e refatorações corretos em três arquiteturas de partida bem diferentes —
+ver [§3.5 do README](../README.md#35-comportamento-entre-diferentes-stacks):
+
+- **`code-smells-project`** (Python/Flask 3.1.1, SQLite cru) — monolito de 4 arquivos sem
+  nenhuma separação de camadas. A Fase 3 construiu `config/`, `controllers/`, `models/`,
+  `routes/`, `middlewares/`, `utils/` do zero.
+- **`ecommerce-api-legacy`** (Node.js/Express 4.18.2, `sqlite3`) — monolito de 3 arquivos, mesma
+  falta de camadas, stack e linguagem totalmente diferentes. A Fase 1 detectou
+  `package.json`/`express`/`sqlite3` sem qualquer heurística específica de Python, e a Fase 3
+  construiu o equivalente MVC em `src/config/`, `src/controllers/`, `src/models/`,
+  `src/routes/`, `src/middlewares/`.
+- **`task-manager-api`** (Python/Flask 3.0.0 + SQLAlchemy) — já chegava com `models/`,
+  `routes/`, `services/`, `utils/` parcialmente separados. Aqui a Fase 3 não reconstruiu nada:
+  ajustou as camadas existentes (rotas que ainda chamavam o ORM direto viraram
+  parse→controller/service→serializa) em vez de forçar um layout genérico por cima do que já
+  fazia sentido — a mesma instrução do `SKILL.md` ("adapte ao que já existe, não force um
+  template") produziu um resultado estruturalmente diferente dos outros dois projetos.
+
+O único ponto onde o processo teve que evoluir entre projetos foi o catálogo em si, não a
+skill: o anti-pattern AP-16 (persistência chamada direto da rota) só entrou no catálogo depois
+de aparecer em `task-manager-api` e atravessar a auditoria original sem ser pego — ver o
+achado ⁵ acima e o postmortem em [README](../README.md#2-construção-da-skill). Depois de
+catalogado, o mesmo `arch-check.sh` (versão genérica da skill) e as versões específicas de
+cada projeto passaram a detectar AP-16 nos 3 projetos sem qualquer lógica por stack além da
+detecção de rota já prevista em `references/verification-recipes.md`.
+
+Comparação numérica completa (findings por severidade e por rodada) está em
+[§3.1 do README](../README.md#31-resumo-das-auditorias) e nas seções de
+[Resultados por Projeto](#resultados-por-projeto) acima.

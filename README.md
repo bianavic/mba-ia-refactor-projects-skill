@@ -62,8 +62,8 @@ Cada item exigido em ["README.md deve conter"](docs/challenge-original.md#readme
 | Critério | code-smells-project | ecommerce-api-legacy | task-manager-api |
 |---|---|---|---|
 | Fase 1 detecta a stack corretamente | ✓ | ✓ | ✓ |
-| Fase 2 encontra ≥ 5 findings | ✓ 5 (rodada 3) | ✓ 12 | ✓ 14 |
-| Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL (rodada 3) | ✓ 4 CRITICAL + 2 HIGH | ✓ 4 CRITICAL + 2 HIGH |
+| Fase 2 encontra ≥ 5 findings | ✓ 5 (rodada 3) | ✓ 12 | ✓ 11 (rodada 3) |
+| Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL (rodada 3) | ✓ 4 CRITICAL + 2 HIGH | ✓ 3 HIGH (rodada 3) |
 | Fase 3: aplicação funciona após refatoração | ✓ | ✓ | ✓ |
 
 ## Visão Geral
@@ -193,7 +193,7 @@ porque são a evidência do estado "antes".
 |---|---|---|---:|---:|---:|---:|---:|---|
 | 1 | `code-smells-project` | Python / Flask 3.1.1 | 1 | 0 | 2 | 2 | **5** | [`audit-project-1-part3.md`](reports/audit-project-1-part3.md) |
 | 2 | `ecommerce-api-legacy` | JavaScript / Node.js + Express 4.18.2, sqlite3 6.0.1 | 1 | 2 | 2 | 3 | **8** | [`audit-project-2-part2.md`](reports/audit-project-2-part2.md) |
-| 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 2 | 2 | 3 | **7** | [`audit-project-3-part2.md`](reports/audit-project-3-part2.md) |
+| 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 3 | 4 | 4 | **11** | [`audit-project-3-part3.md`](reports/audit-project-3-part3.md) |
 
 <sub>Gerado por `scripts/sync-docs.sh` a partir de `reports/`. Não edite à mão.</sub>
 <!-- END:audit-summary -->
@@ -404,6 +404,7 @@ task-manager-api/
 ├── manual-tests.sh
 ├── middlewares/
 │   ├── __init__.py
+│   ├── auth.py
 │   └── error_handler.py
 ├── models/
 │   ├── __init__.py
@@ -413,16 +414,20 @@ task-manager-api/
 ├── requirements.txt
 ├── routes/
 │   ├── __init__.py
+│   ├── meta_routes.py
 │   ├── report_routes.py
 │   ├── task_routes.py
 │   └── user_routes.py
 ├── seed.py
 ├── services/
 │   ├── __init__.py
-│   └── report_service.py
+│   ├── authorization.py
+│   ├── report_service.py
+│   └── token_service.py
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
+│   ├── test_auth.py
 │   ├── test_task_controller.py
 │   └── test_user_controller.py
 └── utils/
@@ -444,19 +449,19 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Linguagem detectada | ✓ Python | ✓ JavaScript/Node.js | ✓ Python |
 | Framework detectado | ✓ Flask 3.1.1 | ✓ Express 4.18.2 | ✓ Flask 3.0.0 + SQLAlchemy 3.1.1 |
 | Domínio descrito | ✓ E-commerce | ✓ LMS/checkout | ✓ Task Manager |
-| Nº de arquivos condiz | ✓ 16 arquivos (rodada 3) | ✓ 3 arquivos | ✓ 15 arquivos `.py` |
+| Nº de arquivos condiz | ✓ 16 arquivos (rodada 3) | ✓ 3 arquivos | ✓ 22 arquivos (rodada 3) |
 | Relatório segue o template | ✓ ⁵ | ✓ ¹ | ✓ |
 | Finding com arquivo/linha exatos | ✓ | ✓ | ✓ |
 | Ordenado CRITICAL → LOW | ✓ | ✓ | ✓ |
-| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 12 | ✓ 14 |
-| Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 |
+| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 12 | ✓ 11 (rodada 3) |
+| Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 (rodada 1) |
 | Pausa e pede confirmação antes da Fase 3 | ✓ | ✓ | ✓ |
 | Estrutura de diretórios segue MVC | ✓ | ✓ | ✓ camadas existentes ajustadas ² |
 | Configuração extraída (sem hardcoded) | ✓ `config/settings.py` | ✓ `src/config/index.js` | ✓ `config/settings.py` |
 | Models abstraem dados | ✓ | ✓ | ✓ |
 | Views/Routes separadas | ✓ | ✓ | ✓ |
 | Controllers concentram o fluxo | ✓ | ✓ | ✓ `controllers/` ³ |
-| Error handling centralizado | ✓ `middlewares/error_handler.py` | ✓ `src/middlewares/errorHandler.js` | ✓ ⁴ |
+| Error handling centralizado | ✓ `middlewares/error_handler.py` | ✓ `src/middlewares/errorHandler.js` | ✓ `middlewares/error_handler.py` ⁴ |
 | Entry point claro | ✓ `app.py` | ✓ `src/app.js` | ✓ `app.py` |
 | Aplicação inicia sem erros | ✓ `evidence/project1-boot.png` | ✓ `evidence/project2-boot.png` | ✓ `evidence/project3-boot.png` |
 | Endpoints originais respondem | ✓ | ✓ | ✓ |
@@ -469,7 +474,7 @@ As 5 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_c
 ![Boot do ecommerce-api-legacy](evidence/project2-boot.png)
 ![Boot do task-manager-api](evidence/project3-boot.png)
 
-Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh` e dos 3 `arch-check.sh`, em [`docs/results.md`](docs/results.md#evidências-de-execução). A validação mais recente do Projeto 1 (rodada 3: boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa) está em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt). Dois itens (a skill rodando as 3 fases interativamente e o gate de confirmação da Fase 2) ainda dependem de uma execução manual e estão registrados como [lacuna explícita](docs/results.md#lacunas-de-evidência).
+Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh` e dos 3 `arch-check.sh`, em [`docs/results.md`](docs/results.md#evidências-de-execução). A validação mais recente do Projeto 1 (rodada 3: boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa) está em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt). A validação mais recente do Projeto 3 está em dois logs — estrutura MVC/AP-16 em [`evidence/logs/task-manager-api-round3-validation.txt`](evidence/logs/task-manager-api-round3-validation.txt) e autenticação/autorização (boot com/sem `SECRET_KEY`, tokens forjados e de contas apagadas/inativas rejeitados, `pytest` 67/67) em [`evidence/logs/task-manager-api-round4-validation.txt`](evidence/logs/task-manager-api-round4-validation.txt). Dois itens (a skill rodando as 3 fases interativamente e o gate de confirmação da Fase 2) ainda dependem de uma execução manual e estão registrados como [lacuna explícita](docs/results.md#lacunas-de-evidência).
 
 ### 3.5 Comportamento entre Diferentes Stacks
 

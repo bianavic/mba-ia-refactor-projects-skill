@@ -1,0 +1,649 @@
+=== seed.py ===
+Seed concluído com sucesso!
+  3 usuários
+  4 categorias
+  10 tasks
+exit: 0
+
+=== app boot log (python3 app.py) ===
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-09-20 00:23:17,251 INFO werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.15.6:5000
+2026-09-20 00:23:17,251 INFO werkzeug: [33mPress CTRL+C to quit[0m
+==========================================================
+arch-check — task-manager-api
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ routes/__init__.py
+  ✓ routes/meta_routes.py
+  ✓ routes/report_routes.py
+  ✓ routes/task_routes.py
+  ✓ routes/user_routes.py
+
+==========================================================
+PASS: no route in task-manager-api touches persistence directly.
+(5 arquivo(s) de rota verificado(s))
+==========================================================
+exit: 0
+==================================================
+APP
+==================================================
+--- GET / ---
+{
+    "message": "Task Manager API",
+    "version": "1.0"
+}
+--- GET /health ---
+{
+    "status": "ok",
+    "timestamp": "2026-09-20 03:23:30.829165"
+}
+--- GET /rota-inexistente (esperado 404 em JSON, via middlewares/error_handler.py) ---
+{"error":"The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."}
+
+HTTP 404
+--- DELETE /health (método não suportado pela rota, esperado 405 em JSON) ---
+{"error":"The method is not allowed for the requested URL."}
+
+HTTP 405
+==================================================
+USERS
+==================================================
+--- GET /users (senha não deve aparecer em nenhum item) ---
+[
+    {
+        "active": true,
+        "created_at": "2026-09-20 03:23:12.423022",
+        "email": "joao@email.com",
+        "id": 1,
+        "name": "Jo\u00e3o Silva",
+        "role": "admin",
+        "task_count": 4
+    },
+    {
+        "active": true,
+        "created_at": "2026-09-20 03:23:12.423034",
+        "email": "maria@email.com",
+        "id": 2,
+        "name": "Maria Santos",
+        "role": "user",
+        "task_count": 3
+    },
+    {
+        "active": true,
+        "created_at": "2026-09-20 03:23:12.423038",
+        "email": "pedro@email.com",
+        "id": 3,
+        "name": "Pedro Oliveira",
+        "role": "manager",
+        "task_count": 3
+    }
+]
+--- GET /users/1 ---
+{
+    "active": true,
+    "created_at": "2026-09-20 03:23:12.423022",
+    "email": "joao@email.com",
+    "id": 1,
+    "name": "Jo\u00e3o Silva",
+    "role": "admin",
+    "tasks": [
+        {
+            "category_id": 1,
+            "created_at": "2026-09-20 03:23:12.431889",
+            "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+            "due_date": "2026-09-17 03:23:12.429782",
+            "id": 1,
+            "overdue": true,
+            "priority": 1,
+            "status": "pending",
+            "tags": [],
+            "title": "Implementar autentica\u00e7\u00e3o JWT",
+            "updated_at": "2026-09-20 03:23:12.431893",
+            "user_id": 1
+        },
+        {
+            "category_id": 4,
+            "created_at": "2026-09-20 03:23:12.431899",
+            "description": "Filtro n\u00e3o funciona com caracteres especiais",
+            "due_date": "2026-09-19 03:23:12.430809",
+            "id": 4,
+            "overdue": true,
+            "priority": 1,
+            "status": "pending",
+            "tags": [],
+            "title": "Corrigir bug no filtro de busca",
+            "updated_at": "2026-09-20 03:23:12.431901",
+            "user_id": 1
+        },
+        {
+            "category_id": 1,
+            "created_at": "2026-09-20 03:23:12.431902",
+            "description": "Endpoints retornam todos os registros",
+            "due_date": "2026-09-30 03:23:12.430816",
+            "id": 5,
+            "overdue": false,
+            "priority": 3,
+            "status": "pending",
+            "tags": [],
+            "title": "Adicionar pagina\u00e7\u00e3o na API",
+            "updated_at": "2026-09-20 03:23:12.431903",
+            "user_id": 1
+        },
+        {
+            "category_id": 1,
+            "created_at": "2026-09-20 03:23:12.431913",
+            "description": "Usar marshmallow ou pydantic",
+            "due_date": null,
+            "id": 10,
+            "overdue": false,
+            "priority": 3,
+            "status": "pending",
+            "tags": [
+                "improvement",
+                "validation"
+            ],
+            "title": "Melhorar valida\u00e7\u00f5es de input",
+            "updated_at": "2026-09-20 03:23:12.431913",
+            "user_id": 1
+        }
+    ]
+}
+--- GET /users/1/tasks ---
+[
+    {
+        "created_at": "2026-09-20 03:23:12.431889",
+        "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+        "due_date": "2026-09-17 03:23:12.429782",
+        "id": 1,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "title": "Implementar autentica\u00e7\u00e3o JWT"
+    },
+    {
+        "created_at": "2026-09-20 03:23:12.431899",
+        "description": "Filtro n\u00e3o funciona com caracteres especiais",
+        "due_date": "2026-09-19 03:23:12.430809",
+        "id": 4,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "title": "Corrigir bug no filtro de busca"
+    },
+    {
+        "created_at": "2026-09-20 03:23:12.431902",
+        "description": "Endpoints retornam todos os registros",
+        "due_date": "2026-09-30 03:23:12.430816",
+        "id": 5,
+        "overdue": false,
+        "priority": 3,
+        "status": "pending",
+        "title": "Adicionar pagina\u00e7\u00e3o na API"
+    },
+    {
+        "created_at": "2026-09-20 03:23:12.431913",
+        "description": "Usar marshmallow ou pydantic",
+        "due_date": null,
+        "id": 10,
+        "overdue": false,
+        "priority": 3,
+        "status": "pending",
+        "title": "Melhorar valida\u00e7\u00f5es de input"
+    }
+]
+--- GET /users/9999 (esperado 404) ---
+{
+    "error": "Usu\u00e1rio n\u00e3o encontrado"
+}
+--- POST /users (cria usuário novo, guarde o id retornado) ---
+{
+    "active": true,
+    "created_at": "2026-09-20 03:23:31.163342",
+    "email": "ana@email.com",
+    "id": 4,
+    "name": "Ana Costa",
+    "role": "user"
+}
+--- POST /users (email duplicado, esperado 409) ---
+{
+    "error": "Email j\u00e1 cadastrado"
+}
+--- POST /users (senha curta, esperado 400) ---
+{
+    "error": "Senha deve ter no m\u00ednimo 4 caracteres"
+}
+--- PUT /users/<id> (ajuste <id> para o retornado no POST acima) ---
+{
+    "active": true,
+    "created_at": "2026-09-20 03:23:31.163342",
+    "email": "ana@email.com",
+    "id": 4,
+    "name": "Ana Costa Silva",
+    "role": "user"
+}
+--- POST /login (credenciais válidas do seed; token deve ser assinado, não 'fake-jwt-token-<id>') ---
+{
+    "message": "Login realizado com sucesso",
+    "token": "eyJ1c2VyX2lkIjoxfQ.aq9Rsw.ynLhfT7Nw1zcvE9KBr7GM1zYc50",
+    "user": {
+        "active": true,
+        "created_at": "2026-09-20 03:23:12.423022",
+        "email": "joao@email.com",
+        "id": 1,
+        "name": "Jo\u00e3o Silva",
+        "role": "admin"
+    }
+}
+--- POST /login (senha errada, esperado 401) ---
+{
+    "error": "Credenciais inv\u00e1lidas"
+}
+--- DELETE /users/<id> (remove o usuário criado acima, não um do seed) ---
+{
+    "message": "Usu\u00e1rio deletado com sucesso"
+}
+==================================================
+TASKS
+==================================================
+--- GET /tasks?page=1&per_page=5 (paginação) ---
+[
+    {
+        "category_id": 1,
+        "category_name": "Backend",
+        "created_at": "2026-09-20 03:23:12.431889",
+        "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+        "due_date": "2026-09-17 03:23:12.429782",
+        "id": 1,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "tags": [],
+        "title": "Implementar autentica\u00e7\u00e3o JWT",
+        "updated_at": "2026-09-20 03:23:12.431893",
+        "user_id": 1,
+        "user_name": "Jo\u00e3o Silva"
+    },
+    {
+        "category_id": 2,
+        "category_name": "Frontend",
+        "created_at": "2026-09-20 03:23:12.431895",
+        "description": "Tela de login responsiva",
+        "due_date": "2026-09-25 03:23:12.430276",
+        "id": 2,
+        "overdue": false,
+        "priority": 2,
+        "status": "in_progress",
+        "tags": [],
+        "title": "Criar tela de login",
+        "updated_at": "2026-09-20 03:23:12.431896",
+        "user_id": 2,
+        "user_name": "Maria Santos"
+    },
+    {
+        "category_id": 3,
+        "category_name": "DevOps",
+        "created_at": "2026-09-20 03:23:12.431897",
+        "description": "Pipeline com GitHub Actions",
+        "due_date": null,
+        "id": 3,
+        "overdue": false,
+        "priority": 2,
+        "status": "done",
+        "tags": [
+            "devops",
+            "ci",
+            "github"
+        ],
+        "title": "Configurar CI/CD",
+        "updated_at": "2026-09-20 03:23:12.431898",
+        "user_id": 3,
+        "user_name": "Pedro Oliveira"
+    },
+    {
+        "category_id": 4,
+        "category_name": "Bug",
+        "created_at": "2026-09-20 03:23:12.431899",
+        "description": "Filtro n\u00e3o funciona com caracteres especiais",
+        "due_date": "2026-09-19 03:23:12.430809",
+        "id": 4,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "tags": [],
+        "title": "Corrigir bug no filtro de busca",
+        "updated_at": "2026-09-20 03:23:12.431901",
+        "user_id": 1,
+        "user_name": "Jo\u00e3o Silva"
+    },
+    {
+        "category_id": 1,
+        "category_name": "Backend",
+        "created_at": "2026-09-20 03:23:12.431902",
+        "description": "Endpoints retornam todos os registros",
+        "due_date": "2026-09-30 03:23:12.430816",
+        "id": 5,
+        "overdue": false,
+        "priority": 3,
+        "status": "pending",
+        "tags": [],
+        "title": "Adicionar pagina\u00e7\u00e3o na API",
+        "updated_at": "2026-09-20 03:23:12.431903",
+        "user_id": 1,
+        "user_name": "Jo\u00e3o Silva"
+    }
+]
+--- GET /tasks/1 ---
+{
+    "category_id": 1,
+    "created_at": "2026-09-20 03:23:12.431889",
+    "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+    "due_date": "2026-09-17 03:23:12.429782",
+    "id": 1,
+    "overdue": true,
+    "priority": 1,
+    "status": "pending",
+    "tags": [],
+    "title": "Implementar autentica\u00e7\u00e3o JWT",
+    "updated_at": "2026-09-20 03:23:12.431893",
+    "user_id": 1
+}
+--- GET /tasks/9999 (esperado 404) ---
+{
+    "error": "Task n\u00e3o encontrada"
+}
+--- GET /tasks/search?q=bug&status=pending ---
+[
+    {
+        "category_id": 4,
+        "created_at": "2026-09-20 03:23:12.431899",
+        "description": "Filtro n\u00e3o funciona com caracteres especiais",
+        "due_date": "2026-09-19 03:23:12.430809",
+        "id": 4,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "tags": [],
+        "title": "Corrigir bug no filtro de busca",
+        "updated_at": "2026-09-20 03:23:12.431901",
+        "user_id": 1
+    }
+]
+--- GET /tasks/stats ---
+{
+    "cancelled": 1,
+    "completion_rate": 10.0,
+    "done": 1,
+    "in_progress": 2,
+    "overdue": 2,
+    "pending": 6,
+    "total": 10
+}
+--- POST /tasks (cria task nova, guarde o id retornado) ---
+{
+    "category_id": 1,
+    "created_at": "2026-09-20 03:23:31.747811",
+    "description": "criada via curl",
+    "due_date": "2026-12-01 00:00:00",
+    "id": 11,
+    "overdue": false,
+    "priority": 2,
+    "status": "pending",
+    "tags": [
+        "teste",
+        "curl"
+    ],
+    "title": "Nova task de teste",
+    "updated_at": "2026-09-20 03:23:31.747817",
+    "user_id": 1
+}
+--- POST /tasks (título curto, esperado 400) ---
+{
+    "error": "T\u00edtulo muito curto"
+}
+--- PUT /tasks/<id> (ajuste <id> para o retornado no POST acima) ---
+{
+    "category_id": 1,
+    "created_at": "2026-09-20 03:23:31.747811",
+    "description": "criada via curl",
+    "due_date": "2026-12-01 00:00:00",
+    "id": 11,
+    "overdue": false,
+    "priority": 1,
+    "status": "in_progress",
+    "tags": [
+        "teste",
+        "curl"
+    ],
+    "title": "Nova task de teste",
+    "updated_at": "2026-09-20 03:23:31.816191",
+    "user_id": 1
+}
+--- DELETE /tasks/<id> (remove a task criada acima) ---
+{
+    "message": "Task deletada com sucesso"
+}
+==================================================
+REPORTS / CATEGORIES
+==================================================
+--- GET /reports/summary ---
+{
+    "generated_at": "2026-09-20 03:23:31.891614",
+    "overdue": {
+        "count": 2,
+        "tasks": [
+            {
+                "days_overdue": 3,
+                "due_date": "2026-09-17 03:23:12.429782",
+                "id": 1,
+                "title": "Implementar autentica\u00e7\u00e3o JWT"
+            },
+            {
+                "days_overdue": 1,
+                "due_date": "2026-09-19 03:23:12.430809",
+                "id": 4,
+                "title": "Corrigir bug no filtro de busca"
+            }
+        ]
+    },
+    "overview": {
+        "total_categories": 4,
+        "total_tasks": 10,
+        "total_users": 3
+    },
+    "recent_activity": {
+        "tasks_completed_last_7_days": 1,
+        "tasks_created_last_7_days": 10
+    },
+    "tasks_by_priority": {
+        "critical": 2,
+        "high": 3,
+        "low": 2,
+        "medium": 3,
+        "minimal": 0
+    },
+    "tasks_by_status": {
+        "cancelled": 1,
+        "done": 1,
+        "in_progress": 2,
+        "pending": 6
+    },
+    "user_productivity": [
+        {
+            "completed_tasks": 0,
+            "completion_rate": 0.0,
+            "total_tasks": 4,
+            "user_id": 1,
+            "user_name": "Jo\u00e3o Silva"
+        },
+        {
+            "completed_tasks": 0,
+            "completion_rate": 0.0,
+            "total_tasks": 3,
+            "user_id": 2,
+            "user_name": "Maria Santos"
+        },
+        {
+            "completed_tasks": 1,
+            "completion_rate": 33.33,
+            "total_tasks": 3,
+            "user_id": 3,
+            "user_name": "Pedro Oliveira"
+        }
+    ]
+}
+--- GET /reports/user/1 ---
+{
+    "statistics": {
+        "cancelled": 0,
+        "completion_rate": 0.0,
+        "done": 0,
+        "high_priority": 2,
+        "in_progress": 0,
+        "overdue": 2,
+        "pending": 4,
+        "total_tasks": 4
+    },
+    "user": {
+        "email": "joao@email.com",
+        "id": 1,
+        "name": "Jo\u00e3o Silva"
+    }
+}
+--- GET /categories ---
+[
+    {
+        "color": "#3498db",
+        "created_at": "2026-09-20 03:23:12.425550",
+        "description": "Tarefas de backend",
+        "id": 1,
+        "name": "Backend",
+        "task_count": 6
+    },
+    {
+        "color": "#2ecc71",
+        "created_at": "2026-09-20 03:23:12.425556",
+        "description": "Tarefas de frontend",
+        "id": 2,
+        "name": "Frontend",
+        "task_count": 1
+    },
+    {
+        "color": "#e74c3c",
+        "created_at": "2026-09-20 03:23:12.425558",
+        "description": "Tarefas de infraestrutura",
+        "id": 3,
+        "name": "DevOps",
+        "task_count": 2
+    },
+    {
+        "color": "#e67e22",
+        "created_at": "2026-09-20 03:23:12.425559",
+        "description": "Corre\u00e7\u00e3o de bugs",
+        "id": 4,
+        "name": "Bug",
+        "task_count": 1
+    }
+]
+--- POST /categories (cria categoria nova, guarde o id retornado) ---
+{
+    "color": "#9b59b6",
+    "created_at": "2026-09-20 03:23:31.996125",
+    "description": "Testes",
+    "id": 5,
+    "name": "QA"
+}
+--- PUT /categories/<id> (ajuste <id> para o retornado no POST acima) ---
+{
+    "color": "#9b59b6",
+    "created_at": "2026-09-20 03:23:31.996125",
+    "description": "Testes manuais e automatizados",
+    "id": 5,
+    "name": "QA"
+}
+--- DELETE /categories/<id> (remove a categoria criada acima) ---
+{
+    "message": "Categoria deletada"
+}
+exit: 0
+
+==================================================
+PER-FINDING PROOF (round 3 / audit-project-3-part3.md)
+==================================================
+
+--- Finding: request params without type validation (was 500, now 400) ---
+GET /tasks/search?priority=abc (non-numeric priority, no longer 500):
+[{"category_id":1,"created_at":"2026-09-20 03:23:12.431889","description":"Adicionar autentica\u00e7\u00e3o real com JWT","due_date":"2026-09-17 03:23:12.429782","id":1,"overdue":true,"priority":1,"status":"pending","tags":[],"title":"Implementar autentica\u00e7\u00e3o JWT","updated_at":"2026-09-20 03:23:12.431893","user_id":1},{"category_id":2,"created_at":"2026-09-20 03:23:12.431895","description":"Tela de login responsiva","due_date":"2026-09-25 03:23:12.430276","id":2,"overdue":false,"priority":2,"status":"in_progress","tags":[],"title":"Criar tela de login","updated_at":"2026-09-20 03:23:12.431896","user_id":2},{"category_id":3,"created_at":"2026-09-20 03:23:12.431897","description":"Pipeline com GitHub Actions","due_date":null,"id":3,"overdue":false,"priority":2,"status":"done","tags":["devops","ci","github"],"title":"Configurar CI/CD","updated_at":"2026-09-20 03:23:12.431898","user_id":3},{"category_id":4,"created_at":"2026-09-20 03:23:12.431899","description":"Filtro n\u00e3o funciona com caracteres especiais","due_date":"2026-09-19 03:23:12.430809","id":4,"overdue":true,"priority":1,"status":"pending","tags":[],"title":"Corrigir bug no filtro de busca","updated_at":"2026-09-20 03:23:12.431901","user_id":1},{"category_id":1,"created_at":"2026-09-20 03:23:12.431902","description":"Endpoints retornam todos os registros","due_date":"2026-09-30 03:23:12.430816","id":5,"overdue":false,"priority":3,"status":"pending","tags":[],"title":"Adicionar pagina\u00e7\u00e3o na API","updated_at":"2026-09-20 03:23:12.431903","user_id":1},{"category_id":1,"created_at":"2026-09-20 03:23:12.431904","description":"Cobertura m\u00ednima de 80%","due_date":null,"id":6,"overdue":false,"priority":2,"status":"pending","tags":[],"title":"Escrever testes unit\u00e1rios","updated_at":"2026-09-20 03:23:12.431905","user_id":2},{"category_id":1,"created_at":"2026-09-20 03:23:12.431906","description":"Gerar documenta\u00e7\u00e3o autom\u00e1tica","due_date":null,"id":7,"overdue":false,"priority":4,"status":"cancelled","tags":[],"title":"Documentar API com Swagger","updated_at":"2026-09-20 03:23:12.431907","user_id":3},{"category_id":1,"created_at":"2026-09-20 03:23:12.431908","description":"Melhorar organiza\u00e7\u00e3o dos models","due_date":null,"id":8,"overdue":false,"priority":3,"status":"in_progress","tags":["refactor","tech-debt"],"title":"Refatorar models","updated_at":"2026-09-20 03:23:12.431909","user_id":2},{"category_id":3,"created_at":"2026-09-20 03:23:12.431910","description":"Prometheus + Grafana","due_date":"2026-10-10 03:23:12.430821","id":9,"overdue":false,"priority":4,"status":"pending","tags":[],"title":"Configurar monitoramento","updated_at":"2026-09-20 03:23:12.431911","user_id":3},{"category_id":1,"created_at":"2026-09-20 03:23:12.431913","description":"Usar marshmallow ou pydantic","due_date":null,"id":10,"overdue":false,"priority":3,"status":"pending","tags":["improvement","validation"],"title":"Melhorar valida\u00e7\u00f5es de input","updated_at":"2026-09-20 03:23:12.431913","user_id":1}]
+
+HTTP 200
+
+POST /tasks with string priority '2' (previously TypeError -> 500):
+{"category_id":null,"created_at":"2026-09-20 03:23:51.380077","description":"","due_date":null,"id":11,"overdue":false,"priority":2,"status":"pending","tags":[],"title":"Priority as string","updated_at":"2026-09-20 03:23:51.380088","user_id":null}
+
+HTTP 201
+
+--- Finding: CORS now configurable (default preserved: allow-all) ---
+Access-Control-Allow-Origin: http://example.com
+
+--- Finding: GET /users/<id> and /users/<id>/tasks now paginate (accept page/per_page) ---
+[
+    {
+        "created_at": "2026-09-20 03:23:12.431889",
+        "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+        "due_date": "2026-09-17 03:23:12.429782",
+        "id": 1,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "title": "Implementar autentica\u00e7\u00e3o JWT"
+    },
+    {
+        "created_at": "2026-09-20 03:23:12.431899",
+        "description": "Filtro n\u00e3o funciona com caracteres especiais",
+        "due_date": "2026-09-19 03:23:12.430809",
+        "id": 4,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "title": "Corrigir bug no filtro de busca"
+    }
+]
+
+--- Finding: GET /tasks/stats — status breakdown now via Task.status_counts()/overdue_count() ---
+{
+    "cancelled": 1,
+    "completion_rate": 9.09,
+    "done": 1,
+    "in_progress": 2,
+    "overdue": 2,
+    "pending": 7,
+    "total": 11
+}
+
+--- Finding: get_user_tasks response shape unchanged (to_dict(exclude=...) instead of dict mutation) ---
+[
+    {
+        "created_at": "2026-09-20 03:23:12.431889",
+        "description": "Adicionar autentica\u00e7\u00e3o real com JWT",
+        "due_date": "2026-09-17 03:23:12.429782",
+        "id": 1,
+        "overdue": true,
+        "priority": 1,
+        "status": "pending",
+        "title": "Implementar autentica\u00e7\u00e3o JWT"
+    }
+]
+
+--- App-factory: seed.py and app.py share create_app(), pytest passed (see test run above) ---
+seed.py already re-run cleanly earlier in this log via create_app().
+
+==================================================
+pytest (unit tests, in-memory DB via tests/conftest.py's create_app(TestConfig))
+==================================================
+........................................                                 [100%]
+40 passed in 2.52s
+exit: 0

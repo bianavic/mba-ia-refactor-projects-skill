@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 
+from middlewares.auth import roles_required
 from services import report_service
 
 report_bp = Blueprint('reports', __name__)
@@ -23,18 +24,21 @@ def get_categories():
 
 
 @report_bp.route('/categories', methods=['POST'])
+@roles_required('admin', 'manager')
 def create_category():
     data = request.get_json()
     return jsonify(report_service.create_category(data)), 201
 
 
 @report_bp.route('/categories/<int:cat_id>', methods=['PUT'])
+@roles_required('admin', 'manager')
 def update_category(cat_id):
     data = request.get_json()
     return jsonify(report_service.update_category(cat_id, data)), 200
 
 
 @report_bp.route('/categories/<int:cat_id>', methods=['DELETE'])
+@roles_required('admin', 'manager')
 def delete_category(cat_id):
     report_service.delete_category(cat_id)
     return jsonify({'message': 'Categoria deletada'}), 200
