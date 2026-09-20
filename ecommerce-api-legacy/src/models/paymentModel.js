@@ -1,16 +1,11 @@
-const { db } = require('../database/connection');
+const { run } = require('../database/connection');
 
-function create(enrollmentId, amount, status) {
-    return new Promise((resolve, reject) => {
-        db.run(
-            'INSERT INTO payments (enrollment_id, amount, status) VALUES (?, ?, ?)',
-            [enrollmentId, amount, status],
-            function (err) {
-                if (err) return reject(err);
-                resolve(this.lastID);
-            }
-        );
-    });
+async function create(enrollmentId, amount, status) {
+    const { lastID } = await run(
+        'INSERT INTO payments (enrollment_id, amount, status) VALUES (?, ?, ?)',
+        [enrollmentId, amount, status]
+    );
+    return lastID;
 }
 
 module.exports = { create };

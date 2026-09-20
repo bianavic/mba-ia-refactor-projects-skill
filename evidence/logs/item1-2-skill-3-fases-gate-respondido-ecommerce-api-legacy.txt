@@ -1,0 +1,392 @@
+# Skill rodando as 3 fases, com o gate da Fase 2 respondido — ecommerce-api-legacy
+
+Execução interativa real de `/refactor-arch` no Claude Code (não headless, não
+reconstruída), em 2026-09-20. Complementa
+`item1-2-skill-phase1-phase2-gate-code-smells-project.txt`, que mostra Fases 1-2 e a
+PERGUNTA do gate mas para ali, em modo `claude -p` somente-leitura: aqui o gate é
+respondido pelo desenvolvedor e a Fase 3 executa e grava.
+
+Origem: transcript da própria sessão, em
+~/.claude/projects/-Users-admin-Downloads-fullcycle-correcao-mba-ia-refactor-projects-skill-ecommerce-api-legacy/
+fcaf9ed8-f2a6-456b-bc07-3de5d4e169e3.jsonl
+
+Extraído na ordem em que o agente produziu cada bloco, do comando `/refactor-arch` até o
+resumo de conclusão da Fase 3. Turnos digitados pelo desenvolvedor aparecem como
+`>>> DESENVOLVEDOR`; chamadas de ferramenta aparecem como uma linha `[ferramenta]` para
+mostrar o fluxo sem despejar a saída inteira (ela já está nas seções 1-8 do log de
+validação da rodada, no mesmo diretório).
+
+O relatório completo da Fase 2 impresso nesta execução está em
+`reports/audit-project-2-part3.md`; a validação da Fase 3, em
+`evidence/logs/ecommerce-api-legacy-round3-validation.txt`.
+
+Nada foi editado para embelezar: é a saída real, na ordem real.
+
+---
+
+
+>>> DESENVOLVEDOR [2026-09-20T00:41:48]
+/refactor-arch
+
+--- agente [2026-09-20T00:41:50] ---
+I'll run the refactor-arch skill on this project, starting with Phase 1.
+
+    [Bash] List project files
+    [Bash] Read project-analysis reference
+    [Bash] Read manifests and count lines
+    [Bash] Read core source files
+    [Bash] Read remaining source files
+    [Bash] Check existing reports and history
+    [Bash] Read prior audit reports for project 2
+    [Bash] Read anti-patterns catalog
+    [Bash] Grep for dead code and config usage
+    [Bash] Check versions and arch-check script
+    [Bash] Read audit report template
+    [Bash] Read manual-tests and list evidence
+--- agente [2026-09-20T00:42:47] ---
+Phase 1 complete — printing the summary.
+
+```
+================================
+PHASE 1: PROJECT ANALYSIS
+================================
+Language:      JavaScript (Node.js v26.9.0, CommonJS)
+Framework:     Express 4.22.1 (declared ^4.18.2)
+Dependencies:  express, sqlite3 6.0.1, dotenv 16.x, node:crypto (stdlib)
+Domain:        LMS / e-learning API — course checkout (user + enrollment + payment),
+               administrative financial report, user deletion with cascade
+Architecture:  Partial layering — routes/controllers/models/services/utils/middlewares
+               folders exist, but orchestration and business rules still live in the
+               controllers and error handling is duplicated per call site
+Source files:  17 files analyzed | ~391 lines of code
+DB tables:     users, courses, enrollments, payments, audit_logs (SQLite `:memory:`,
+               seeded on boot by initSchema())
+================================
+```
+
+--- agente [2026-09-20T00:42:48] ---
+Phase 2 — scanning all 17 files against the catalog and the two prior reports.
+
+    [Bash] Write round-3 audit report
+--- agente [2026-09-20T00:43:49] ---
+Report saved to `reports/audit-project-2-part3.md`. Printing it in full:
+
+```
+================================
+ARCHITECTURE AUDIT REPORT
+================================
+Project: ecommerce-api-legacy
+Stack:   JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1
+Files:   17 analyzed | ~391 lines of code
+
+## Resolved since audit-project-2-part2.md
+Nothing. `audit-project-2-part2.md` ends at the Phase 2 gate with no recorded answer, and
+`git log -- ecommerce-api-legacy` shows no refactor commit after it — the last code change is
+`f5c6fca refactor(ecommerce-api-legacy): restructure into MVC...`, the Phase 3 of round 1.
+All 8 findings from part2 were re-verified against the current source and all 8 are still
+open, unchanged, at the same lines. They are carried forward, not counted as new.
+
+This round adds 8 new findings, all in code that already existed but was not surfaced by the
+previous two passes: transactional integrity, the controller/service boundary, error
+swallowing in the model layer, request validation, and process bootstrap.
+
+## Summary
+CRITICAL: 1 | HIGH: 5 | MEDIUM: 5 | LOW: 5
+
+## Findings
+
+### [CRITICAL] Hardcoded fallback password provisions real accounts with a known credential
+File: src/models/userModel.js:4,16 (root cause: src/controllers/checkoutController.js:10-14)
+Description: `userModel.create()` hashes `FALLBACK_PASSWORD = '123456'` whenever `rawPassword`
+is falsy, and `checkout()` validates only name/email/courseId/cardNumber (line 12) — `pwd` is
+never required — so any checkout that omits `pwd` silently creates a real account secured by a
+password hardcoded in source.
+Impact: every such account is protected by a credential anyone reading the repo already knows;
+a direct account-takeover vector the moment any authentication endpoint exists.
+Recommendation: AP-02 / RP-02 — require `rawPassword` and reject with 400 when missing.
+Status: Still open (third consecutive round, code unchanged).
+
+### [HIGH] Checkout performs a multi-step money-moving write with no transaction or compensation
+File: src/controllers/checkoutController.js:42-56 (charge :42, enrollment :47, payment :53)
+Description: The card is charged first, then the enrollment is inserted, then the payment row —
+three sequential writes, no transaction, no rollback or compensating action on any of the three
+failure branches, each of which just returns 500.
+Impact: a failure at :47 leaves the customer charged with no enrollment and no payment record —
+money taken, nothing delivered, nothing to reconcile against. A failure at :53 leaves an
+enrollment the report never attributes revenue to, since it sums only `PAID` rows
+(reportController.js:36). Both states are silent and need manual DB surgery.
+Recommendation: AP-05 / RP-01 — move the sequence into a `checkoutService` owning one
+transaction boundary; charge only once persistence is known to succeed, or record a reversal.
+Status: New.
+
+### [HIGH] Business orchestration and aggregation live in controllers instead of a service layer
+File: src/controllers/checkoutController.js:9-62; src/controllers/reportController.js:28-43
+Description: `checkout()` orchestrates five models plus the gateway, audit log and cache — the
+entire domain workflow, not HTTP concerns. `financialReport()` computes the aggregation in the
+handler: grouping rows by course (:28-32) and deriving revenue from `PAID` rows only (:36).
+`services/` holds only the fake gateway and the cache — no domain service.
+Impact: neither the checkout workflow nor the revenue rule is unit-testable without Express
+req/res and a live SQLite handle; "revenue counts only PAID payments" is invisible to the model
+layer and will be re-implemented differently by the next report or invoice endpoint.
+Recommendation: AP-05 / AP-06 / RP-01 — extract `checkoutService` and `reportService`;
+controllers keep parse → one service call → serialize.
+Status: New — a consequence of round 1's Phase 3, which created controllers and models but no
+domain service layer.
+
+### [HIGH] Duplicated, ad hoc error handling bypasses the centralized handler — one path unguarded
+File: src/controllers/checkoutController.js:17-21,25-29,35-39,46-50,52-56,58;
+      src/controllers/reportController.js:12-16,22-26; src/controllers/userController.js:6-10;
+      src/middlewares/errorHandler.js:1-8
+Description: Every model call carries its own try/catch mapping to a hand-written response, even
+though app.js:14 already registers a centralized `errorHandler`. Line 58
+(`await auditLogModel.create(...)`) has no guard at all — Express 4 does not forward a rejected
+promise from an async handler, so a failure there reaches neither path and the request hangs.
+Impact: nine near-identical blocks that have already drifted (text vs JSON, different messages
+for the same failure class), plus an unhandled rejection that can hang a connection.
+Recommendation: AP-06 / RP-11 — async-error adapter + `next(err)`; delete the boilerplate.
+Status: Still open (unchanged since part2).
+
+### [HIGH] Cascade delete swallows errors and reports success for users that do not exist
+File: src/models/userModel.js:26-40 (unguarded `db.run` at :29-32 and :33);
+      src/controllers/userController.js:3-13
+Description: Of the three statements in `db.serialize`, only `DELETE FROM users` passes an error
+callback — the payments (:29-32) and enrollments (:33) deletes drop their errors and the promise
+still resolves. `this.changes` is never inspected, so deleting a non-existent id resolves and
+the controller replies 200 with "Usuário e seus registros associados ... foram deletados."
+Impact: a partial cascade failure is indistinguishable from success — the caller is told
+enrollments and payments were removed while they are still there, which is exactly the
+orphaned-records corruption round 1 was supposed to close. `DELETE /api/users/9999` likewise
+reports a deletion that never happened.
+Recommendation: AP-06 / RP-11 — error callback on every statement (or promisified `db.run`
+awaited inside a transaction), check `this.changes`, return 404 on no match.
+Status: New — both previous reports treated the orphaned-records finding as resolved on the
+strength of the statements being present, without checking their error handling.
+
+### [HIGH] Global mutable, unbounded, write-only cache
+File: src/services/cacheService.js:1-15; written at src/controllers/checkoutController.js:59
+Description: A module-level singleton `Map` mutated from every checkout with no eviction, TTL or
+size bound. Project-wide grep confirms `cacheService.get` is called from nowhere.
+Impact: memory grows without bound (one `last_checkout_<userId>` key per user who ever checks
+out), mutated from concurrent handlers with no synchronization, for zero functional benefit.
+Recommendation: AP-07 / RP-05 — wire it into a read path or delete it; if kept, bound it.
+Status: Still open (unchanged since part2).
+
+### [MEDIUM] No request validation layer — route parameters are never validated
+File: src/routes/index.js:8-10; src/controllers/checkoutController.js:10-14;
+      src/controllers/userController.js:4
+Description: The three routes register handlers with no validation middleware. `checkout` does a
+bare truthiness check on four fields (:12) — `c_id` goes to the query unchecked, `card` goes to
+`maskCard()` with no type or length check. `deleteUser` hands `req.params.id` straight to the
+model.
+Impact: a non-string `card` (e.g. `{"card": 123}`) reaches `cardNumber.slice()` in
+paymentGatewayService.js:7 and throws a TypeError inside an unguarded async handler; a
+non-numeric `c_id` matches nothing and returns 404 instead of 400, so clients cannot tell a
+malformed request from a missing course.
+Recommendation: AP-09 / RP-07 — validation middleware or per-route schema at the boundary.
+Status: New.
+
+### [MEDIUM] Dead configuration fields (DB/SMTP credentials never consumed)
+File: src/config/index.js:4-5,7 (`dbUser`, `dbPass`, `smtpUser`); .env.example:1-2,4
+Description: All three are read into the exported config object and referenced nowhere else in
+`src/`. The app uses in-memory SQLite (no credentials) and never sends email.
+Impact: misleads readers into believing external DB auth and SMTP are wired up; if ever given
+real values they become live credentials with no consumer.
+Recommendation: AP-10 / RP-10 — delete them and their `.env` entries, or wire them up.
+Status: Still open (unchanged since part2).
+
+### [MEDIUM] Pagination present but unbounded
+File: src/controllers/reportController.js:7-9
+Description: `per_page` is floored at 1 via `Math.max(...)` but never capped — `per_page=999999999`
+returns every course plus every joined enrollment/payment row.
+Impact: defeats the pagination already implemented; one request still forces the full-table scan
+and payload the mechanism exists to prevent.
+Recommendation: AP-09 / RP-07 — add `Math.min(perPage, 100)` alongside the floor.
+Status: Still open (unchanged since part2).
+
+### [MEDIUM] Password verification is implemented but unreachable — and broken if it were reached
+File: src/utils/crypto.js:11-17
+Description: `verifyPassword()` is exported but called from nowhere; there is no login route at
+all, so `hashPassword` writes credentials nothing ever reads. It is also latently broken:
+`crypto.timingSafeEqual` throws `RangeError` when its buffers differ in length, so a stored hash
+of unexpected length raises instead of returning `false`.
+Impact: a reader of `utils/crypto.js` reasonably concludes authentication exists; it does not.
+The bug surfaces only the day someone wires it up.
+Recommendation: AP-10 / RP-10 — add the auth route it implies or remove it; if kept, compare
+lengths before `timingSafeEqual`.
+Status: New.
+
+### [MEDIUM] The app binds the port at import time, so it cannot be loaded without starting a server
+File: src/app.js:8-20 (`initSchema()` :11, `app.listen(...)` :16, `module.exports = app` :20)
+Description: App construction, schema bootstrap and `listen` all run as module side effects, then
+the app is exported. `listen` has already fired by the time the export is visible.
+Impact: the export exists for tests but is unusable by them — importing binds port 3000 and fails
+with `EADDRINUSE` when a server is running (a real constraint: CLAUDE.md notes projects 1 and 3
+already contend for one port). The schema bootstrap is also uncontrollable from a test.
+Recommendation: AP-05 / RP-01 — split `app.js` (configured app, no side effects) from
+`server.js` (`initSchema()` + `listen`); point `main`/`start` at the latter.
+Status: New.
+
+### [LOW] Inconsistent language/naming conventions
+File: src/controllers/checkoutController.js:10,13,20,22,28,38,49,55;
+      src/controllers/reportController.js:15,25; src/controllers/userController.js:9,12
+Description: Portuguese user-facing strings mixed with English identifiers, and abbreviated
+request fields (`usr`, `eml`, `pwd`, `c_id`, `card`) destructured into descriptive internal names.
+Impact: slows onboarding; :10 is the only place the two vocabularies are reconciled.
+Recommendation: AP-15 / RP-15 — one convention for new/internal code; per RP-15's scope limit the
+existing field names and message strings are API contract and should be documented, not renamed.
+Status: Still open (expected to stay documented rather than fixed).
+
+### [LOW] Inconsistent response-format conventions
+File: src/controllers/checkoutController.js:13,20,22,28,38,49,55,61;
+      src/controllers/userController.js:9,12; src/controllers/reportController.js:18,45
+Description: Plain-text bodies mixed with JSON bodies across the same route layer, and the one
+JSON success payload mixes snake_case (`enrollment_id`) with the camelCase used everywhere else.
+Impact: clients cannot rely on one content type or casing and must special-case per endpoint.
+Recommendation: AP-15 / RP-15 — standardize on JSON; `enrollment_id` is contract, document it.
+Status: Still open (unchanged since part2).
+
+### [LOW] Pagination default hardcoded outside the config module
+File: src/controllers/reportController.js:4
+Description: `DEFAULT_PAGE_SIZE = 20` sits in the controller instead of `config/index.js`, which
+already centralizes `port` and `logLevel`.
+Impact: changing it means editing a controller, and it cannot be overridden per environment.
+Recommendation: AP-13 / RP-13 — move it into `config/index.js` as env-overridable.
+Status: Still open (unchanged since part2).
+
+### [LOW] Unknown routes bypass the JSON error contract
+File: src/app.js:13-14; src/routes/index.js:8-10
+Description: `app.use(routes)` is followed directly by `app.use(errorHandler)` with no catch-all
+404 in between, so an unregistered path falls through to Express's built-in final handler and
+returns HTML (`<pre>Cannot GET /api/nope</pre>`), never reaching `errorHandler`.
+Impact: the API answers unknown paths with HTML while every handled error answers JSON — a client
+parsing JSON breaks on exactly the case (typo'd or removed endpoint) where a clear error matters.
+Recommendation: AP-06 / RP-11 — catch-all 404 middleware producing the same JSON shape.
+Status: New.
+
+### [LOW] Stale boilerplate metadata contradicts the project's actual identity
+File: package.json:2-4; src/app.js:17
+Description: The package is still named `desafio-arquitetura-ia-boilerplate` and described as
+"Boilerplate com código legado para refatoração", the boot log still says "Frankenstein LMS" — a
+name appearing nowhere else — and `scripts` has only `start`, no `test`, despite
+`manual-tests.sh` and `arch-check.sh` sitting at the project root.
+Impact: the manifest and the first line of every boot log describe a codebase that no longer
+exists, and the two validation scripts are undiscoverable through `npm run`.
+Recommendation: AP-13 / RP-13 — accurate `name`/`description`, service name from config, expose
+the scripts via `npm test` / `npm run arch-check`.
+Status: New.
+
+================================
+Total: 16 findings
+================================
+```
+
+Two things worth flagging before you decide:
+
+- **Round 2 never got a Phase 3.** `audit-project-2-part2.md` stops at the gate, and there's no refactor commit after `f5c6fca`. All 8 of its findings are still open at the same lines, so this report carries them plus 8 new ones.
+- **Two of the LOWs are documentation-only by design** (naming conventions, response formats) — RP-15's scope limit says the request field names and `enrollment_id` are API contract. Phase 3 would leave those as-is and note them, not "fix" them.
+
+Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]
+
+
+>>> DESENVOLVEDOR [2026-09-20T00:44:20]
+y
+
+    [Bash] Read architecture guidelines
+    [Bash] Read playbook and verification recipes
+--- agente [2026-09-20T00:45:04] ---
+Confirmed. Starting Phase 3 — reading the playbook patterns and building the target layout.
+
+    [Bash] Create error and middleware modules
+    [Bash] Create validators, config, and promisified DB layer
+    [Bash] Rewrite models, trim crypto, drop dead cache service
+    [Bash] Create checkout, report and user services
+    [Bash] Create thin controllers, routes, app root, server bootstrap, update manifest
+    [Bash] Update test label and syntax-check all sources
+    [Bash] Boot the refactored app
+    [Bash] Inspect server log and port owner
+--- agente [2026-09-20T00:46:21] ---
+Docker holds port 3000. I'll use a different port — and the boot failure exposed a gap in the bootstrap I just wrote: `app.listen` emits its error as an event, so `start().catch()` never sees it.
+
+    [Bash] Harden listen error handling and make test base URL overridable
+    [Bash] Boot app on port 3100
+--- agente [2026-09-20T00:46:40] ---
+App boots cleanly. Now capturing the mandatory validation evidence.
+
+    [Bash] Start evidence log with boot output and run arch-check
+    [Bash] Prove the AP-16 detector fires on a known violation
+    [Bash] Run the manual endpoint test suite
+    [Bash] Append server-side log to evidence
+    [Bash] Restart app on a clean instance
+    [Bash] Per-finding curl evidence, part 1
+    [Bash] Per-finding evidence, part 2
+    [Bash] Per-finding evidence, part 3 with corrected probes
+    [Bash] Check transaction rollback probe result
+    [Bash] Close out evidence log and stop the server
+    [Bash] Verify skill copies match and run docs sync check
+    [Bash] List final structure and changed files
+--- agente [2026-09-20T00:48:23] ---
+Phase 3 is complete. Here is the required summary:
+
+```
+================================
+PHASE 3: REFACTORING COMPLETE
+================================
+## New Project Structure
+ecommerce-api-legacy/
+├── src/
+│   ├── server.js                      # bootstrap: initSchema + listen (novo)
+│   ├── app.js                         # composition root, sem efeito colateral
+│   ├── config/
+│   │   └── index.js                   # + serviceName, defaultPageSize, maxPageSize
+│   ├── routes/
+│   │   └── index.js                   # validate → asyncHandler → controller
+│   ├── middlewares/
+│   │   ├── validators.js              # validação de entrada por rota (novo)
+│   │   ├── asyncHandler.js            # encaminha promise rejeitada p/ next (novo)
+│   │   ├── notFoundHandler.js         # 404 em JSON (novo)
+│   │   └── errorHandler.js            # único tradutor erro → resposta
+│   ├── controllers/
+│   │   ├── checkoutController.js      # 3 linhas: chama service, serializa
+│   │   ├── reportController.js
+│   │   └── userController.js
+│   ├── services/
+│   │   ├── checkoutService.js         # orquestração + transação (novo)
+│   │   ├── reportService.js           # agregação de receita (novo)
+│   │   ├── userService.js             # remoção + regra de 404 (novo)
+│   │   └── paymentGatewayService.js
+│   ├── models/
+│   │   ├── userModel.js               # deleteCascade transacional, retorna changes
+│   │   ├── courseModel.js
+│   │   ├── enrollmentModel.js
+│   │   ├── paymentModel.js
+│   │   └── auditLogModel.js
+│   ├── database/
+│   │   └── connection.js              # run/get/all com Promise + withTransaction
+│   ├── errors/
+│   │   └── AppError.js                # status + mensagem + failWith() (novo)
+│   └── utils/
+│       ├── logger.js
+│       └── crypto.js                  # verifyPassword (morto) removido
+├── arch-check.sh                      # AP-16, versão do projeto
+├── manual-tests.sh                    # BASE agora sobrescrevível por env
+└── package.json                       # name/description reais, npm test/arch-check
+
+## Validation
+  ✓ Application boots without errors
+  ✓ All endpoints respond correctly
+  ✓ No route touches persistence directly (AP-16)
+  ✓ 13 anti-patterns resolved
+================================
+```
+
+Evidence captured live, with the app running, at `evidence/logs/ecommerce-api-legacy-round3-validation.txt` (390 lines): boot log, `arch-check.sh` (exit 0, 1 route file scanned — not exit 2), the detector validated against a deliberately planted violation and then re-confirmed clean, full `manual-tests.sh`, server-side logs, and one curl per resolved finding.
+
+Four things you should know:
+
+- **Port 3000 was occupied by Docker**, so validation ran on `PORT=3100`. I made `manual-tests.sh` honor `BASE` from the environment instead of hardcoding 3000. The first boot attempt also revealed that `app.listen` reports failure via an `error` event, not a rejection — my initial `server.js` would have died with a raw stack trace, so it now handles that and exits through the logger.
+- **One intentional behavior change:** `DELETE /api/users/<nonexistent>` now returns 404 instead of 200. That was the reported defect — the old code claimed to have deleted records that never existed. I updated that test's label in `manual-tests.sh`.
+- **Three findings left unresolved on purpose**, all stated in the log: the two LOW naming/response-format ones (RP-15 scope limit — they're API contract), and `verifyPassword`, which I removed rather than wired up, since adding an auth route would be a feature change. Git history preserves it.
+- **`scripts/sync-docs.sh --check` is currently red**, as expected after a new report: the README findings table still points at `audit-project-2-part2.md` (8 findings) instead of part3 (16).
+
+Per CLAUDE.md the rollup runs after every skill round — want me to run `/sync-docs` now to close that out?
+

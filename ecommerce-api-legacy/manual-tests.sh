@@ -17,7 +17,7 @@
 #
 # Run whole file with `bash manual-tests.sh`, or copy/paste sections one at a time.
 
-BASE=http://localhost:3000
+BASE="${BASE:-http://localhost:3000}"
 
 echo "=================================================="
 echo "CHECKOUT"
@@ -65,5 +65,5 @@ echo "--- DELETE /api/users/3 (remove o usuário 'Joao', criado no checkout recu
 curl -s -X DELETE "$BASE/api/users/3"
 echo
 
-echo "--- DELETE /api/users/9999 (id inexistente) ---"
+echo "--- DELETE /api/users/9999 (id inexistente, esperado 404) ---"
 curl -s -o /dev/null -w "HTTP %{http_code}\n" -X DELETE "$BASE/api/users/9999"

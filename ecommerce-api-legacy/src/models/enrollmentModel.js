@@ -1,14 +1,11 @@
-const { db } = require('../database/connection');
+const { run, all } = require('../database/connection');
 
-function create(userId, courseId) {
-    return new Promise((resolve, reject) => {
-        db.run('INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)', [userId, courseId], function (err) {
-            if (err) return reject(err);
-            resolve(this.lastID);
-        });
-    });
+async function create(userId, courseId) {
+    const { lastID } = await run('INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)', [userId, courseId]);
+    return lastID;
 }
 
+/** Uma única query com IN (...) no lugar de um SELECT por curso (AP-08). */
 function findDetailsByCourseIds(courseIds) {
     if (courseIds.length === 0) return Promise.resolve([]);
 
@@ -22,12 +19,7 @@ function findDetailsByCourseIds(courseIds) {
         WHERE e.course_id IN (${placeholders})
     `;
 
-    return new Promise((resolve, reject) => {
-        db.all(sql, courseIds, (err, rows) => {
-            if (err) return reject(err);
-            resolve(rows);
-        });
-    });
+    return all(sql, courseIds);
 }
 
 module.exports = { create, findDetailsByCourseIds };
