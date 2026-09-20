@@ -26,6 +26,10 @@ Severity scale (see `SKILL.md` for the full definitions):
 - **Signals:** a model's `to_dict()`/`toJSON()`/serializer includes a password/hash/token field, and that serialization is returned directly by one or more endpoints (list, detail, or login responses).
 - **Impact:** every client of the API receives password hashes or secrets it never needed, enabling offline attacks even without a separate data breach.
 
+### AP-17 — Missing Authentication/Authorization on Sensitive Endpoints
+- **Signals:** a route that mutates data (`POST`/`PUT`/`DELETE`) or whose path/name signals restricted access (`/admin`, `/internal`, a financial/report endpoint, a user-delete endpoint) carries no authentication/authorization construct anywhere in its handler chain — no middleware/decorator (`login_required`, `@requires_auth`, `roles_required`, a `before_request` guard), no manual check of a header/session/token (`Authorization` header, `req.user`/`current_user`, session-cookie validation) — and a project-wide search (grep for `auth`, `token`, `session`, `role`, `permission`, `credential`) confirms no such construct exists anywhere in the codebase for *any* route. A softer variant of the same signal: a login/token-issuing endpoint exists (returns a JWT, signs a session, calls something like `issue_token`/`dumps`/`sign`), but no matching verification call (`verify_token`, `loads`, `jwt.decode`, a guard that reads that token back) is ever invoked anywhere else in the project — authentication is issued once at login and never enforced afterward. Do not assume a route is protected just because a sibling route in the same file is; check every route's own middleware chain.
+- **Impact:** any unauthenticated (or, in the softer variant, any authenticated-but-unchecked) caller can read, modify, or delete data through that endpoint. When the endpoint is destructive (deletes a record, cascades to related data) or exposes sensitive/aggregate data (financial reports, PII, another user's records), this is a direct, exploitable security vulnerability — not a hypothetical hardening gap — and should be reported CRITICAL regardless of how clean the rest of the architecture is.
+
 ## HIGH
 
 ### AP-05 — God Class / No Architectural Separation
@@ -86,4 +90,4 @@ Severity scale (see `SKILL.md` for the full definitions):
 
 ---
 
-This catalog has 16 entries across all four severities — well above the minimum of 8 — and always includes at least one CRITICAL/HIGH, several MEDIUM, and several LOW so any project audited against it can satisfy the required finding distribution, provided the underlying code actually exhibits the pattern.
+This catalog has 17 entries across all four severities — well above the minimum of 8 — and always includes at least one CRITICAL/HIGH, several MEDIUM, and several LOW so any project audited against it can satisfy the required finding distribution, provided the underlying code actually exhibits the pattern.
