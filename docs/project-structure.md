@@ -112,6 +112,7 @@ ecommerce-api-legacy/
 ├── README.md
 ├── api.http
 ├── arch-check.sh
+├── internal-tests.js
 ├── manual-tests.sh
 ├── package-lock.json
 ├── package.json
@@ -125,8 +126,13 @@ ecommerce-api-legacy/
     │   └── userController.js
     ├── database/
     │   └── connection.js
+    ├── errors/
+    │   └── AppError.js
     ├── middlewares/
-    │   └── errorHandler.js
+    │   ├── asyncHandler.js
+    │   ├── errorHandler.js
+    │   ├── notFoundHandler.js
+    │   └── validators.js
     ├── models/
     │   ├── auditLogModel.js
     │   ├── courseModel.js
@@ -135,9 +141,12 @@ ecommerce-api-legacy/
     │   └── userModel.js
     ├── routes/
     │   └── index.js
+    ├── server.js
     ├── services/
-    │   ├── cacheService.js
-    │   └── paymentGatewayService.js
+    │   ├── checkoutService.js
+    │   ├── paymentGatewayService.js
+    │   ├── reportService.js
+    │   └── userService.js
     └── utils/
         ├── crypto.js
         └── logger.js
