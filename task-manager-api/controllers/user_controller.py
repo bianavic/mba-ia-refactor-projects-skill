@@ -1,22 +1,20 @@
 import logging
 import re
 
-from flask import abort, current_app
-from itsdangerous import URLSafeTimedSerializer
+from flask import abort
 from sqlalchemy import func
 
 from database import db
 from models.user import User
 from models.task import Task
+from services import authorization
+from services.authorization import SYSTEM
+from services.token_service import issue_token
 from utils.helpers import VALID_ROLES, MIN_PASSWORD_LENGTH
 
 logger = logging.getLogger(__name__)
 
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$')
-
-
-def _login_serializer():
-    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='login-token')
 
 
 def list_users(page, per_page):
@@ -44,20 +42,22 @@ def list_users(page, per_page):
     return result
 
 
-def get_user(user_id):
+def get_user(user_id, page=1, per_page=20):
     user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
 
     data = user.to_dict()
 
-    tasks = Task.query.filter_by(user_id=user_id).all()
+    tasks = Task.query.filter_by(user_id=user_id).paginate(
+        page=page, per_page=per_page, error_out=False
+    ).items
     data['tasks'] = [t.to_dict() for t in tasks]
 
     return data
 
 
-def create_user(data):
+def create_user(data, actor=SYSTEM):
     if not data:
         abort(400, description='Dados inválidos')
 
@@ -86,6 +86,8 @@ def create_user(data):
     if role not in VALID_ROLES:
         abort(400, description='Role inválido')
 
+    authorization.ensure_can_assign_role(actor, role)
+
     user = User()
     user.name = name
     user.email = email
@@ -104,10 +106,12 @@ def create_user(data):
     return user.to_dict()
 
 
-def update_user(user_id, data):
+def update_user(user_id, data, actor=SYSTEM):
     user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
+
+    authorization.ensure_can_manage_user(actor, user_id)
 
     if not data:
         abort(400, description='Dados inválidos')
@@ -132,6 +136,7 @@ def update_user(user_id, data):
     if 'role' in data:
         if data['role'] not in VALID_ROLES:
             abort(400, description='Role inválido')
+        authorization.ensure_can_assign_role(actor, data['role'])
         user.role = data['role']
 
     if 'active' in data:
@@ -147,10 +152,12 @@ def update_user(user_id, data):
     return user.to_dict()
 
 
-def delete_user(user_id):
+def delete_user(user_id, actor=SYSTEM):
     user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
+
+    authorization.ensure_can_manage_user(actor, user_id)
 
     try:
         Task.query.filter_by(user_id=user_id).delete(synchronize_session=False)
@@ -163,20 +170,18 @@ def delete_user(user_id):
         abort(500, description='Erro ao deletar')
 
 
-def get_user_tasks(user_id):
+def get_user_tasks(user_id, page=1, per_page=20):
     user = db.session.get(User, user_id)
     if not user:
         abort(404, description='Usuário não encontrado')
 
-    tasks = Task.query.filter_by(user_id=user_id).all()
-    result = []
-    for t in tasks:
-        task_data = t.to_dict()
-        for field in ('user_id', 'category_id', 'updated_at', 'tags'):
-            del task_data[field]
-        result.append(task_data)
-
-    return result
+    tasks = Task.query.filter_by(user_id=user_id).paginate(
+        page=page, per_page=per_page, error_out=False
+    ).items
+    return [
+        t.to_dict(exclude=('user_id', 'category_id', 'updated_at', 'tags'))
+        for t in tasks
+    ]
 
 
 def login(data):
@@ -199,7 +204,7 @@ def login(data):
     if not user.active:
         abort(403, description='Usuário inativo')
 
-    token = _login_serializer().dumps({'user_id': user.id})
+    token = issue_token(user.id)
 
     return {
         'message': 'Login realizado com sucesso',

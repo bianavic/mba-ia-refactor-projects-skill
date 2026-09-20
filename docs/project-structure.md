@@ -215,6 +215,7 @@ task-manager-api/
 ├── manual-tests.sh
 ├── middlewares/
 │   ├── __init__.py
+│   ├── auth.py
 │   └── error_handler.py
 ├── models/
 │   ├── __init__.py
@@ -224,16 +225,20 @@ task-manager-api/
 ├── requirements.txt
 ├── routes/
 │   ├── __init__.py
+│   ├── meta_routes.py
 │   ├── report_routes.py
 │   ├── task_routes.py
 │   └── user_routes.py
 ├── seed.py
 ├── services/
 │   ├── __init__.py
-│   └── report_service.py
+│   ├── authorization.py
+│   ├── report_service.py
+│   └── token_service.py
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
+│   ├── test_auth.py
 │   ├── test_task_controller.py
 │   └── test_user_controller.py
 └── utils/

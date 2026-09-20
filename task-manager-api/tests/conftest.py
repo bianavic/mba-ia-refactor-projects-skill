@@ -1,21 +1,23 @@
 import pytest
-from flask import Flask
 
+from app import create_app
+from config.settings import Config
 from database import db
 import models  # noqa: F401 — registers Task/User/Category with SQLAlchemy
 
 
+class TestConfig(Config):
+    """Same settings as production except for an isolated in-memory database."""
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SECRET_KEY = 'test-secret'
+    TESTING = True
+
+
 @pytest.fixture
 def app():
-    """A Flask app bound to an in-memory SQLite DB, isolated from tasks.db."""
-    test_app = Flask(__name__)
-    test_app.config.update(
-        SQLALCHEMY_DATABASE_URI='sqlite:///:memory:',
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SECRET_KEY='test-secret',
-        TESTING=True,
-    )
-    db.init_app(test_app)
+    """A Flask app built by the same factory as production, bound to an in-memory
+    SQLite DB isolated from tasks.db."""
+    test_app = create_app(TestConfig)
 
     with test_app.app_context():
         db.create_all()

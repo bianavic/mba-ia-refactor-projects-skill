@@ -6,36 +6,20 @@ def utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def format_date(date_obj):
-    if date_obj:
-        return str(date_obj)
-    return None
-
-
 def calculate_percentage(part, total):
     if total == 0:
         return 0
     return round((part / total) * 100, 2)
 
 
-def sanitize_string(s):
-    if s:
-        return s.strip()
-    return s
+STATUS_PENDING = 'pending'
+STATUS_IN_PROGRESS = 'in_progress'
+STATUS_DONE = 'done'
+STATUS_CANCELLED = 'cancelled'
 
+VALID_STATUSES = [STATUS_PENDING, STATUS_IN_PROGRESS, STATUS_DONE, STATUS_CANCELLED]
+CLOSED_STATUSES = (STATUS_DONE, STATUS_CANCELLED)
 
-def generate_id():
-    import uuid
-    return str(uuid.uuid4())
-
-
-def is_valid_color(color):
-    if color and len(color) == 7 and color[0] == '#':
-        return True
-    return False
-
-
-VALID_STATUSES = ['pending', 'in_progress', 'done', 'cancelled']
 VALID_ROLES = ['user', 'admin', 'manager']
 MAX_TITLE_LENGTH = 200
 MIN_TITLE_LENGTH = 3
@@ -44,3 +28,4 @@ MIN_PRIORITY = 1
 MAX_PRIORITY = 5
 DEFAULT_PRIORITY = 3
 DEFAULT_COLOR = '#000000'
+OVERDUE_LIST_LIMIT = 100

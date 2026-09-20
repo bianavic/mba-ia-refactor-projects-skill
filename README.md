@@ -57,14 +57,7 @@ Cada item exigido em ["README.md deve conter"](docs/challenge-original.md#readme
 | **D2.** Comandos para executar a skill em cada projeto | [4.2 Comandos por Projeto](#42-comandos-por-projeto) |
 | **D3.** Como validar que a refatoração funcionou | [4.3 Validação](#43-validação) |
 
-**Critérios de Aceite** ([enunciado 9.7](docs/challenge-original.md#97-critérios-de-aceite)) — obrigatórios nos 3 projetos, sem exceção:
-
-| Critério | code-smells-project | ecommerce-api-legacy | task-manager-api |
-|---|---|---|---|
-| Fase 1 detecta a stack corretamente | ✓ | ✓ | ✓ |
-| Fase 2 encontra ≥ 5 findings | ✓ 5 (rodada 3) | ✓ 12 | ✓ 14 |
-| Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL (rodada 3) | ✓ 4 CRITICAL + 2 HIGH | ✓ 4 CRITICAL + 2 HIGH |
-| Fase 3: aplicação funciona após refatoração | ✓ | ✓ | ✓ |
+**Critérios de Aceite** ([enunciado 9.7](docs/challenge-original.md#97-critérios-de-aceite)) — obrigatórios nos 3 projetos, sem exceção: ver a [seção dedicada](#critérios-de-aceite), mantida por `/sync-docs` a cada rodada.
 
 ## Visão Geral
 
@@ -193,7 +186,7 @@ porque são a evidência do estado "antes".
 |---|---|---|---:|---:|---:|---:|---:|---|
 | 1 | `code-smells-project` | Python / Flask 3.1.1 | 1 | 0 | 2 | 2 | **5** | [`audit-project-1-part3.md`](reports/audit-project-1-part3.md) |
 | 2 | `ecommerce-api-legacy` | JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | 1 | 5 | 5 | 5 | **16** | [`audit-project-2-part3.md`](reports/audit-project-2-part3.md) |
-| 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 2 | 2 | 3 | **7** | [`audit-project-3-part2.md`](reports/audit-project-3-part2.md) |
+| 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 3 | 4 | 4 | **11** | [`audit-project-3-part3.md`](reports/audit-project-3-part3.md) |
 
 <sub>Gerado por `scripts/sync-docs.sh` a partir de `reports/`. Não edite à mão.</sub>
 <!-- END:audit-summary -->
@@ -413,6 +406,7 @@ task-manager-api/
 ├── manual-tests.sh
 ├── middlewares/
 │   ├── __init__.py
+│   ├── auth.py
 │   └── error_handler.py
 ├── models/
 │   ├── __init__.py
@@ -422,16 +416,20 @@ task-manager-api/
 ├── requirements.txt
 ├── routes/
 │   ├── __init__.py
+│   ├── meta_routes.py
 │   ├── report_routes.py
 │   ├── task_routes.py
 │   └── user_routes.py
 ├── seed.py
 ├── services/
 │   ├── __init__.py
-│   └── report_service.py
+│   ├── authorization.py
+│   ├── report_service.py
+│   └── token_service.py
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
+│   ├── test_auth.py
 │   ├── test_task_controller.py
 │   └── test_user_controller.py
 └── utils/
@@ -453,19 +451,19 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Linguagem detectada | ✓ Python | ✓ JavaScript/Node.js | ✓ Python |
 | Framework detectado | ✓ Flask 3.1.1 | ✓ Express 4.22.1 (Node 26) | ✓ Flask 3.0.0 + SQLAlchemy 3.1.1 |
 | Domínio descrito | ✓ E-commerce | ✓ LMS/checkout | ✓ Task Manager |
-| Nº de arquivos condiz | ✓ 16 arquivos (rodada 3) | ✓ 17 arquivos (rodada 3) | ✓ 15 arquivos `.py` |
+| Nº de arquivos condiz | ✓ 16 arquivos (rodada 3) | ✓ 17 arquivos (rodada 3) | ✓ 22 arquivos (rodada 3) |
 | Relatório segue o template | ✓ ⁵ | ✓ ¹ | ✓ |
 | Finding com arquivo/linha exatos | ✓ | ✓ | ✓ |
 | Ordenado CRITICAL → LOW | ✓ | ✓ | ✓ |
-| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 16 (rodada 3) | ✓ 14 |
-| Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 |
+| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 16 (rodada 3) | ✓ 11 (rodada 3) |
+| Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 (rodada 1) |
 | Pausa e pede confirmação antes da Fase 3 | ✓ | ✓ | ✓ |
 | Estrutura de diretórios segue MVC | ✓ | ✓ | ✓ camadas existentes ajustadas ² |
 | Configuração extraída (sem hardcoded) | ✓ `config/settings.py` | ✓ `src/config/index.js` | ✓ `config/settings.py` |
 | Models abstraem dados | ✓ | ✓ | ✓ |
 | Views/Routes separadas | ✓ | ✓ | ✓ |
 | Controllers concentram o fluxo | ✓ | ✓ controllers finos + `services/` de domínio | ✓ `controllers/` ³ |
-| Error handling centralizado | ✓ `middlewares/error_handler.py` | ✓ `src/middlewares/errorHandler.js` | ✓ ⁴ |
+| Error handling centralizado | ✓ `middlewares/error_handler.py` | ✓ `src/middlewares/errorHandler.js` | ✓ `middlewares/error_handler.py` ⁴ |
 | Entry point claro | ✓ `app.py` | ✓ `src/server.js` (o `app.js` monta, sem efeito colateral) | ✓ `app.py` |
 | Aplicação inicia sem erros | ✓ `evidence/project1-boot.png` | ✓ `evidence/project2-boot.png` + log da rodada 3 | ✓ `evidence/project3-boot.png` |
 | Endpoints originais respondem | ✓ | ✓ `manual-tests.sh` na rodada 3 | ✓ |
@@ -478,7 +476,7 @@ As 5 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_c
 ![Boot do ecommerce-api-legacy](evidence/project2-boot.png)
 ![Boot do task-manager-api](evidence/project3-boot.png)
 
-Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh` e dos 3 `arch-check.sh`, em [`docs/results.md`](docs/results.md#evidências-de-execução). As validações mais recentes — boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa, todas capturadas com a aplicação de pé — estão em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt) (Projeto 1, rodada 3) e [`evidence/logs/ecommerce-api-legacy-round3-validation.txt`](evidence/logs/ecommerce-api-legacy-round3-validation.txt) (Projeto 2, rodada 3 — inclui o detector do `arch-check` validado contra uma violação plantada e a saída de `npm run test:internal`). A skill rodando de ponta a ponta tem duas capturas complementares: [`item1-2-skill-phase1-phase2-gate-code-smells-project.txt`](evidence/logs/item1-2-skill-phase1-phase2-gate-code-smells-project.txt) (Projeto 1, modo headless e somente leitura, parando na pergunta do gate) e [`item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt`](evidence/logs/item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt) (Projeto 2, execução interativa com o gate **respondido** e a Fase 3 executando). O inventário completo — o que cada screenshot e cada log mostram, e quais foram capturados antes da última rodada — está em [`docs/results.md`](docs/results.md#evidências-de-execução); as lacunas remanescentes, em [Lacunas de Evidência](docs/results.md#lacunas-de-evidência).
+Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh` e dos 3 `arch-check.sh`, em [`docs/results.md`](docs/results.md#evidências-de-execução). As validações mais recentes — boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa, todas capturadas com a aplicação de pé — estão em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt) (Projeto 1, rodada 3), [`evidence/logs/ecommerce-api-legacy-round3-validation.txt`](evidence/logs/ecommerce-api-legacy-round3-validation.txt) (Projeto 2, rodada 3 — inclui o detector do `arch-check` validado contra uma violação plantada e a saída de `npm run test:internal`) e dois logs do Projeto 3 — estrutura MVC/AP-16 em [`evidence/logs/task-manager-api-round3-validation.txt`](evidence/logs/task-manager-api-round3-validation.txt) e autenticação/autorização (boot com/sem `SECRET_KEY`, tokens forjados e de contas apagadas/inativas rejeitados, `pytest` 67/67) em [`evidence/logs/task-manager-api-round4-validation.txt`](evidence/logs/task-manager-api-round4-validation.txt). A skill rodando de ponta a ponta tem duas capturas complementares: [`item1-2-skill-phase1-phase2-gate-code-smells-project.txt`](evidence/logs/item1-2-skill-phase1-phase2-gate-code-smells-project.txt) (Projeto 1, modo headless e somente leitura, parando na pergunta do gate) e [`item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt`](evidence/logs/item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt) (Projeto 2, execução interativa com o gate **respondido** e a Fase 3 executando). O inventário completo — o que cada screenshot e cada log mostram, e quais foram capturados antes da última rodada — está em [`docs/results.md`](docs/results.md#evidências-de-execução); as lacunas remanescentes, em [Lacunas de Evidência](docs/results.md#lacunas-de-evidência).
 
 ### 3.5 Comportamento entre Diferentes Stacks
 
@@ -539,16 +537,13 @@ relatório ou a evidência que o sustenta; célula em branco significa não veri
 | Critério | code-smells-project | ecommerce-api-legacy | task-manager-api |
 |---|---|---|---|
 | Fase 1 detecta stack corretamente | ✓ Python / Flask 3.1.1 | ✓ JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | ✓ Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 |
-| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) | ✓ 16 ([part3](reports/audit-project-2-part3.md)) | ✓ 7 ([part2](reports/audit-project-3-part2.md)) |
-| Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL | ✓ 1 CRITICAL + 5 HIGH | ✓ 2 HIGH |
-| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) | ✓ [`item5-manual-tests-project3.txt`](evidence/logs/item5-manual-tests-project3.txt) + `evidence/project3-boot.png` ⁶ |
+| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) | ✓ 16 ([part3](reports/audit-project-2-part3.md)) | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
+| Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL | ✓ 1 CRITICAL + 5 HIGH | ✓ 3 HIGH |
+| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
 
 A linha "Fase 1 detecta stack" sai da linha `Stack:` de cada relatório; as duas seguintes, da
 tabela de [§3.1](#31-resumo-das-auditorias). "Aplicação funciona" só está marcada onde há registro
 de execução real — boot mais endpoints respondendo.
-
-⁶ — a evidência do Projeto 3 é da Fase 3 de `audit-project-3-part2.md` (que fechou o gate com
-`> y`), não de uma rodada posterior; o projeto não teve nova auditoria desde então.
 
 
 ## Manutenção da documentação

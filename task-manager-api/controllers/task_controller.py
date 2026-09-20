@@ -7,7 +7,9 @@ from database import db
 from models.task import Task
 from models.user import User
 from models.category import Category
-from utils.helpers import DEFAULT_PRIORITY, utc_now
+from services import authorization
+from services.authorization import SYSTEM
+from utils.helpers import DEFAULT_PRIORITY, STATUS_PENDING, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ def _validate_status(status):
 def _validate_priority(priority):
     if not Task.validate_priority(priority):
         abort(400, description='Prioridade deve ser entre 1 e 5')
+    return int(priority)
 
 
 def _resolve_user(user_id):
@@ -73,21 +76,22 @@ def get_task(task_id):
     return task.to_dict()
 
 
-def create_task(data):
+def create_task(data, actor=SYSTEM):
     if not data:
         abort(400, description='Dados inválidos')
 
     title = data.get('title')
     _validate_title(title, required=True)
 
-    status = data.get('status', 'pending')
+    status = data.get('status', STATUS_PENDING)
     _validate_status(status)
 
     priority = data.get('priority', DEFAULT_PRIORITY)
-    _validate_priority(priority)
+    priority = _validate_priority(priority)
 
     user_id = data.get('user_id')
     _resolve_user(user_id)
+    authorization.ensure_can_assign_task_owner(actor, user_id)
 
     category_id = data.get('category_id')
     _resolve_category(category_id)
@@ -118,10 +122,12 @@ def create_task(data):
     return task.to_dict()
 
 
-def update_task(task_id, data):
+def update_task(task_id, data, actor=SYSTEM):
     task = db.session.get(Task, task_id)
     if not task:
         abort(404, description='Task não encontrada')
+
+    authorization.ensure_can_manage_task(actor, task)
 
     if not data:
         abort(400, description='Dados inválidos')
@@ -138,11 +144,11 @@ def update_task(task_id, data):
         task.status = data['status']
 
     if 'priority' in data:
-        _validate_priority(data['priority'])
-        task.priority = data['priority']
+        task.priority = _validate_priority(data['priority'])
 
     if 'user_id' in data:
         _resolve_user(data['user_id'])
+        authorization.ensure_can_assign_task_owner(actor, data['user_id'])
         task.user_id = data['user_id']
 
     if 'category_id' in data:
@@ -168,10 +174,12 @@ def update_task(task_id, data):
     return task.to_dict()
 
 
-def delete_task(task_id):
+def delete_task(task_id, actor=SYSTEM):
     task = db.session.get(Task, task_id)
     if not task:
         abort(404, description='Task não encontrada')
+
+    authorization.ensure_can_manage_task(actor, task)
 
     try:
         db.session.delete(task)
