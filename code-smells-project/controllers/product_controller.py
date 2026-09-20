@@ -29,14 +29,21 @@ def buscar_por_id(produto_id):
         return jsonify({"erro": str(e)}), 500
 
 
+def _validar_campos_obrigatorios(dados):
+    for campo, rotulo in (("nome", "Nome"), ("preco", "Preço"), ("estoque", "Estoque")):
+        if campo not in dados:
+            return f"{rotulo} é obrigatório"
+    return None
+
+
 def criar():
     try:
         dados = request.get_json()
         if not dados:
             return jsonify({"erro": "Dados inválidos"}), 400
-        for campo, rotulo in (("nome", "Nome"), ("preco", "Preço"), ("estoque", "Estoque")):
-            if campo not in dados:
-                return jsonify({"erro": f"{rotulo} é obrigatório"}), 400
+        erro_campo = _validar_campos_obrigatorios(dados)
+        if erro_campo:
+            return jsonify({"erro": erro_campo}), 400
 
         produto_id = product_model.criar(
             nome=dados["nome"],
@@ -62,9 +69,9 @@ def atualizar(produto_id):
         dados = request.get_json()
         if not dados:
             return jsonify({"erro": "Dados inválidos"}), 400
-        for campo, rotulo in (("nome", "Nome"), ("preco", "Preço"), ("estoque", "Estoque")):
-            if campo not in dados:
-                return jsonify({"erro": f"{rotulo} é obrigatório"}), 400
+        erro_campo = _validar_campos_obrigatorios(dados)
+        if erro_campo:
+            return jsonify({"erro": erro_campo}), 400
 
         product_model.atualizar(
             produto_id,

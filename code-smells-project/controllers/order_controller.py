@@ -43,7 +43,8 @@ def criar():
 
 def listar_por_usuario(usuario_id):
     try:
-        pedidos = order_model.get_por_usuario(usuario_id)
+        page, per_page = parse_pagination()
+        pedidos = order_model.get_por_usuario(usuario_id, page, per_page)
         return jsonify({"dados": pedidos, "sucesso": True}), 200
     except Exception as e:
         return jsonify({"erro": str(e)}), 500

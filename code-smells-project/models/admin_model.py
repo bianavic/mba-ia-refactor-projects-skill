@@ -1,6 +1,15 @@
 from models.db import get_db
 
-QUERY_SOMENTE_LEITURA_ERRO = "Somente instruções SELECT são permitidas nesta ferramenta"
+# Contagens pré-definidas e parametrizadas por tabela — nenhum SQL vindo do
+# cliente chega ao cursor. `tabela` é apenas a chave de consulta neste dict.
+CONTAGENS_POR_TABELA = {
+    "produtos": "SELECT COUNT(*) FROM produtos",
+    "usuarios": "SELECT COUNT(*) FROM usuarios",
+    "pedidos": "SELECT COUNT(*) FROM pedidos",
+    "itens_pedido": "SELECT COUNT(*) FROM itens_pedido",
+}
+
+TABELA_INVALIDA_ERRO = f"Tabela inválida. Válidas: {', '.join(CONTAGENS_POR_TABELA)}"
 
 
 def reset_database():
@@ -13,12 +22,13 @@ def reset_database():
     db.commit()
 
 
-def executar_query(query):
-    if not query.strip().upper().startswith("SELECT"):
-        raise ValueError(QUERY_SOMENTE_LEITURA_ERRO)
+def executar_query(tabela):
+    query = CONTAGENS_POR_TABELA.get(tabela)
+    if query is None:
+        raise ValueError(TABELA_INVALIDA_ERRO)
 
     db = get_db()
     cursor = db.cursor()
     cursor.execute(query)
-    rows = cursor.fetchall()
-    return [dict(row) for row in rows]
+    total = cursor.fetchone()[0]
+    return {"tabela": tabela, "total": total}

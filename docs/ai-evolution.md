@@ -14,8 +14,6 @@ O princípio que organiza tudo abaixo: **separar o que é da skill do que é do 
 
 **A verificação estrutural passou a ser propriedade da skill.** O `SKILL.md` exigia, no passo 6 da Fase 3, uma verificação mecânica do AP-16 — e apontava para `./arch-check.sh`, um script que existia em triplicata neste repositório e em nenhum outro lugar. Em qualquer projeto externo, o único passo que a skill não consegue provar por teste de endpoint simplesmente não tinha o que executar. A skill agora empacota `scripts/arch-check.sh` (agnóstico de stack) e `references/verification-recipes.md` (sinais por linguagem e o procedimento para derivar padrões numa stack não listada); o passo 6 prefere uma verificação que o projeto auditado já tenha e cai para a empacotada quando não existe.
 
-**A skill foi executada num projeto externo, em stack não coberta.** Go/Gin/GORM, ~1 670 linhas, 10 achados — detalhado na [seção Comportamento entre Diferentes Stacks](results.md#comportamento-entre-diferentes-stacks) e em `reports/audit-project-4.md`. Esse teste é a razão de as duas primeiras entregas existirem na forma atual: ele produziu um falso PASS que nenhuma execução nos 3 projetos deste repositório poderia ter produzido, porque todos eles usam stacks cujo idioma de persistência a skill já conhecia.
-
 ## 7.2 Hooks — Mover Regras do Prompt para o Harness
 
 Três das regras inegociáveis do `SKILL.md` hoje dependem de o modelo obedecer a uma instrução em texto. Hooks as tornariam garantias do harness:

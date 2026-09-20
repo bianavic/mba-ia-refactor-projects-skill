@@ -15,6 +15,9 @@ PEDIDO_STATUS_VALIDOS = ["pendente", "aprovado", "enviado", "entregue", "cancela
 DEFAULT_PAGE = 1
 DEFAULT_PER_PAGE = 20
 
+NOME_PRODUTO_MIN_LEN = 2
+NOME_PRODUTO_MAX_LEN = 200
+
 # Faixas de desconto aplicadas ao faturamento bruto no relatório de vendas,
 # da maior para a menor: (faturamento_minimo, taxa_de_desconto).
 FAIXAS_DESCONTO_FATURAMENTO = [

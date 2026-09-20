@@ -17,9 +17,9 @@ def listar():
         return jsonify({"erro": str(e)}), 500
 
 
-def buscar_por_id(id):
+def buscar_por_id(usuario_id):
     try:
-        usuario = user_model.get_por_id(id)
+        usuario = user_model.get_por_id(usuario_id)
         if usuario:
             return jsonify({"dados": usuario, "sucesso": True}), 200
         return jsonify({"erro": "Usuário não encontrado"}), 404

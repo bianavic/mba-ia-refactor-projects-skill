@@ -15,12 +15,12 @@ def reset_database():
 
 def executar_query():
     dados = request.get_json()
-    query = dados.get("sql", "") if dados else ""
-    if not query:
-        return jsonify({"erro": "Query não informada"}), 400
+    tabela = dados.get("tabela", "") if dados else ""
+    if not tabela:
+        return jsonify({"erro": "Tabela não informada"}), 400
 
     try:
-        resultado = admin_model.executar_query(query)
+        resultado = admin_model.executar_query(tabela)
         return jsonify({"dados": resultado, "sucesso": True}), 200
     except ValueError as e:
         return jsonify({"erro": str(e)}), 400
