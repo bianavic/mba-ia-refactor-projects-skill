@@ -26,7 +26,9 @@ def register_routes(app):
     )
 
     app.add_url_rule("/usuarios", "listar_usuarios", user_controller.listar, methods=["GET"])
-    app.add_url_rule("/usuarios/<int:id>", "buscar_usuario", user_controller.buscar_por_id, methods=["GET"])
+    app.add_url_rule(
+        "/usuarios/<int:usuario_id>", "buscar_usuario", user_controller.buscar_por_id, methods=["GET"]
+    )
     app.add_url_rule("/usuarios", "criar_usuario", user_controller.criar, methods=["POST"])
     app.add_url_rule("/login", "login", user_controller.login, methods=["POST"])
 

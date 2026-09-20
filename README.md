@@ -62,8 +62,8 @@ Cada item exigido em ["README.md deve conter"](docs/challenge-original.md#readme
 | Critério | code-smells-project | ecommerce-api-legacy | task-manager-api |
 |---|---|---|---|
 | Fase 1 detecta a stack corretamente | ✓ | ✓ | ✓ |
-| Fase 2 encontra ≥ 5 findings | ✓ 13 | ✓ 12 | ✓ 14 |
-| Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 4 CRITICAL + 3 HIGH | ✓ 4 CRITICAL + 2 HIGH | ✓ 4 CRITICAL + 2 HIGH |
+| Fase 2 encontra ≥ 5 findings | ✓ 5 (rodada 3) | ✓ 12 | ✓ 14 |
+| Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL (rodada 3) | ✓ 4 CRITICAL + 2 HIGH | ✓ 4 CRITICAL + 2 HIGH |
 | Fase 3: aplicação funciona após refatoração | ✓ | ✓ | ✓ |
 
 ## Visão Geral
@@ -172,7 +172,7 @@ mas a separação é só estrutural — a disciplina por camada não é respeita
 
 Os 15 primeiros entraram porque apareceram, na prática, em pelo menos um dos 3 projetos durante a análise manual — nenhum é hipotético. O AP-16 entrou depois, pelo motivo oposto: um problema real que ficou no `task-manager-api` e atravessou a auditoria original justamente por não estar catalogado (postmortem completo em [`docs/results.md`](docs/results.md#bug-encontrado-após-a-entrega)).
 
-**Agnosticismo de tecnologia**, três decisões: (1) detecção, nunca suposição — a Fase 1 infere a stack a cada execução, nunca assume Python/Flask; (2) sinais de detecção descritos por *padrão* ("query montada por concatenação com valor do cliente"), não por sintaxe de uma linguagem; (3) playbook com exemplo antes/depois nas duas linguagens quando aplicável, e instrução explícita para aplicar "o mesmo princípio" numa stack sem exemplo. A prova concreta é a execução real nos 3 projetos deste repositório — e, além deles, num quarto projeto em **Go/Gin**, fora do repositório, que expôs exatamente o ponto cego que essa estratégia não cobria: os padrões de detecção assumiam persistência via receptor (`Model.query`, `db.session.add`), e Go expõe persistência como **funções de pacote** (`FindOneUser(...)`). A primeira execução deu um falso `PASS` num arquivo com 26 violações reais — corrigido adicionando o padrão de função livre ao catálogo e ao checker (detalhe em [3.5](#35-comportamento-entre-diferentes-stacks)).
+**Agnosticismo de tecnologia**, três decisões: (1) detecção, nunca suposição — a Fase 1 infere a stack a cada execução, nunca assume Python/Flask; (2) sinais de detecção descritos por *padrão* ("query montada por concatenação com valor do cliente"), não por sintaxe de uma linguagem; (3) playbook com exemplo antes/depois nas duas linguagens quando aplicável, e instrução explícita para aplicar "o mesmo princípio" numa stack sem exemplo. A prova concreta é a execução real nos 3 projetos deste repositório, em três stacks diferentes, sem qualquer alteração na skill entre uma execução e outra.
 
 **Desafios e soluções:**
 - **Risco de finding fabricado:** regra mais repetida em todos os arquivos — "nunca reportar um finding sem arquivo/linha real". Os 3 relatórios em `reports/` citam ranges de linha verificáveis.
@@ -188,6 +188,253 @@ Narrativa completa em [`reports/`](reports/). Cada execução da Fase 2 gera um 
 novo (`audit-project-<N>-part<M>.md`) — relatórios anteriores nunca são sobrescritos,
 porque são a evidência do estado "antes".
 
+<!-- BEGIN:audit-summary -->
+| # | Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| 1 | `code-smells-project` | Python / Flask 3.1.1 | 1 | 0 | 2 | 2 | **5** | [`audit-project-1-part3.md`](reports/audit-project-1-part3.md) |
+| 2 | `ecommerce-api-legacy` | JavaScript / Node.js + Express 4.18.2, sqlite3 6.0.1 | 1 | 2 | 2 | 3 | **8** | [`audit-project-2-part2.md`](reports/audit-project-2-part2.md) |
+| 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 2 | 2 | 3 | **7** | [`audit-project-3-part2.md`](reports/audit-project-3-part2.md) |
+
+<sub>Gerado por `scripts/sync-docs.sh` a partir de `reports/`. Não edite à mão.</sub>
+<!-- END:audit-summary -->
+
+### 3.2 Comparação Antes e Depois
+
+Estrutura de cada projeto antes da Fase 3 (boilerplate do commit inicial do desafio) e
+depois (estado atual), geradas por `scripts/sync-docs.sh` a partir de `git ls-tree` e
+`git ls-files` — nunca editadas à mão. O mesmo bloco também está em
+[`docs/project-structure.md`](docs/project-structure.md).
+
+<!-- BEGIN:project-trees -->
+#### Projeto 1 — `code-smells-project`
+
+<table><tr><th>Antes (boilerplate)</th><th>Depois (refatorado)</th></tr><tr><td>
+
+```
+code-smells-project/
+├── README.md
+├── app.py
+├── controllers.py
+├── database.py
+├── models.py
+└── requirements.txt
+```
+
+</td><td>
+
+```
+code-smells-project/
+├── .claude/
+│   └── skills/
+│       └── refactor-arch/
+│           ├── SKILL.md
+│           ├── references/
+│           │   ├── anti-patterns-catalog.md
+│           │   ├── architecture-guidelines.md
+│           │   ├── audit-report-template.md
+│           │   ├── project-analysis.md
+│           │   ├── refactoring-playbook.md
+│           │   └── verification-recipes.md
+│           └── scripts/
+│               └── arch-check.sh
+├── README.md
+├── app.py
+├── arch-check.sh
+├── config/
+│   └── settings.py
+├── controllers/
+│   ├── __init__.py
+│   ├── admin_controller.py
+│   ├── order_controller.py
+│   ├── product_controller.py
+│   ├── system_controller.py
+│   └── user_controller.py
+├── manual-tests.sh
+├── middlewares/
+│   ├── __init__.py
+│   ├── auth.py
+│   └── error_handler.py
+├── models/
+│   ├── __init__.py
+│   ├── admin_model.py
+│   ├── db.py
+│   ├── order_model.py
+│   ├── product_model.py
+│   └── user_model.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   └── routes.py
+└── utils/
+    ├── __init__.py
+    └── pagination.py
+```
+
+</td></tr></table>
+
+#### Projeto 2 — `ecommerce-api-legacy`
+
+<table><tr><th>Antes (boilerplate)</th><th>Depois (refatorado)</th></tr><tr><td>
+
+```
+ecommerce-api-legacy/
+├── README.md
+├── api.http
+├── package-lock.json
+├── package.json
+└── src/
+    ├── AppManager.js
+    ├── app.js
+    └── utils.js
+```
+
+</td><td>
+
+```
+ecommerce-api-legacy/
+├── .claude/
+│   └── skills/
+│       └── refactor-arch/
+│           ├── SKILL.md
+│           ├── references/
+│           │   ├── anti-patterns-catalog.md
+│           │   ├── architecture-guidelines.md
+│           │   ├── audit-report-template.md
+│           │   ├── project-analysis.md
+│           │   ├── refactoring-playbook.md
+│           │   └── verification-recipes.md
+│           └── scripts/
+│               └── arch-check.sh
+├── .env.example
+├── .gitignore
+├── README.md
+├── api.http
+├── arch-check.sh
+├── manual-tests.sh
+├── package-lock.json
+├── package.json
+└── src/
+    ├── app.js
+    ├── config/
+    │   └── index.js
+    ├── controllers/
+    │   ├── checkoutController.js
+    │   ├── reportController.js
+    │   └── userController.js
+    ├── database/
+    │   └── connection.js
+    ├── middlewares/
+    │   └── errorHandler.js
+    ├── models/
+    │   ├── auditLogModel.js
+    │   ├── courseModel.js
+    │   ├── enrollmentModel.js
+    │   ├── paymentModel.js
+    │   └── userModel.js
+    ├── routes/
+    │   └── index.js
+    ├── services/
+    │   ├── cacheService.js
+    │   └── paymentGatewayService.js
+    └── utils/
+        ├── crypto.js
+        └── logger.js
+```
+
+</td></tr></table>
+
+#### Projeto 3 — `task-manager-api`
+
+<table><tr><th>Antes (boilerplate)</th><th>Depois (refatorado)</th></tr><tr><td>
+
+```
+task-manager-api/
+├── README.md
+├── app.py
+├── database.py
+├── models/
+│   ├── __init__.py
+│   ├── category.py
+│   ├── task.py
+│   └── user.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   ├── report_routes.py
+│   ├── task_routes.py
+│   └── user_routes.py
+├── seed.py
+├── services/
+│   ├── __init__.py
+│   └── notification_service.py
+└── utils/
+    ├── __init__.py
+    └── helpers.py
+```
+
+</td><td>
+
+```
+task-manager-api/
+├── .claude/
+│   └── skills/
+│       └── refactor-arch/
+│           ├── SKILL.md
+│           ├── references/
+│           │   ├── anti-patterns-catalog.md
+│           │   ├── architecture-guidelines.md
+│           │   ├── audit-report-template.md
+│           │   ├── project-analysis.md
+│           │   ├── refactoring-playbook.md
+│           │   └── verification-recipes.md
+│           └── scripts/
+│               └── arch-check.sh
+├── .env.example
+├── README.md
+├── app.py
+├── arch-check.sh
+├── config/
+│   ├── __init__.py
+│   └── settings.py
+├── controllers/
+│   ├── __init__.py
+│   ├── task_controller.py
+│   └── user_controller.py
+├── database.py
+├── manual-tests.sh
+├── middlewares/
+│   ├── __init__.py
+│   └── error_handler.py
+├── models/
+│   ├── __init__.py
+│   ├── category.py
+│   ├── task.py
+│   └── user.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   ├── report_routes.py
+│   ├── task_routes.py
+│   └── user_routes.py
+├── seed.py
+├── services/
+│   ├── __init__.py
+│   └── report_service.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_task_controller.py
+│   └── test_user_controller.py
+└── utils/
+    ├── __init__.py
+    └── helpers.py
+```
+
+</td></tr></table>
+
+<sub>Gerado por `scripts/sync-docs.sh` (`git ls-tree 6d1ce6248c3e956801010a89d8bdaab48029bf30` vs. `git ls-files`). Não edite à mão.</sub>
+<!-- END:project-trees -->
+
 ### 3.3 Checklist de Validação Preenchido
 
 Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchido para os 3 projetos após a Fase 3 — cada célula é verificável no repositório (relatório, evidência ou arquivo citado):
@@ -197,11 +444,11 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Linguagem detectada | ✓ Python | ✓ JavaScript/Node.js | ✓ Python |
 | Framework detectado | ✓ Flask 3.1.1 | ✓ Express 4.18.2 | ✓ Flask 3.0.0 + SQLAlchemy 3.1.1 |
 | Domínio descrito | ✓ E-commerce | ✓ LMS/checkout | ✓ Task Manager |
-| Nº de arquivos condiz | ✓ 4 arquivos | ✓ 3 arquivos | ✓ 15 arquivos `.py` |
-| Relatório segue o template | ✓ | ✓ ¹ | ✓ |
+| Nº de arquivos condiz | ✓ 16 arquivos (rodada 3) | ✓ 3 arquivos | ✓ 15 arquivos `.py` |
+| Relatório segue o template | ✓ ⁵ | ✓ ¹ | ✓ |
 | Finding com arquivo/linha exatos | ✓ | ✓ | ✓ |
 | Ordenado CRITICAL → LOW | ✓ | ✓ | ✓ |
-| Mínimo de 5 findings | ✓ 13 | ✓ 12 | ✓ 14 |
+| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 12 | ✓ 14 |
 | Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 |
 | Pausa e pede confirmação antes da Fase 3 | ✓ | ✓ | ✓ |
 | Estrutura de diretórios segue MVC | ✓ | ✓ | ✓ camadas existentes ajustadas ² |
@@ -222,15 +469,11 @@ As 5 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_c
 ![Boot do ecommerce-api-legacy](evidence/project2-boot.png)
 ![Boot do task-manager-api](evidence/project3-boot.png)
 
-Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh`, dos 3 `arch-check.sh`, e da reprodução do bug do Go/Gin, em [`docs/results.md`](docs/results.md#evidências-de-execução). Dois itens (a skill rodando as 3 fases interativamente e o gate de confirmação da Fase 2) ainda dependem de uma execução manual e estão registrados como [lacuna explícita](docs/results.md#lacunas-de-evidência).
+Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh` e dos 3 `arch-check.sh`, em [`docs/results.md`](docs/results.md#evidências-de-execução). A validação mais recente do Projeto 1 (rodada 3: boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa) está em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt). Dois itens (a skill rodando as 3 fases interativamente e o gate de confirmação da Fase 2) ainda dependem de uma execução manual e estão registrados como [lacuna explícita](docs/results.md#lacunas-de-evidência).
 
 ### 3.5 Comportamento entre Diferentes Stacks
 
-A mesma skill, sem qualquer alteração, produziu relatórios e refatorações corretos em Python/Flask monolítico, Node.js/Express monolítico e Python/Flask parcialmente em camadas — a única diferença entre as 3 execuções foi o conteúdo do relatório e da refatoração, nunca o processo (`claude "/refactor-arch"` e o mesmo `SKILL.md` nos 3 casos).
-
-Para testar isso além das duas linguagens do catálogo, o checker foi rodado contra um quarto projeto, **externo ao repositório**, em Go/Gin. A primeira execução retornou `PASS` com **zero achados** em arquivos de rota com **26 violações reais** de AP-16: todo padrão de detecção assumia persistência alcançada por um receptor (`Model.query`, `db.session.add`), e Go expõe persistência como **funções de pacote** (`FindOneUser(...)`, `SaveOne(...)`) — nada casava, e o arquivo era reportado como limpo. Um falso `PASS` é pior que nenhuma verificação: encerra a Fase 3 com um selo de aprovação indevido. A correção: `scripts/arch-check.sh` ganhou o padrão de função livre com verbo à frente, o catálogo passou a nomear essa forma explicitamente, e o checker agora sai com código 2 (`INCONCLUSIVE`) quando não identifica a camada de rotas, em vez de 0 — silêncio não é aprovação.
-
-Logs reais dessa reprodução (o `FAIL` atual com os 26 hits, e o falso `PASS` recriado com o padrão desativado, claramente rotulado como reprodução) em [`evidence/logs/`](evidence/logs/); narrativa completa e a lista das 3 correções em [`docs/results.md`](docs/results.md#comportamento-entre-diferentes-stacks).
+A mesma skill, sem qualquer alteração, produziu relatórios e refatorações corretos em Python/Flask monolítico, Node.js/Express monolítico e Python/Flask parcialmente em camadas — a única diferença entre as 3 execuções foi o conteúdo do relatório e da refatoração, nunca o processo (`claude "/refactor-arch"` e o mesmo `SKILL.md` nos 3 casos). Detalhe rodada a rodada em [`docs/results.md`](docs/results.md#comportamento-entre-diferentes-stacks).
 
 ## 4. Como Executar
 

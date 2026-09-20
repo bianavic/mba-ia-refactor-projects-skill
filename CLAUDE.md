@@ -38,16 +38,26 @@ não duplicação acidental.
 
 ## Antes de dar uma refatoração por concluída
 
-Rode, dentro da pasta do projeto alterado:
+Rode, dentro da pasta do projeto alterado, **capturando a saída** em
+`evidence/logs/<projeto>-round<N>-validation.txt` (N = a rodada, a mesma do relatório):
 
 ```bash
-./arch-check.sh     # estrutura: nenhuma rota toca persistência direto (AP-16)
-./manual-tests.sh   # comportamento: todos os endpoints via curl
+LOG=../evidence/logs/<projeto>-round<N>-validation.txt
+{ ./arch-check.sh; echo "exit: $?"; } | tee -a "$LOG"   # estrutura: AP-16
+./manual-tests.sh 2>&1 | tee -a "$LOG"                  # comportamento: endpoints via curl
 ```
 
 Os dois se complementam e nenhum substitui o outro — `manual-tests.sh` não distingue uma
 rota que consulta o ORM direto de uma que delega. Se algum falhar, corrija antes de
 reportar sucesso.
+
+**A captura não é opcional e não pode ficar para depois.** A aplicação só está de pé neste
+momento do fluxo; ao chegar no rollup de documentação (`/sync-docs`) o processo já morreu e a
+saída do terminal já se perdeu — foi exatamente assim que a rodada 3 do `code-smells-project`
+terminou sem evidência. Além dos dois scripts, inclua no mesmo log o boot da aplicação e um
+`curl` por finding corrigido na rodada (a prova de que aquele finding específico saiu), e cite
+o arquivo em `docs/results.md` e no README §3.4. `scripts/sync-docs.sh --check` falha se um
+relatório em `reports/` for mais novo que a evidência do mesmo projeto.
 
 O `arch-check.sh` de cada projeto é a versão específica dele (em português, padrões fixos) e
 continua sendo a validação desta entrega. A skill empacota separadamente
@@ -75,7 +85,8 @@ Quem escreve o quê:
 | README §3.2 + `docs/project-structure.md` (árvores antes/depois) | `scripts/sync-docs.sh`, entre marcadores | estrutura de um projeto mudou |
 | `docs/results.md` (rodada a rodada) | comando `/sync-docs` | relatório novo |
 | README §3.3 (checklist) e Critérios de Aceite | comando `/sync-docs` | fim de uma Fase 3 |
-| README §3.4 + `evidence/` | você, ao capturar a evidência | aplicação rodada após refatoração |
+| `evidence/logs/<projeto>-round<N>-validation.txt` | você, **durante** a validação (app de pé) | toda Fase 3 — ver seção acima, é gate obrigatório |
+| README §3.4 + `evidence/` (citação do arquivo) | comando `/sync-docs` | evidência nova capturada |
 | README §1, §2, §3.5 (`<!-- TODO -->`) | você | análise manual / design da skill |
 
 Blocos entre `<!-- BEGIN:x -->` e `<!-- END:x -->` são **gerados** — editá-los à mão é

@@ -133,7 +133,7 @@ echo "=================================================="
 
 echo "--- POST /admin/query sem ADMIN_TOKEN (esperado 403, endpoints desabilitados) ---"
 curl -s -X POST "$BASE/admin/query" -H "Content-Type: application/json" \
-  -d '{"sql":"SELECT 1"}' | python3 -m json.tool
+  -d '{"tabela":"produtos"}' | python3 -m json.tool
 
 echo "--- POST /admin/reset-db sem ADMIN_TOKEN (esperado 403) ---"
 curl -s -X POST "$BASE/admin/reset-db" | python3 -m json.tool
@@ -141,8 +141,12 @@ curl -s -X POST "$BASE/admin/reset-db" | python3 -m json.tool
 echo "--- (opcional) com ADMIN_TOKEN definido no servidor (export ADMIN_TOKEN=algum-token antes de subir o app): ---"
 echo "--- POST /admin/query sem header (esperado 401, token ausente) ---"
 curl -s -X POST "$BASE/admin/query" -H "Content-Type: application/json" \
-  -d '{"sql":"SELECT 1"}' | python3 -m json.tool
+  -d '{"tabela":"produtos"}' | python3 -m json.tool
 
-echo "--- POST /admin/query com header correto (ajuste <ADMIN_TOKEN> para o valor real) ---"
+echo "--- POST /admin/query com header correto (ajuste <ADMIN_TOKEN> para o valor real; tabela só aceita nomes da allow-list) ---"
 curl -s -X POST "$BASE/admin/query" -H "Content-Type: application/json" -H "X-Admin-Token: <ADMIN_TOKEN>" \
-  -d '{"sql":"SELECT COUNT(*) as total FROM produtos"}' | python3 -m json.tool
+  -d '{"tabela":"produtos"}' | python3 -m json.tool
+
+echo "--- POST /admin/query com tabela inválida (esperado 400, nunca executa SQL arbitrário) ---"
+curl -s -X POST "$BASE/admin/query" -H "Content-Type: application/json" -H "X-Admin-Token: <ADMIN_TOKEN>" \
+  -d '{"tabela":"sqlite_master"}' | python3 -m json.tool

@@ -48,10 +48,14 @@ def get_todos(page=1, per_page=20):
     return _hydrate_pedidos(db, cursor.fetchall())
 
 
-def get_por_usuario(usuario_id):
+def get_por_usuario(usuario_id, page=1, per_page=20):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM pedidos WHERE usuario_id = ?", (usuario_id,))
+    offset = (page - 1) * per_page
+    cursor.execute(
+        "SELECT * FROM pedidos WHERE usuario_id = ? LIMIT ? OFFSET ?",
+        (usuario_id, per_page, offset),
+    )
     return _hydrate_pedidos(db, cursor.fetchall())
 
 
