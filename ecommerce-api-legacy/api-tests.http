@@ -1,0 +1,401 @@
+### ecommerce-api-legacy — testes manuais dos endpoints
+### Use com a extensão "REST Client" (VS Code) ou equivalente na sua IDE.
+### Suba a aplicação antes (npm start) — porta padrão 3000 (PORT no .env).
+### GET /api/admin/financial-report e DELETE /api/users/:id exigem X-Admin-Token
+### (AP-17/RP-16) — suba o servidor com ADMIN_TOKEN=<algo> e ajuste @adminToken abaixo.
+
+@baseUrl = http://localhost:3000
+@adminToken = algum-token
+
+### ==========================================================
+### Checkout
+### ==========================================================
+
+### Checkout de curso — sucesso
+### Campos abreviados são contrato da API (RP-15): usr, eml, pwd, c_id, card.
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Maria Silva",
+  "eml": "maria.silva@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "4111111111111111"
+}
+
+### Checkout — campo obrigatório faltando -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Maria Silva",
+  "eml": "maria.silva@example.com",
+  "pwd": "senha123"
+}
+
+### Checkout — c_id não é inteiro positivo -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Maria Silva",
+  "eml": "maria.silva@example.com",
+  "pwd": "senha123",
+  "c_id": -1,
+  "card": "4111111111111111"
+}
+
+### Checkout — número de cartão inválido -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Maria Silva",
+  "eml": "maria.silva@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "abc123"
+}
+
+
+### ==========================================================
+### Relatório financeiro (admin)
+### ==========================================================
+
+### Relatório financeiro — padrão (page=1)
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+### Relatório financeiro — paginado (necessario ter mais de 10 cursos cadastrados para vizualizar a pagina 2)
+GET {{baseUrl}}/api/admin/financial-report?page=2&per_page=10
+X-Admin-Token: {{adminToken}}
+
+### Relatório financeiro — page inválido -> 400 (com token válido; sem token seria 401 antes de chegar no validador)
+GET {{baseUrl}}/api/admin/financial-report?page=abc
+X-Admin-Token: {{adminToken}}
+
+
+### ==========================================================
+### Usuários
+### ==========================================================
+
+### Deletar usuário (e matrículas/pagamentos associados)
+DELETE {{baseUrl}}/api/users/1
+X-Admin-Token: {{adminToken}}
+
+### Deletar usuário — id inválido -> 400 (com token válido; sem token seria 401 antes de chegar no validador)
+DELETE {{baseUrl}}/api/users/abc
+X-Admin-Token: {{adminToken}}
+
+
+### ==========================================================
+### Sad paths adicionais (404)
+### ==========================================================
+### Os 400 de validação de formato já aparecem junto de cada happy path
+### acima. Só há dois casos de "não encontrado" possíveis nesta API — ela
+### não tem GET por id nem listagem, então não há mais superfície pra sad
+### path além desta.
+
+### Checkout num curso com id válido mas que não existe -> 404 "Curso não
+### encontrado" (courseModel.findActiveById não encontra a linha)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Usuario Curso Inexistente",
+  "eml": "curso.inexistente@example.com",
+  "pwd": "senha123",
+  "c_id": 999999,
+  "card": "4111111111111111"
+}
+
+### Deletar usuário com id de formato válido mas que não existe -> 404
+### "Usuário não encontrado" (userModel.deleteCascade retorna changes: 0)
+DELETE {{baseUrl}}/api/users/999999
+X-Admin-Token: {{adminToken}}
+
+
+### ==========================================================
+### Limites de permissão
+### ==========================================================
+### AP-17/RP-16: financial-report e delete de usuário agora exigem
+### X-Admin-Token (middlewares/requireAdminToken.js). Sem ADMIN_TOKEN
+### configurado no servidor, as duas rotas ficam desabilitadas (403) em vez
+### de abertas por padrão. Não é um sistema de contas completo — não há
+### login, sessão ou papéis de usuário; é a guarda mínima que fecha o
+### CRITICAL "nenhum endpoint tem autenticação/autorização" sem inventar um
+### fluxo de login que o projeto nunca teve.
+
+### Relatório financeiro SEM nenhum header -> 401 (ou 403 se ADMIN_TOKEN não
+### estiver setado no servidor)
+GET {{baseUrl}}/api/admin/financial-report
+
+### Relatório financeiro com Authorization forjado (não é o header checado) -> 401
+GET {{baseUrl}}/api/admin/financial-report
+Authorization: Bearer isso-nao-e-verificado-em-lugar-nenhum
+
+### Relatório financeiro com X-Admin-Token errado -> 401
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: token-completamente-errado
+
+### Deletar usuário sem nenhuma credencial -> 401 (ou 403 se ADMIN_TOKEN não
+### estiver setado no servidor)
+DELETE {{baseUrl}}/api/users/999999
+
+### Deletar usuário com X-Admin-Token errado -> 401
+DELETE {{baseUrl}}/api/users/999999
+X-Admin-Token: tambem-errado
+
+
+### ==========================================================
+### Edge cases / corner cases
+### ==========================================================
+
+### c_id = 0 — isPositiveInt exige Number(value) > 0 -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Teste",
+  "eml": "edge.cid.zero@example.com",
+  "pwd": "senha123",
+  "c_id": 0,
+  "card": "4111111111111111"
+}
+
+### c_id decimal — isPositiveInt exige só dígitos (regex \d+) -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Teste",
+  "eml": "edge.cid.decimal@example.com",
+  "pwd": "senha123",
+  "c_id": 1.5,
+  "card": "4111111111111111"
+}
+
+### Cartão com 11 dígitos — abaixo do mínimo de CARD_NUMBER (12-19) -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Teste",
+  "eml": "edge.card.curto@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "41111111111"
+}
+
+### Cartão com 20 dígitos — acima do máximo de CARD_NUMBER (12-19) -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Teste",
+  "eml": "edge.card.longo@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "41111111111111111111"
+}
+
+### Cartão com exatamente 12 dígitos (limite inferior válido) -> sucesso
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Teste Limite Inferior",
+  "eml": "edge.card.minimo@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "411111111111"
+}
+
+### Cartão com caracteres não numéricos misturados -> 400 (regex só aceita dígitos)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Teste",
+  "eml": "edge.card.formatado@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "4111-1111-1111"
+}
+
+### usr vazio -> 400 (string vazia é falsy em `!usr || ...`)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "",
+  "eml": "edge.usr.vazio@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "4111111111111111"
+}
+
+### eml vazio -> 400
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Teste",
+  "eml": "",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "4111111111111111"
+}
+
+### Deletar usuário com id em formato "com zeros à esquerda" — a validação
+### aceita (Number("000000999999") = 999999), mas o usuário não existe -> 404
+### (confirma que o validador normaliza o valor antes de checar o banco)
+DELETE {{baseUrl}}/api/users/000000999999
+X-Admin-Token: {{adminToken}}
+
+### Corner case de negócio: checkout duas vezes com o MESMO email mas "usr"
+### diferente — userModel.findByEmail acha o usuário já existente e
+### userModel.create nunca roda de novo, então o segundo "usr" enviado é
+### silenciosamente descartado (checkoutService só usa `name` no branch de
+### usuário novo)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Nome Original",
+  "eml": "corner.case.nome@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "4111111111111111"
+}
+
+### Mesmo email, "usr" diferente, curso diferente (2, Docker) — se o nome
+### fosse atualizado, o relatório abaixo mostraria "Nome Trocado" para o
+### curso 2; se for ignorado (comportamento real), continua "Nome Original"
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Nome Trocado",
+  "eml": "corner.case.nome@example.com",
+  "pwd": "senha123",
+  "c_id": 2,
+  "card": "4111111111111111"
+}
+
+### Confirma o corner case acima: o aluno listado no curso 2 (Docker) deve
+### aparecer como "Nome Original", nunca "Nome Trocado"
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+
+### ==========================================================
+### Estados vazios
+### ==========================================================
+
+### Página do relatório financeiro além do total de cursos existentes (só
+### há 2 cursos, fixos, não há endpoint de criação de curso) -> 200 com
+### lista vazia
+GET {{baseUrl}}/api/admin/financial-report?page=99&per_page=10
+X-Admin-Token: {{adminToken}}
+
+### per_page = 0 -> 400 (mesma regra de isPositiveInt do page)
+GET {{baseUrl}}/api/admin/financial-report?per_page=0
+X-Admin-Token: {{adminToken}}
+
+
+### ==========================================================
+### Banco de dados — persistência e integridade
+### ==========================================================
+### O banco é SQLite em memória (database/connection.js), recriado e
+### repovoado (seed fixo) a cada start do servidor — ver initSchema().
+### Seed: usuário Leonan (id 1, leonan@fullcycle.com.br), curso 1 "Clean
+### Architecture" (997.00), curso 2 "Docker" (497.00), 1 matrícula do
+### Leonan no curso 1 já paga.
+###
+### Rode esta seção em sequência, com o servidor recém-iniciado (npm start)
+### — o passo 8 deleta o usuário do seed, então repita o restart antes de
+### rodar de novo. Cada leitura confere o efeito da escrita anterior, então
+### confirma o /api/checkout de fato grava em enrollments/payments (e não só
+### devolve um enrollment_id fabricado).
+
+### 1. Baseline — reflete o seed: curso 1 com 1 aluno (Leonan, pago 997),
+### curso 2 sem alunos (revenue 0)
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+### 2. Checkout do Leonan (usuário já existente) no curso 2 (Docker) — exercita
+### o caminho "usuário já existe" (userModel.findByEmail, sem INSERT em users)
+# @name dbCheckoutExistente
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Leonan",
+  "eml": "leonan@fullcycle.com.br",
+  "pwd": "123",
+  "c_id": 2,
+  "card": "4111111111111111"
+}
+
+### 3. Reler o relatório — curso 2 (Docker) deve aparecer agora com revenue
+### 497.00 e o Leonan como aluno: prova que a matrícula/pagamento do passo 2
+### foram commitados na mesma transação e são lidos de volta do banco
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+### 4. Checkout de um usuário novo no curso 1 — exercita o INSERT em users
+### (userModel.create) dentro do mesmo fluxo transacional
+# @name dbCheckoutNovoUsuario
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Usuario Teste DB",
+  "eml": "teste.db@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "4222222222222"
+}
+
+### 5. Reler o relatório — curso 1 (Clean Architecture) deve mostrar 2 alunos
+### agora (Leonan + Usuario Teste DB) e revenue 1994.00 (997 + 997)
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+### 6. Checkout com cartão recusado (não começa com "4") -> 400 "Pagamento
+### recusado". Nada deve ser escrito: paymentGatewayService.charge nega antes
+### de persistEnrollmentAndPayment ser chamado
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Usuario Recusado",
+  "eml": "recusado@example.com",
+  "pwd": "senha123",
+  "c_id": 1,
+  "card": "5111111111111111"
+}
+
+### 7. Reler o relatório — deve estar idêntico ao passo 5 (nenhuma matrícula
+### nem pagamento novo), confirmando que o passo 6 não gravou nada
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+### 8. Deletar o usuário do seed (Leonan, id 1) — exercita o DELETE em
+### cascata (userModel.deleteCascade): payments -> enrollments -> users
+DELETE {{baseUrl}}/api/users/1
+X-Admin-Token: {{adminToken}}
+
+### 9. Reler o relatório — curso 1 deve cair para 1 aluno / revenue 997.00
+### (só o Usuario Teste DB) e curso 2 deve voltar a 0 alunos / revenue 0:
+### prova que o cascade apagou de verdade as linhas de enrollments/payments
+### do Leonan, não só a linha de users
+GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+### 10. Deletar de novo o mesmo id -> 404 "Usuário não encontrado": confirma
+### que o DELETE do passo 8 foi real (não uma remoção "sempre bem-sucedida")
+DELETE {{baseUrl}}/api/users/1
+X-Admin-Token: {{adminToken}}

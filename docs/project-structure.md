@@ -40,6 +40,7 @@ code-smells-project/
 │           └── scripts/
 │               └── arch-check.sh
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/
@@ -51,6 +52,7 @@ code-smells-project/
 │   ├── product_controller.py
 │   ├── system_controller.py
 │   └── user_controller.py
+├── internal-tests.py
 ├── manual-tests.sh
 ├── middlewares/
 │   ├── __init__.py
@@ -110,6 +112,7 @@ ecommerce-api-legacy/
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── api-tests.http
 ├── api.http
 ├── arch-check.sh
 ├── internal-tests.js
@@ -132,6 +135,7 @@ ecommerce-api-legacy/
     │   ├── asyncHandler.js
     │   ├── errorHandler.js
     │   ├── notFoundHandler.js
+    │   ├── requireAdminToken.js
     │   └── validators.js
     ├── models/
     │   ├── auditLogModel.js
@@ -202,6 +206,7 @@ task-manager-api/
 │               └── arch-check.sh
 ├── .env.example
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/
@@ -239,6 +244,7 @@ task-manager-api/
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_auth.py
+│   ├── test_n_plus_one_queries.py
 │   ├── test_task_controller.py
 │   └── test_user_controller.py
 └── utils/

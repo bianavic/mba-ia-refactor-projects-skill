@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Manual test suite for code-smells-project (Loja API).
-# Prereq: python app.py (server on :5000, schema + seed criados automaticamente no boot:
+# Suite de testes manuais do code-smells-project (Loja API).
+# Pré-requisito: python app.py (servidor em :5000, schema + seed criados automaticamente no boot:
 #   10 produtos, e usuarios admin@loja.com/admin123, joao@email.com/123456, maria@email.com/senha123)
-# Run whole file with `bash manual-tests.sh`, or copy/paste sections one at a time.
+# Rode o arquivo inteiro com `bash manual-tests.sh`, ou copie/cole seções uma de cada vez.
 
 BASE=http://localhost:5000
 

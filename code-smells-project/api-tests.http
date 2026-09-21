@@ -1,0 +1,506 @@
+### code-smells-project — testes manuais dos endpoints
+### Use com o HTTP Client de uma IDE JetBrains (IntelliJ/GoLand/PyCharm/WebStorm) ou a
+### extensão "REST Client" do VS Code — ambos entendem os blocos de script `> {% ... %}`
+### usados abaixo para encadear passos (seção "Banco de dados — persistência e integridade").
+### Suba a aplicação antes (python app.py / flask run) — porta padrão 5000.
+
+@baseUrl = http://localhost:5000
+@adminToken = algum-token
+
+### ==========================================================
+### Sistema
+### ==========================================================
+
+### Index
+GET {{baseUrl}}/
+
+### Health check
+GET {{baseUrl}}/health
+
+
+### ==========================================================
+### Produtos
+### ==========================================================
+
+### Listar produtos (paginado)
+GET {{baseUrl}}/produtos?page=1&per_page=20
+
+### Buscar produtos (query, categoria, faixa de preço)
+GET {{baseUrl}}/produtos/busca?q=notebook&categoria=informatica&preco_min=100&preco_max=5000
+
+### Buscar produto por ID
+GET {{baseUrl}}/produtos/1
+
+### Criar produto
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "nome": "Notebook Gamer",
+  "descricao": "16GB RAM, RTX 4060",
+  "preco": 4999.90,
+  "estoque": 10,
+  "categoria": "informatica"
+}
+
+### Criar produto — dados inválidos (campo obrigatório faltando) -> 400
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "descricao": "Sem nome, sem preço, sem estoque"
+}
+
+### Atualizar produto
+PUT {{baseUrl}}/produtos/1
+Content-Type: application/json
+
+{
+  "nome": "Notebook Gamer Pro",
+  "descricao": "32GB RAM, RTX 4070",
+  "preco": 6999.90,
+  "estoque": 5,
+  "categoria": "informatica"
+}
+
+### Atualizar produto inexistente -> 404
+PUT {{baseUrl}}/produtos/99999
+Content-Type: application/json
+
+{
+  "nome": "Não existe",
+  "preco": 1,
+  "estoque": 1
+}
+
+### Deletar produto
+DELETE {{baseUrl}}/produtos/1
+
+### Deletar produto inexistente -> 404
+DELETE {{baseUrl}}/produtos/99999
+
+
+### ==========================================================
+### Usuários
+### ==========================================================
+
+### Listar usuários (paginado)
+GET {{baseUrl}}/usuarios?page=1&per_page=20
+
+### Buscar usuário por ID
+GET {{baseUrl}}/usuarios/1
+
+### Criar usuário
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "senha": "senha123"
+}
+
+### Criar usuário — dados inválidos -> 400
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Sem email nem senha"
+}
+
+### Login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "maria.silva@example.com",
+  "senha": "senha123"
+}
+
+### Login — credenciais inválidas -> 401
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "maria.silva@example.com",
+  "senha": "senha-errada"
+}
+
+
+### ==========================================================
+### Pedidos
+### ==========================================================
+
+### Criar pedido
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "usuario_id": 1,
+  "itens": [
+    { "produto_id": 1, "quantidade": 2 }
+  ]
+}
+
+### Criar pedido — sem itens -> 400
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "usuario_id": 1,
+  "itens": []
+}
+
+### Listar todos os pedidos (paginado)
+GET {{baseUrl}}/pedidos?page=1&per_page=20
+
+### Listar pedidos de um usuário
+GET {{baseUrl}}/pedidos/usuario/1?page=1&per_page=20
+
+### Atualizar status do pedido
+PUT {{baseUrl}}/pedidos/1/status
+Content-Type: application/json
+
+{
+  "status": "aprovado"
+}
+
+### Atualizar status — valor inválido -> 400
+PUT {{baseUrl}}/pedidos/1/status
+Content-Type: application/json
+
+{
+  "status": "status-inexistente"
+}
+
+### Atualizar status — cancelado (pedido 3, para não conflitar com o "aprovado"
+### acima no pedido 1). Sem esta chamada, pedidos_cancelados no relatório de
+### vendas abaixo nunca sai de 0 — nenhum outro teste deste arquivo usa esse status.
+PUT {{baseUrl}}/pedidos/3/status
+Content-Type: application/json
+
+{
+  "status": "cancelado"
+}
+
+
+### ==========================================================
+### Relatórios
+### ==========================================================
+
+### Relatório de vendas
+GET {{baseUrl}}/relatorios/vendas
+
+
+### ==========================================================
+### Admin (requer ADMIN_TOKEN configurado no servidor)
+### ==========================================================
+
+### Reset do banco de dados
+POST {{baseUrl}}/admin/reset-db
+X-Admin-Token: {{adminToken}}
+
+### Reset do banco — sem token -> 401 (ou 403 se ADMIN_TOKEN não estiver setado no servidor)
+POST {{baseUrl}}/admin/reset-db
+
+### Executar query administrativa
+POST {{baseUrl}}/admin/query
+X-Admin-Token: {{adminToken}}
+Content-Type: application/json
+
+{
+  "tabela": "produtos"
+}
+
+### Executar query — sem tabela -> 400
+POST {{baseUrl}}/admin/query
+X-Admin-Token: {{adminToken}}
+Content-Type: application/json
+
+{}
+
+
+### ==========================================================
+### Sad paths adicionais (404 e bugs de validação ausente)
+### ==========================================================
+
+### Buscar usuário inexistente -> 404
+GET {{baseUrl}}/usuarios/99999
+
+### Criar pedido — produto inexistente -> 400 "erro": "Produto 99999 não encontrado"
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "usuario_id": 1,
+  "itens": [
+    { "produto_id": 99999, "quantidade": 1 }
+  ]
+}
+
+### Criar pedido — estoque insuficiente -> 400 "Estoque insuficiente para ..."
+### (produto seed 6, Cadeira Gamer, tem 8 em estoque)
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "usuario_id": 1,
+  "itens": [
+    { "produto_id": 6, "quantidade": 9999 }
+  ]
+}
+
+### Atualizar status de um pedido que não existe -> 404 "Pedido não encontrado".
+### Era um BUG (HIGH, audit-project-1-part4.md): atualizar_status() fazia UPDATE sem
+### checar rowcount e respondia 200 mesmo sem nenhum pedido 99999 pra atualizar.
+### Resolvido no commit 7a02af6 (models/order_model.py:107 agora retorna
+### cursor.rowcount > 0; controllers/order_controller.py:75-76 traduz isso em 404).
+PUT {{baseUrl}}/pedidos/99999/status
+Content-Type: application/json
+
+{
+  "erro": "Pedido não encontrado"
+}
+
+
+### ==========================================================
+### Limites de permissão
+### ==========================================================
+### Só /admin/* tem qualquer proteção (X-Admin-Token, middlewares/auth.py). Todo
+### o resto do arquivo acima (produtos, usuarios, pedidos) já demonstra, em cada
+### chamada sem nenhum header de autenticação, que esses endpoints são 100%
+### públicos por design — não há usuário logado, sessão ou role neste projeto.
+
+### Reset do banco — token errado (mas presente) -> 401 "Não autorizado"
+POST {{baseUrl}}/admin/reset-db
+X-Admin-Token: token-completamente-errado
+
+### Executar query — sem token -> 401/403
+POST {{baseUrl}}/admin/query
+Content-Type: application/json
+
+{
+  "tabela": "produtos"
+}
+
+### Executar query — token errado -> 401 "Não autorizado"
+POST {{baseUrl}}/admin/query
+X-Admin-Token: token-completamente-errado
+Content-Type: application/json
+
+{
+  "tabela": "produtos"
+}
+
+
+### ==========================================================
+### Edge cases / corner cases
+### ==========================================================
+
+### page não numérico -> 401 "page e per_page devem ser números inteiros"
+GET {{baseUrl}}/produtos?page=abc
+
+### preco_min não numérico na busca — mesmo tipo de bug: product_controller.buscar
+### faz float(preco_min) dentro do try, mas o except genérico devolve 500
+GET {{baseUrl}}/produtos/busca?preco_min=abc
+
+### Preço negativo -> 400 "Preço não pode ser negativo"
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "nome": "Produto Preço Negativo",
+  "preco": -10,
+  "estoque": 5,
+  "categoria": "geral"
+}
+
+### Estoque negativo -> 400 "Estoque não pode ser negativo"
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "nome": "Produto Estoque Negativo",
+  "preco": 10,
+  "estoque": -5,
+  "categoria": "geral"
+}
+
+### Nome abaixo do mínimo (NOME_PRODUTO_MIN_LEN=2) -> 400 "Nome muito curto"
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "nome": "A",
+  "preco": 10,
+  "estoque": 5,
+  "categoria": "geral"
+}
+
+### Nome acima do máximo (NOME_PRODUTO_MAX_LEN=200) -> 400 "Nome muito longo"
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "nome": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "preco": 10,
+  "estoque": 5,
+  "categoria": "geral"
+}
+
+### Categoria inválida -> 400 "Categoria inválida. Válidas: [...]"
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "nome": "Produto Categoria Errada",
+  "preco": 10,
+  "estoque": 5,
+  "categoria": "categoria-que-nao-existe"
+}
+
+### Corner case de negócio: criar usuário com email já cadastrado (do seed,
+### joao@email.com) -> 201 sucesso — models/db.py não tem UNIQUE na coluna
+### email, então nada impede duas contas com o mesmo email
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Joao Duplicado",
+  "email": "joao@email.com",
+  "senha": "outrasenha"
+}
+
+### Executar query — tabela inválida -> 400 "Tabela inválida. Válidas: ..."
+POST {{baseUrl}}/admin/query
+X-Admin-Token: {{adminToken}}
+Content-Type: application/json
+
+{
+  "tabela": "usuarios; DROP TABLE usuarios;--"
+}
+
+
+### ==========================================================
+### Estados vazios
+### ==========================================================
+
+### Pedidos de um usuário que não existe -> 200 com lista vazia (não há
+### checagem de existência do usuário em listar_por_usuario)
+GET {{baseUrl}}/pedidos/usuario/99999?page=1&per_page=20
+
+### Busca de produtos sem nenhum resultado -> 200 com lista vazia
+GET {{baseUrl}}/produtos/busca?q=termoinexistentexyz123
+
+### Página de produtos além do total existente -> 200 com lista vazia
+GET {{baseUrl}}/produtos?page=999&per_page=20
+
+### Página de usuários além do total existente -> 200 com lista vazia
+GET {{baseUrl}}/usuarios?page=999&per_page=20
+
+
+### ==========================================================
+### Banco de dados — persistência e integridade
+### ==========================================================
+### Estes testes não olham só o status HTTP: cada passo lê de volta o dado
+### escrito no passo anterior, provando que a resposta veio do SQLite
+### (loja.db) e não de estado em memória. Rode em sequência.
+
+### 1. Health check — confirma conexão aberta e contagem real das tabelas
+GET {{baseUrl}}/health
+
+### 2. Login com usuário do seed (models/db.py) — confirma que a tabela
+### usuarios foi populada e o hash de senha bate
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "admin@loja.com",
+  "senha": "admin123"
+}
+
+### 3. Produto do seed — confirma que a tabela produtos foi populada
+GET {{baseUrl}}/produtos/2
+
+### 4. Criar produto — captura o id gerado pelo AUTOINCREMENT
+# @name dbCriarProduto
+POST {{baseUrl}}/produtos
+Content-Type: application/json
+
+{
+  "nome": "Produto Teste DB teste 4",
+  "descricao": "Criado para validar persistência",
+  "preco": 123.45,
+  "estoque": 7,
+  "categoria": "geral"
+}
+
+> {%
+    client.global.set("produtoTesteId", response.body.dados.id);
+%}
+
+### 5. Reler o produto pelo id retornado no passo 4 — se os campos baterem,
+### o INSERT foi commitado de verdade (não só devolvido pela resposta)
+GET {{baseUrl}}/produtos/{{produtoTesteId}}
+
+### 6. Atualizar o mesmo produto (estoque 7 -> 3)
+PUT {{baseUrl}}/produtos/{{produtoTesteId}}
+Content-Type: application/json
+
+{
+  "nome": "Produto Teste DB",
+  "descricao": "Criado para validar persistência",
+  "preco": 123.45,
+  "estoque": 3,
+  "categoria": "geral"
+}
+
+### 7. Reler — confirma que o UPDATE foi persistido (estoque deve vir 3)
+GET {{baseUrl}}/produtos/{{produtoTesteId}}
+
+### 8. Deletar o produto de teste
+DELETE {{baseUrl}}/produtos/{{produtoTesteId}}
+
+### 9. Reler — deve vir 404: confirma que o DELETE removeu a linha de fato
+GET {{baseUrl}}/produtos/{{produtoTesteId}}
+
+### 10. Estoque do produto seed 2 (Mouse Wireless) antes do pedido — anote o
+### valor de "estoque" para comparar com o passo 12
+GET {{baseUrl}}/produtos/2
+
+### 11. Criar pedido para o produto seed 2 — exercita a transação que grava
+### em pedidos + itens_pedido e decrementa produtos.estoque
+# @name dbCriarPedido
+POST {{baseUrl}}/pedidos
+Content-Type: application/json
+
+{
+  "usuario_id": 1,
+  "itens": [
+    { "produto_id": 2, "quantidade": 3 }
+  ]
+}
+
+> {%
+    client.global.set("pedidoTesteId", response.body.dados.pedido_id);
+%}
+
+### 12. Reler o produto 2 — estoque deve ter caído exatamente 3 em relação
+### ao passo 10, provando que o UPDATE dentro de order_model.criar rodou
+GET {{baseUrl}}/produtos/2
+
+### 13. Relatório de vendas — total_pedidos e faturamento_bruto devem
+### refletir o pedido criado no passo 11
+GET {{baseUrl}}/relatorios/vendas
+
+### 14. Atualizar status do pedido criado no passo 11
+PUT {{baseUrl}}/pedidos/{{pedidoTesteId}}/status
+Content-Type: application/json
+
+{
+  "status": "aprovado"
+}
+
+### 15. Listar pedidos do usuário 1 — o pedido deve aparecer com status
+### "aprovado" (confirma que o UPDATE de status persistiu)
+GET {{baseUrl}}/pedidos/usuario/1?page=1&per_page=20

@@ -32,6 +32,11 @@ ADMIN_TOKEN=algum-token python app.py
 e envie o header `X-Admin-Token: algum-token` nas chamadas a `/admin/reset-db` e `/admin/query`
 (`/admin/query` só aceita instruções `SELECT`).
 
+Para explorar a API interativamente (endpoint por endpoint, com resposta formatada), use
+`api-tests.http` com a extensão "REST Client" do VS Code ou equivalente — cobre os mesmos
+endpoints do `manual-tests.sh`, além de edge cases (parâmetros inválidos, limites de permissão
+do `/admin/*`) que o script não exercita.
+
 ### Checagem arquitetural (AP-16)
 
 ```bash

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Manual test suite for task-manager-api (all 22 endpoints).
-# Prereq: python seed.py && python app.py  (server on :5000)
-# Run whole file with `bash manual-tests.sh`, or copy/paste sections one at a time.
+# Suite de testes manuais do task-manager-api (todos os 22 endpoints).
+# Pré-requisito: python seed.py && python app.py  (servidor em :5000)
+# Rode o arquivo inteiro com `bash manual-tests.sh`, ou copie/cole seções uma de cada vez.
 #
 # Leituras (GET) são públicas. Escritas exigem 'Authorization: Bearer <token>',
 # obtido no POST /login abaixo — por isso o login acontece antes de tudo.

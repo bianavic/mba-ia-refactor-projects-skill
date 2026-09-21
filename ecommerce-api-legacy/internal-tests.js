@@ -16,12 +16,15 @@
 //      modulo, nao de endpoint.
 //   4. Que o teto de per_page e aplicado. Com 2 cursos no seed a resposta HTTP
 //      fica identica com e sem limite, entao a prova tem que ser no validador.
+//   5. Que o relatorio financeiro (AP-08) nao volta a ser N+1. O numero de
+//      queries emitidas nao pode crescer com a quantidade de cursos.
 //
 // Uso:  node internal-tests.js     (ou: npm run test:internal)
 // Saida: 0 = todas passaram, 1 = alguma falhou.
 
-const { all, initSchema, withTransaction } = require('./src/database/connection');
+const { db, run, all, initSchema, withTransaction } = require('./src/database/connection');
 const enrollmentModel = require('./src/models/enrollmentModel');
+const reportService = require('./src/services/reportService');
 const createApp = require('./src/app');
 const { validateReportQuery } = require('./src/middlewares/validators');
 const config = require('./src/config');
@@ -36,6 +39,43 @@ function check(name, passed, detail) {
 
 async function countEnrollments() {
     return (await all('SELECT id FROM enrollments')).length;
+}
+
+/** Conta quantas queries de leitura (db.all/db.get) o driver emite durante `work`. */
+async function withQueryCount(work) {
+    let count = 0;
+    const originalAll = db.all.bind(db);
+    const originalGet = db.get.bind(db);
+    db.all = (...args) => { count += 1; return originalAll(...args); };
+    db.get = (...args) => { count += 1; return originalGet(...args); };
+    try {
+        const result = await work();
+        return { result, count };
+    } finally {
+        db.all = originalAll;
+        db.get = originalGet;
+    }
+}
+
+async function seedCourses(howMany, startingAt) {
+    const ids = [];
+    for (let i = 0; i < howMany; i += 1) {
+        const title = `Curso ${startingAt + i}`;
+        const { lastID: courseId } = await run(
+            'INSERT INTO courses (title, price, active) VALUES (?, ?, 1)',
+            [title, 100 + i]
+        );
+        const { lastID: enrollmentId } = await run(
+            'INSERT INTO enrollments (user_id, course_id) VALUES (1, ?)',
+            [courseId]
+        );
+        await run(
+            "INSERT INTO payments (enrollment_id, amount, status) VALUES (?, ?, 'PAID')",
+            [enrollmentId, 100 + i]
+        );
+        ids.push(courseId);
+    }
+    return ids;
 }
 
 /** 1. A transacao desfaz a matricula quando a gravacao seguinte falha. */
@@ -106,6 +146,43 @@ function checkPaginationClamp() {
     );
 }
 
+/** 5. financialReport (AP-08): numero de queries constante, nao cresce com N cursos. */
+async function checkFinancialReportQueryCountConstant() {
+    await seedCourses(3, 100);
+    const { count: smallCount, result: smallReport } = await withQueryCount(() =>
+        reportService.financialReport({ page: 1, perPage: 50 })
+    );
+
+    await seedCourses(12, 200);
+    const { count: largeCount, result: largeReport } = await withQueryCount(() =>
+        reportService.financialReport({ page: 1, perPage: 50 })
+    );
+
+    check(
+        'financialReport: numero de queries nao cresce com a quantidade de cursos',
+        smallCount === largeCount && largeCount <= 3,
+        `${smallReport.length} curso(s) -> ${smallCount} querie(s) | ` +
+            `${largeReport.length} curso(s) -> ${largeCount} querie(s)`
+    );
+}
+
+/** 6. Controle negativo: uma query por curso (jeito antigo) TEM que crescer com N. */
+async function checkFinancialReportControlWouldGrow() {
+    const courses = await all('SELECT id FROM courses');
+
+    const { count: naiveCount } = await withQueryCount(async () => {
+        for (const course of courses) {
+            await enrollmentModel.findDetailsByCourseIds([course.id]);
+        }
+    });
+
+    check(
+        'controle negativo: uma query por curso cresce com N (prova que a checagem acima mede algo)',
+        naiveCount === courses.length,
+        `${courses.length} curso(s) -> ${naiveCount} querie(s) no jeito ingenuo`
+    );
+}
+
 (async () => {
     console.log('==========================================================');
     console.log('internal-tests — ecommerce-api-legacy');
@@ -118,6 +195,8 @@ function checkPaginationClamp() {
     await checkRollbackControl();
     checkAppImportable();
     checkPaginationClamp();
+    await checkFinancialReportQueryCountConstant();
+    await checkFinancialReportControlWouldGrow();
 
     const failed = results.filter((r) => !r.passed);
     console.log('\n==========================================================');

@@ -82,8 +82,52 @@ injeção `usuarios; DROP TABLE usuarios;--`; `/pedidos/usuario/2` devolve pedid
 devolvem a mesma mensagem de campo obrigatório (helper compartilhado); e o nome de 1 caractere é
 barrado pelos limites agora vindos de `config/settings.py`.
 
-Nenhuma screenshot nova foi capturada nesta rodada — as imagens em `evidence/` continuam sendo das
-rodadas anteriores; ver [Lacunas de Evidência](#lacunas-de-evidência).
+**Rodada 4 — [`audit-project-1-part4.md`](../reports/audit-project-1-part4.md), 2026-09-20.**
+Re-auditoria manual e pontual, não uma passada completa Fase 1-3 — disparada ao escrever
+`code-smells-project/api-tests.http` (cobertura manual de todos os endpoints) e cair em dois bugs
+de comportamento que as seções de edge case/sad path desse arquivo foram desenhadas pra pegar.
+Nenhum dos dois estava em `manual-tests.sh` nem em nenhum relatório anterior; não questiona nem
+contradiz a rodada 3 (commit `83bfaa3`) ou sua validação — são achados novos em código que a
+rodada 3 não tocou:
+
+- **[HIGH] `PUT /pedidos/<id>/status` reporta sucesso para pedido inexistente.**
+  `models/order_model.atualizar_status` roda o `UPDATE` e sempre retorna `True`, sem checar
+  `cursor.rowcount`; o controller sempre responde 200 `"sucesso": true`, mesmo quando nenhuma
+  linha foi afetada. Mesma classe de bug do HIGH "Cascade delete swallows errors" da rodada 3 de
+  `ecommerce-api-legacy` — mutação que nunca confere se mutou algo de fato.
+- **[MEDIUM] parâmetro não numérico em paginação/filtro derruba pra 500 em vez de 400.**
+  `utils/pagination.parse_pagination()` (`int(...)` sem `try/except`) e o `float(preco_min)`/
+  `float(preco_max)` de `product_controller.buscar` deixam `?page=abc` ou `?preco_min=abc`
+  virarem `ValueError`, capturado pelo `except Exception` genérico de cada handler e devolvido
+  como 500 com a mensagem crua da exceção Python no corpo — afeta os 5 endpoints paginados/
+  filtráveis do projeto (produtos, produtos/busca, pedidos, pedidos/usuário, usuários).
+
+Total: 2 findings (1 HIGH, 1 MEDIUM) — abaixo do mínimo de 5, mesma justificativa da rodada 4 de
+`ecommerce-api-legacy`: é re-auditoria pontual sobre dois bugs específicos, não uma passada
+completa, e o template proíbe inventar finding pra preencher vaga.
+
+Nenhum AP-xx do catálogo atual cobre exatamente nenhum dos dois (mutação sem checar linha
+afetada; coerção de tipo sem guard virando 500) — o relatório propõe candidatos a AP-18/AP-19,
+mas não os adiciona ao catálogo nesta rodada, mesma decisão tomada para o AP-17 antes de ele ser
+formalizado.
+
+**Fase 3 desta rodada:** `models/order_model.atualizar_status` agora retorna
+`cursor.rowcount > 0`; `order_controller.atualizar_status` responde 404 quando nada foi afetado
+(fecha o HIGH). `utils/pagination.parse_pagination()` ganhou `try/except (TypeError, ValueError)`
+em torno dos dois `int()`, levantando um `ValueError` com mensagem clara; `product_controller.buscar`
+guarda os dois `float()` (`preco_min`/`preco_max`) da mesma forma. Os 5 call sites de
+`parse_pagination()` (`product_controller.listar`/`buscar`, `order_controller.listar_todos`/
+`listar_por_usuario`, `user_controller.listar`) ganharam `except ValueError as e: ..., 400` antes
+do `except Exception` genérico que antes convertia o `ValueError` em 500 (fecha o MEDIUM).
+
+**Validação real desta rodada:** log completo em
+[`evidence/logs/code-smells-project-round4-validation.txt`](../evidence/logs/code-smells-project-round4-validation.txt) —
+boot, `arch-check.sh` (exit 0), `manual-tests.sh` inteiro sem regressão, e verificação dirigida
+dos dois achados: `PUT /pedidos/99999/status` agora 404 (era 200 falso) com controle positivo em
+`PUT /pedidos/1/status` (continua 200); `GET /produtos?page=abc` e
+`GET /produtos/busca?preco_min=abc` agora 400 (eram 500) com dois controles negativos em outros
+controllers (`/usuarios?page=abc`, `/pedidos/usuario/2?per_page=abc`, mesma raiz do bug) e um
+controle positivo (`/produtos?page=1&per_page=5` continua 200).
 
 ### ecommerce-api-legacy
 
@@ -160,6 +204,64 @@ cobrem o rollback da transação com controle negativo, a app importável sem ab
 de `per_page`, que são propriedades que nenhuma resposta HTTP revela. A porta 3000 estava
 ocupada pelo Docker na máquina, então a validação rodou em `PORT=3100`; `manual-tests.sh` passou
 a aceitar `BASE` do ambiente por causa disso.
+
+**Rodada 4 — [`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20.**
+Re-auditoria manual e pontual, não uma passada completa Fase 1-3 — disparada ao escrever
+`ecommerce-api-legacy/api-tests.http` (testes manuais de endpoint/DB) e notar que o projeto não
+tem nenhuma camada de autenticação, uma lacuna que nenhuma das três rodadas anteriores tinha
+levantado. Antes de registrar o achado, os 16 findings de `-part3.md` foram reverificados um a
+um contra o código atual, porque `git log -- ecommerce-api-legacy` mostra um commit de refatoração
+(`4ddb14e refactor(ecommerce-api-legacy): resolve round-3 findings and add internal checks`)
+depois de `-part3.md` sem nenhum relatório de auditoria confirmando o que ele corrigiu.
+
+14 dos 16 achados da rodada 3 estão resolvidos (fallback de senha removido, checkout em
+transação, lógica de negócio em `services/`, tratamento de erro centralizado em `asyncHandler`/
+`AppError`, cascade delete transacional, cache write-only removido, camada de validação,
+paginação com teto, `verifyPassword` morto removido, `app.js` sem side effect de boot, config
+morta limpa, default de paginação centralizado, contrato 404 para rota desconhecida, metadata do
+`package.json` atualizada). Os 2 LOW de convenção (nomes abreviados de campo, formato de
+resposta ora texto ora JSON) seguem abertos de propósito, quarta rodada consecutiva, por limite
+de escopo do RP-15 (contrato de API, não código interno).
+
+O achado novo: **[CRITICAL] nenhum endpoint tem autenticação ou autorização.**
+`GET /api/admin/financial-report` expõe a receita completa por aluno para qualquer chamador não
+autenticado; `DELETE /api/users/:id` apaga qualquer usuário (cascade para matrículas/pagamentos)
+para quem conseguir adivinhar ou enumerar um id inteiro pequeno — nenhuma sessão, API key ou
+token é checado em lugar nenhum (`grep -rni "auth\|token\|role\|permission\|credential" src/` não
+acha nada). Nenhum AP-xx/RP-xx existente cobre exatamente "endpoint sem checagem de identidade do
+chamador" — o relatório não força um encaixe em AP-02/AP-06 e propõe um AP-17 novo.
+
+Total: 3 findings (1 CRITICAL novo, 2 LOW herdados) — abaixo do mínimo de 5 do enunciado para uma
+primeira passada de Fase 2, mas o próprio template proíbe inventar finding para preencher vaga;
+um projeto que já resolveu 14 dos 16 achados anteriores legitimamente sobra pouco a reportar além
+do gap novo que motivou a rodada. Ver nota ⁶ em
+[Checklist de Validação Preenchido](#checklist-de-validação-preenchido).
+
+**Fase 3 desta rodada:** adicionado `src/middlewares/requireAdminToken.js` — guarda mínima por
+API key (`X-Admin-Token`), não um sistema de contas completo (o projeto nunca teve login/sessão,
+então inventar um seria decisão de produto, fora do escopo mecânico do RP-16). Sem `ADMIN_TOKEN`
+configurado no servidor, as duas rotas ficam **desabilitadas** (403) em vez de abertas por
+padrão — mesma convenção já usada e validada em `code-smells-project` (`middlewares/auth.py`).
+Aplicada em `GET /api/admin/financial-report` e `DELETE /api/users/:id` via `src/routes/index.js`.
+`manual-tests.sh` ganhou uma seção AUTH (sem token / token forjado -> 401) e passou a exigir
+`ADMIN_TOKEN` no ambiente para exercitar o resto do fluxo com token válido; `api-tests.http`
+ganhou `@adminToken` e o header nas ~15 chamadas às duas rotas, e sua seção "Limites de
+permissão" foi reescrita para demonstrar a checagem em vez de documentar a ausência dela.
+
+**Validação real desta rodada:** log completo em
+[`evidence/logs/ecommerce-api-legacy-round4-validation.txt`](../evidence/logs/ecommerce-api-legacy-round4-validation.txt) —
+boot com e sem `ADMIN_TOKEN` (confirma "desabilitado" vs. "autenticado", nunca "aberto"),
+`arch-check.sh` (exit 0), `manual-tests.sh` inteiro sem regressão, `npm run test:internal` (4/4),
+e verificação dirigida do CRITICAL: `Authorization: Bearer` forjado e ausência total de header
+agora respondem 401 em ambas as rotas (antes respondiam 200 igual a uma chamada legítima), com
+controle positivo (`X-Admin-Token` correto continua 200).
+
+Achado colateral, registrado no relatório mas fora do formato da Fase 2: nem
+`references/anti-patterns-catalog.md` nem `references/refactoring-playbook.md` (nas 3 cópias)
+tem entrada para "ausência de autenticação/autorização" — é o motivo mecânico do gap ter
+atravessado três rodadas sem ser pego. Próximo id livre: AP-17. `code-smells-project` e
+`task-manager-api` nunca foram auditados especificamente para esse gap, então o mesmo pode
+existir neles sem ter sido reportado ainda.
 
 ### task-manager-api
 
@@ -329,83 +431,96 @@ finalmente fechou: `models/admin_model.py` não aceita mais SQL do cliente — s
 allow-list fixa (`produtos`, `usuarios`, `pedidos`, `itens_pedido`), cada uma resolvendo para uma
 query parametrizada hardcoded. Ver [rodada 3 de `code-smells-project`](#code-smells-project) acima.
 
+⁶ — nota de `ecommerce-api-legacy` (célula "Mínimo de 5 findings" em §3.3). A rodada 4
+([`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20) achou só 3
+findings (1 CRITICAL novo + 2 LOW herdados) — abaixo do mínimo de 5. É uma re-auditoria manual e
+pontual, não uma passada completa Fase 1-3, e o próprio template proíbe inventar finding para
+preencher vaga: um projeto que já resolveu 14 dos 16 achados da rodada 3 legitimamente sobra
+pouco a reportar além do gap novo. O mínimo de 5 continua demonstrado pela rodada 3 (16
+findings, as 3 fases completas). **A Fase 3 desta rodada já rodou**: o CRITICAL (ausência de
+autenticação/autorização) foi corrigido com `requireAdminToken` e validado com a aplicação de pé
+em
+[`evidence/logs/ecommerce-api-legacy-round4-validation.txt`](../evidence/logs/ecommerce-api-legacy-round4-validation.txt) —
+ver [Rodada 4](#ecommerce-api-legacy) acima. A nota existe só para explicar a contagem de
+findings, não para sinalizar pendência.
+
+⁷ — nota de `code-smells-project` (célula "Mínimo de 5 findings" em §3.3). A rodada 4
+([`audit-project-1-part4.md`](../reports/audit-project-1-part4.md), 2026-09-20) achou só 2
+findings (1 HIGH + 1 MEDIUM) — abaixo do mínimo de 5, mesma justificativa da nota ⁶: re-auditoria
+pontual sobre dois bugs específicos encontrados escrevendo `api-tests.http`, não uma passada
+completa. O mínimo de 5 continua demonstrado pela rodada 3 (5 findings, as 3 fases completas).
+**Diferente da rodada 4 de `ecommerce-api-legacy` (nota ⁶), esta já teve Fase 3**: os dois
+achados foram corrigidos e validados com a aplicação de pé em
+[`evidence/logs/code-smells-project-round4-validation.txt`](../evidence/logs/code-smells-project-round4-validation.txt) —
+ver [Rodada 4](#code-smells-project) acima.
+
 ## Evidências de Execução
 
-Galeria em [`evidence/`](../evidence/), citada em
-[§3.4 do README](../README.md#34-evidências-de-execução). Inventário conferido arquivo a
-arquivo em 2026-09-20 — cada linha descreve o que a imagem ou o log realmente mostra.
+Logs de terminal em [`evidence/logs/`](../evidence/logs/), citados em
+[§3.4 do README](../README.md#34-evidências-de-execução). O enunciado aceita screenshots
+**ou** logs como evidência ([9.4, item C](challenge-original.md#94-requisitos)) — esta entrega
+usa só logs de terminal reais, capturados com a aplicação de pé, como evidência única.
+Inventário conferido arquivo a arquivo em 2026-09-20 — cada linha descreve o que o log
+realmente mostra.
 
-### Screenshots (10)
+### Logs de terminal (15)
 
-| Arquivo | Projeto | O que mostra |
-|---|---|---|
-| `project1-boot.png` | 1 | Terminal: `INFO __main__: Servidor iniciado em http://0.0.0.0:5000` com `Debug mode: off`. Prova as duas correções da rodada 1 de uma vez — `logging` estruturado no lugar de `print`, e `DEBUG` vindo do config em vez de `True` fixo. |
-| `project1-admin-bloqueado.png` | 1 | Postman: `POST /admin/query` com `{"sql": "SELECT 1"}` → **403 FORBIDDEN**, `{"erro": "Endpoints administrativos desabilitados"}`. |
-| `project1-usuarios-sem-senha.png` | 1 | Postman: `GET /usuarios` → 200, objetos com `criado_em`/`email`/`id`/`nome`/`tipo` — **sem o campo `senha`**, que a versão legada devolvia. |
-| `project2-boot.png` | 2 | Terminal: log JSON de boot na porta 3000. ⚠️ Anterior à rodada 3 — mostra `desafio-arquitetura-ia-boilerplate@1.0.0`, `node src/app.js` e o nome "Frankenstein LMS", os três substituídos depois (`ecommerce-api-legacy@1.0.0`, `node src/server.js`, nome vindo do config). |
-| `project2-checkout-sem-cartao.png` | 2 | Postman: `POST /api/checkout` com `card` no request → 200 `{"msg":"Sucesso","enrollment_id":2}`. O ponto é a resposta **não** ecoar o cartão. |
-| `project2-checkout-sem-cartao-log.png` | 2 | Terminal do mesmo checkout: `"card":"4111*******1111"` — mascarado no log. ⚠️ Mesma ressalva de rodada do `project2-boot.png`. |
-| `project3-boot.png` | 3 | Terminal: Flask subindo com `Debug mode: off`. |
-| `project3-login-token.png` | 3 | Postman: `POST /login` → 200 com `token` assinado e objeto `user` **sem campo de senha/hash**. |
-| `project3-tasks-paginacao.png` | 3 | Postman: `GET /tasks?page=1&per_page=2` → exatamente 2 tarefas. Prova a paginação que o legado não tinha. |
-| `project3-users-sem-senha.png` | 3 | Postman: `GET /users/1` → 200 com `tasks` aninhadas e **sem campo de senha**. |
-
-### Logs de terminal (11)
+Nomeados `<projeto>-<o-que-prova>.txt`, agrupados por projeto e ordenados por rodada; os que não
+citam rodada são anteriores à convenção `-round<N>-validation` e cobrem uma prova pontual, não a
+suíte completa de uma rodada.
 
 | Arquivo | Projeto | O que mostra |
 |---|---|---|
+| `code-smells-project-admin-query-drop-table-blocked.txt` | 1 | `POST /admin/query` com token válido tentando `DROP TABLE produtos` → recusado ("Somente instruções SELECT são permitidas"), seguido de um `SELECT COUNT(*)` com o mesmo token que funciona — a proteção é seletiva, não bloqueio geral. |
+| `code-smells-project-arch-check-specific.txt` | 1 | `arch-check.sh` da raiz do projeto: PASS, 2 arquivos de rota, exit 0. |
+| `code-smells-project-arch-check-generic.txt` | 1 | A versão genérica empacotada na skill no mesmo projeto: mesmo PASS, com `Detected sources: py` — prova que as duas formas checam a mesma regra. |
+| `code-smells-project-manual-tests.txt` | 1 | Suíte `manual-tests.sh` completa. |
 | `code-smells-project-round3-validation.txt` | 1 | Validação completa da rodada 3: boot, `arch-check.sh`, correções específicas da rodada e `manual-tests.sh` inteiro. |
+| `code-smells-project-round4-validation.txt` | 1 | Validação da rodada 4: boot, `arch-check.sh`, `manual-tests.sh` inteiro sem regressão, e um `curl` por finding corrigido (rowcount check + guard de tipo na paginação). |
+| `code-smells-project-skill-run-phase1-2-gate.txt` | 1 | A skill rodando de verdade em modo headless (`claude -p`, só leitura, worktree isolado no commit pré-Fase 3): Fase 1, Fase 2 completa e a **pergunta** do gate. Interrompido ali de propósito — a Fase 3 não roda nesta captura. |
+| `ecommerce-api-legacy-checkout-server-log.txt` | 2 | Log do servidor durante os checkouts, com os três cartões mascarados. ⚠️ Anterior à rodada 3 (mesma ressalva de nome/entry point). |
+| `ecommerce-api-legacy-manual-tests.txt` | 2 | Suíte `manual-tests.sh` completa. ⚠️ Anterior à rodada 3 — o caso `DELETE /api/users/9999` ainda aparece respondendo 200; hoje responde 404. |
 | `ecommerce-api-legacy-round3-validation.txt` | 2 | Validação completa da rodada 3: boot, `arch-check.sh` (com o detector validado antes contra uma violação plantada), `manual-tests.sh`, log do servidor, um `curl` por finding corrigido e a saída de `npm run test:internal`. |
-| `item1-2-skill-phase1-phase2-gate-code-smells-project.txt` | 1 | A skill rodando de verdade em modo headless (`claude -p`, só leitura, worktree isolado no commit pré-Fase 3): Fase 1, Fase 2 completa e a **pergunta** do gate. Interrompido ali de propósito — a Fase 3 não roda nesta captura. |
-| `item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt` | 2 | O que faltava no anterior: execução **interativa**, com o gate **respondido** (`y` digitado pelo desenvolvedor, com timestamp) e a Fase 3 executando até o resumo de conclusão. Extraído do transcript da própria sessão. |
-| `item3-arch-check-project-specific.txt` | 1 | `arch-check.sh` da raiz do projeto: PASS, 2 arquivos de rota, exit 0. |
-| `item4-arch-check-bundled-generic.txt` | 1 | A versão genérica empacotada na skill no mesmo projeto: mesmo PASS, com `Detected sources: py` — prova que as duas formas checam a mesma regra. |
-| `item5-manual-tests-project1.txt` | 1 | Suíte `manual-tests.sh` completa. |
-| `item5-manual-tests-project2.txt` | 2 | Suíte `manual-tests.sh` completa. ⚠️ Anterior à rodada 3 — o caso `DELETE /api/users/9999` ainda aparece respondendo 200; hoje responde 404. |
-| `item5-manual-tests-project3.txt` | 3 | Suíte `manual-tests.sh` completa. É a evidência que sustenta "aplicação funciona" do Projeto 3 nos Critérios de Aceite. |
-| `item7a-drop-table-blocked-project1.txt` | 1 | `POST /admin/query` com token válido tentando `DROP TABLE produtos` → recusado ("Somente instruções SELECT são permitidas"), seguido de um `SELECT COUNT(*)` com o mesmo token que funciona — a proteção é seletiva, não bloqueio geral. |
-| `item9-project2-checkout-server-log.txt` | 2 | Log do servidor durante os checkouts, com os três cartões mascarados. ⚠️ Anterior à rodada 3 (mesma ressalva de nome/entry point). |
+| `ecommerce-api-legacy-round4-validation.txt` | 2 | Validação da rodada 4: boot com/sem `ADMIN_TOKEN` (desabilitado vs. autenticado, nunca aberto), `arch-check.sh`, `manual-tests.sh` sem regressão, `npm run test:internal` (4/4), e o CRITICAL de auth fechado (header forjado/ausente agora 401 nas duas rotas, antes 200). |
+| `ecommerce-api-legacy-skill-run-gate-answered.txt` | 2 | O que faltava no anterior: execução **interativa**, com o gate **respondido** (`y` digitado pelo desenvolvedor, com timestamp) e a Fase 3 executando até o resumo de conclusão. Extraído do transcript da própria sessão. |
+| `task-manager-api-manual-tests.txt` | 3 | Suíte `manual-tests.sh` completa. É a evidência que sustenta "aplicação funciona" do Projeto 3 nos Critérios de Aceite. |
+| `task-manager-api-round3-validation.txt` | 3 | Validação completa da rodada 3: estrutura MVC/AP-16 e os achados estruturais da rodada. |
+| `task-manager-api-round4-validation.txt` | 3 | Validação da rodada 4 (auth/autorização): boot com/sem `SECRET_KEY`, tokens forjados/expirados/de contas apagadas ou inativas rejeitados, `pytest` 67/67. |
 
 Os itens marcados com ⚠️ continuam válidos para o que provam, mas foram capturados antes da
 rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
 
 ## Lacunas de Evidência
 
-- **TODO (opcional):** capturar screenshot nova da rodada 3 de `code-smells-project`
-  (2026-09-19) — `evidence/project1-*` ainda são das rodadas anteriores. Opcional porque o log
-  de validação completo já cobre essa rodada em
-  `evidence/logs/code-smells-project-round3-validation.txt`; a screenshot só reforçaria o que
-  o log já prova, não fecha uma lacuna real de evidência. A primeira tentativa desta rodada
-  tinha terminado sem nenhuma evidência: a captura era uma linha passiva numa tabela de
-  referência do `CLAUDE.md`, lida só no rollup de documentação, quando a aplicação já havia
-  sido derrubada. Corrigido em duas frentes — a captura virou gate obrigatório na seção "Antes
-  de dar uma refatoração por concluída" do `CLAUDE.md` (executada com o app de pé, não depois),
-  e `scripts/sync-docs.sh --check` agora falha com exit 1 quando um relatório em `reports/` é
-  mais novo que a evidência do mesmo projeto.
-- **TODO (opcional):** capturar screenshot nova do auth/autorização de `task-manager-api`
-  (rodada 4, 2026-09-20) — `evidence/project3-boot.png` ainda é de uma rodada anterior.
-  Opcional pelo mesmo motivo acima: a evidência da rodada 4 já está completa em
-  `evidence/logs/task-manager-api-round4-validation.txt` (boot com/sem `SECRET_KEY`, tokens
-  forjados/expirados/de contas apagadas ou inativas rejeitados, `pytest` 67/67); uma screenshot
-  só ilustraria o mesmo resultado.
-- **TODO (opcional):** capturar screenshot nova da rodada 3 de `ecommerce-api-legacy`
-  (2026-09-20) — `evidence/project2-*.png` continuam sendo das rodadas anteriores. Mesmo
-  motivo: `evidence/logs/ecommerce-api-legacy-round3-validation.txt` já cobre boot, os dois
-  validadores e um `curl` por finding, capturados com a aplicação de pé.
+- ~~`ecommerce-api-legacy` rodada 4 sem Fase 3/evidência.~~ **Fechado em 2026-09-20**: Fase 3
+  rodou (`middlewares/requireAdminToken.js`, guarda por API key nas duas rotas do CRITICAL),
+  validada com a aplicação de pé em
+  [`evidence/logs/ecommerce-api-legacy-round4-validation.txt`](../evidence/logs/ecommerce-api-legacy-round4-validation.txt) —
+  ver [Rodada 4](#ecommerce-api-legacy) acima.
+- ~~`code-smells-project` rodada 4 sem Fase 3/evidência.~~ **Fechado em 2026-09-20**: Fase 3 rodou
+  (rowcount check em `atualizar_status`, guard de tipo em `parse_pagination`/`buscar`), validada
+  com a aplicação de pé em
+  [`evidence/logs/code-smells-project-round4-validation.txt`](../evidence/logs/code-smells-project-round4-validation.txt) —
+  ver [Rodada 4](#code-smells-project) acima.
+- A captura de evidência via screenshot foi descontinuada nesta rodada (2026-09-20): as 10
+  imagens em `evidence/` foram removidas porque o enunciado aceita screenshots **ou** logs
+  ([9.4, item C](challenge-original.md#94-requisitos)), e os logs de terminal já cobriam o
+  mesmo resultado com mais detalhe verificável (não só o estado final, o comando e a saída
+  completa). Nenhuma lacuna de evidência resulta disso: cada rodada citada nos itens abaixo já
+  tem log completo com a aplicação de pé.
 - ~~A skill rodando as 3 fases interativamente e o gate de confirmação da Fase 2 sem evidência
   gravada.~~ **Fechado em 2026-09-20** por
-  `evidence/logs/item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt`: execução
+  `evidence/logs/ecommerce-api-legacy-skill-run-gate-answered.txt`: execução
   interativa no Projeto 2 com o `y` do desenvolvedor registrado com timestamp e a Fase 3
-  rodando em seguida. O `item1-2-...-code-smells-project.txt` continua cobrindo o outro ângulo
-  — modo headless, somente leitura, parando na pergunta do gate.
+  rodando em seguida. O `code-smells-project-skill-run-phase1-2-gate.txt` continua cobrindo o
+  outro ângulo — modo headless, somente leitura, parando na pergunta do gate.
 - Narrativa de evidências para `ecommerce-api-legacy` e `task-manager-api` (rodada a rodada)
   foram escritas nesta rodada de merge (2026-09-20) — ver
   [Resultados por Projeto](#resultados-por-projeto). Nenhuma pendência de narrativa restante
   para os 3 projetos no estado atual.
-- Três capturas do Projeto 2 (`project2-boot.png`, `project2-checkout-sem-cartao-log.png`,
-  `item9-project2-checkout-server-log.txt`) são anteriores à rodada 3 e ainda mostram o nome
-  antigo do pacote, `node src/app.js` e "Frankenstein LMS". Continuam válidas para o que provam
-  (cartão mascarado, boot com log estruturado), mas não refletem o entry point atual.
+- `ecommerce-api-legacy-checkout-server-log.txt` é anterior à rodada 3 e ainda mostra o nome
+  antigo do pacote, `node src/app.js` e "Frankenstein LMS". Continua válido para o que prova
+  (cartão mascarado no log), mas não reflete o entry point atual.
 
 ## Comportamento entre Diferentes Stacks
 

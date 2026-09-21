@@ -302,6 +302,65 @@ def listar_produtos():
 
 **Scope limit — this one is deliberately narrow.** Rename only what is internal: local variables, helper functions, private methods. Route paths, request/response field names, and database column names are part of the contract the refactor promised not to change (see `architecture-guidelines.md`, *Non-negotiable output constraints*), so leave them exactly as they are even when they do not match the chosen convention. Same for user-facing message strings: they stay in the language the API already answers in. If a name can only be fixed by changing a response field, it is not an AP-15 fix — report it and leave it.
 
+## RP-16 — Add authentication/authorization enforcement (fixes AP-17)
+
+**Before (Flask):** a login endpoint issues a token, but nothing ever reads it back; every route trusts any caller.
+```python
+# routes/user_routes.py
+@app.route('/login', methods=['POST'])
+def login():
+    user = User.query.filter_by(email=request.json['email']).first()
+    if not user or not user.check_password(request.json['password']):
+        return jsonify({'error': 'invalid credentials'}), 401
+    token = serializer.dumps(user.id)   # issued...
+    return jsonify({'token': token})
+
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    User.query.get(user_id).delete()    # ...and never checked again, by this or any other route
+    return '', 204
+```
+**After (Flask):** a guard reads the token back and every sensitive route requires it.
+```python
+# middlewares/auth.py
+def login_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        token = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+        try:
+            user_id = serializer.loads(token, max_age=TOKEN_MAX_AGE_SECONDS)
+        except (BadSignature, SignatureExpired):
+            abort(401, description='Credenciais inválidas')
+        user = db.session.get(User, user_id)
+        if not user or not user.active:
+            abort(401 if not user else 403)
+        g.current_user = user
+        return view(*args, **kwargs)
+    return wrapper
+
+# routes/user_routes.py
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+@login_required
+def delete_user(user_id):
+    ...
+```
+
+**Before (Node.js/Express):** every route is public, including one whose path says otherwise.
+```js
+router.get('/api/admin/financial-report', reportController.financialReport);
+router.delete('/api/users/:id', userController.deleteUser);
+```
+**After (Node.js/Express):**
+```js
+const requireAuth = require('../middlewares/requireAuth'); // verifies a session/JWT, sets req.user
+const requireRole = require('../middlewares/requireRole');
+
+router.get('/api/admin/financial-report', requireAuth, requireRole('admin'), reportController.financialReport);
+router.delete('/api/users/:id', requireAuth, userController.deleteUser);
+```
+
+**Scope limit — this one changes observable behavior, unlike every other pattern in this playbook.** Every other RP here is a refactor: same inputs, same outputs, different internal structure. Wiring enforcement onto a previously-open endpoint is not — a caller that worked yesterday gets a 401/403 today, which is exactly the kind of silent breaking change Phase 2's confirmation gate exists to prevent. Report the AP-17 finding in Phase 2 like any other, but do not apply this specific fix automatically just because the user answered "y" to the generic "proceed with refactoring" question — call out *this* change by name and get explicit confirmation of it before writing the guard and adding it to routes. If the project has no notion of accounts/roles at all (no `users` table, no login endpoint, nothing to build a guard on top of), do not invent an auth system from scratch — report the gap and stop; that is a product decision, not a mechanical refactor.
+
 ---
 
 Every finding reported in Phase 2 must map to one of the RP-xx patterns above (or a project-specific variant following the same before/after principle) before Phase 3 starts making changes.

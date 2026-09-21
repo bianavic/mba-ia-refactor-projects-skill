@@ -12,7 +12,7 @@ code-smells-project/     Projeto 1 — Python/Flask, SQLite cru    (e-commerce)
 ecommerce-api-legacy/    Projeto 2 — Node.js/Express, sqlite3    (LMS/e-learning)
 task-manager-api/        Projeto 3 — Python/Flask + SQLAlchemy   (task manager)
 reports/                 relatórios de auditoria (saída da Fase 2)
-evidence/                screenshots e logs das aplicações rodando
+evidence/                logs das aplicações rodando
 docs/                    deep dives e o enunciado original
 scripts/                 sync-docs.sh — regenera as tabelas e árvores deste README
 ```
@@ -28,6 +28,7 @@ scripts/                 sync-docs.sh — regenera as tabelas e árvores deste R
   - [3.3 Checklist de Validação Preenchido](#33-checklist-de-validação-preenchido)
   - [3.4 Evidências de Execução](#34-evidências-de-execução)
   - [3.5 Comportamento entre Diferentes Stacks](#35-comportamento-entre-diferentes-stacks)
+  - [3.6 Limitações Conhecidas e Melhorias Futuras](#36-limitações-conhecidas-e-melhorias-futuras)
 - [4. Como Executar](#4-como-executar)
   - [4.1 Pré-requisitos](#41-pré-requisitos)
   - [4.2 Comandos por Projeto](#42-comandos-por-projeto)
@@ -48,7 +49,7 @@ Cada item exigido em ["README.md deve conter"](docs/challenge-original.md#readme
 | **B2.** Anti-patterns incluídos no catálogo e por quê | [2. Construção da Skill](#2-construção-da-skill) |
 | **B3.** Como garantiu que a skill é agnóstica de tecnologia | [2. Construção da Skill](#2-construção-da-skill) |
 | **B4.** Desafios encontrados e como resolveu | [2. Construção da Skill](#2-construção-da-skill) |
-| **C1.** Resumo dos relatórios de auditoria dos 3 projetos | [3.1 Resumo das Auditorias](#31-resumo-das-auditorias) |
+| **C1.** Resumo dos relatórios de auditoria dos 3 projetos (findings por severidade) | [3.1 Resumo das Auditorias](#31-resumo-das-auditorias) |
 | **C2.** Comparação antes/depois da estrutura de cada projeto | [3.2 Comparação Antes e Depois](#32-comparação-antes-e-depois) |
 | **C3.** Checklist de validação preenchido para cada projeto | [3.3 Checklist de Validação Preenchido](#33-checklist-de-validação-preenchido) |
 | **C4.** Screenshots ou logs das aplicações rodando após refatoração | [3.4 Evidências de Execução](#34-evidências-de-execução) |
@@ -75,7 +76,7 @@ mba-ia-refactor-projects-skill/
 ├── ecommerce-api-legacy/       # Projeto 2 — Node.js/Express (LMS)
 ├── task-manager-api/           # Projeto 3 — Python/Flask (Task Manager)
 ├── reports/                    # saída da Fase 2 de cada projeto
-└── evidence/                   # screenshots + logs (seção 3.4)
+└── evidence/                   # logs (seção 3.4)
 ```
 
 Árvore completa em [`docs/project-structure.md`](docs/project-structure.md).
@@ -175,21 +176,62 @@ Os 15 primeiros entraram porque apareceram, na prática, em pelo menos um dos 3 
 
 ## 3. Resultados
 
+Os 5 itens exigidos pelo enunciado em [C) Resultados](docs/challenge-original.md#readmemd-deve-conter),
+um por subseção, nesta ordem:
+
+| # | Item exigido (enunciado, seção C) | Subseção |
+|---|---|---|
+| 1 | Resumo dos relatórios de auditoria dos 3 projetos (findings por severidade) | [3.1 Resumo das Auditorias](#31-resumo-das-auditorias) |
+| 2 | Comparação antes/depois da estrutura de cada projeto | [3.2 Comparação Antes e Depois](#32-comparação-antes-e-depois) |
+| 3 | Checklist de validação preenchido para cada projeto | [3.3 Checklist de Validação Preenchido](#33-checklist-de-validação-preenchido) |
+| 4 | Screenshots ou logs das aplicações rodando após refatoração | [3.4 Evidências de Execução](#34-evidências-de-execução) |
+| 5 | Observações sobre o comportamento em stacks diferentes | [3.5 Comportamento entre Diferentes Stacks](#35-comportamento-entre-diferentes-stacks) |
+
+(3.6, logo depois, não é um dos 5 — é uma seção extra sobre limitações do repositório, fora do escopo obrigatório.)
+
 ### 3.1 Resumo das Auditorias
 
 Narrativa completa em [`reports/`](reports/). Cada execução da Fase 2 gera um arquivo
 novo (`audit-project-<N>-part<M>.md`) — relatórios anteriores nunca são sobrescritos,
-porque são a evidência do estado "antes".
+porque são a evidência do estado "antes". Abaixo, a tabela é a contagem por severidade
+exigida pelo enunciado; o texto logo depois resume o que cada auditoria efetivamente achou,
+rodada a rodada — histórico completo, achado por achado, em [`docs/results.md`](docs/results.md#resultados-por-projeto).
 
 <!-- BEGIN:audit-summary -->
 | # | Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |
 |---|---|---|---:|---:|---:|---:|---:|---|
-| 1 | `code-smells-project` | Python / Flask 3.1.1 | 1 | 0 | 2 | 2 | **5** | [`audit-project-1-part3.md`](reports/audit-project-1-part3.md) |
-| 2 | `ecommerce-api-legacy` | JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | 1 | 5 | 5 | 5 | **16** | [`audit-project-2-part3.md`](reports/audit-project-2-part3.md) |
+| 1 | `code-smells-project` | Python / Flask 3.1.1 | 0 | 1 | 1 | 0 | **2** | [`audit-project-1-part4.md`](reports/audit-project-1-part4.md) |
+| 2 | `ecommerce-api-legacy` | JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | 1 | 0 | 0 | 2 | **3** | [`audit-project-2-part4.md`](reports/audit-project-2-part4.md) |
 | 3 | `task-manager-api` | Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 | 0 | 3 | 4 | 4 | **11** | [`audit-project-3-part3.md`](reports/audit-project-3-part3.md) |
 
 <sub>Gerado por `scripts/sync-docs.sh` a partir de `reports/`. Não edite à mão.</sub>
 <!-- END:audit-summary -->
+
+**`code-smells-project`** — rodada 1 (13 findings): 4 CRITICAL — SQL injection generalizada em
+`models.py` (~20 pontos), `SECRET_KEY` hardcoded e vazada em `/health`. A Fase 3 corrigiu os 4
+CRITICAL e reestruturou em MVC. Rodadas 2-3 acharam e fecharam achados menores herdados (SQL cru
+ainda chegando a `cursor.execute` em `/admin/query`, paginação ausente, validação duplicada) —
+rodada 3 fechou tudo (5 findings, 1 CRITICAL). A rodada 4 (tabela acima, 2 findings) é uma
+re-auditoria pontual disparada por `api-tests.http`, não uma passada completa: achou e a Fase 3
+já corrigiu 1 HIGH (update de pedido sem checar se afetou alguma linha) e 1 MEDIUM (parâmetro não
+numérico derrubando endpoint com 500 em vez de 400).
+
+**`ecommerce-api-legacy`** — rodada 1 (12 findings): 4 CRITICAL — classe-Deus `AppManager`,
+segredos hardcoded incluindo uma chave `pk_live_` de gateway de pagamento, "hash" de senha que
+era base64, número de cartão em log em texto plano. A Fase 3 corrigiu os 4 e quebrou em MVC.
+Rodadas 2-3 reabriram e fecharam 14 dos 16 achados (checkout sem transação, cascade delete sem
+checar erro, ausência de camada de serviço), com 2 LOW deixados abertos de propósito (contrato de
+API, RP-15). A rodada 4 (tabela acima, 3 findings) achou 1 CRITICAL novo — nenhum endpoint tinha
+autenticação/autorização — já corrigido nesta entrega com uma guarda por API key.
+
+**`task-manager-api`** — rodada 1 (14 findings): 4 CRITICAL — hash de senha (MD5 sem sal) vazado
+em toda resposta de API, `SECRET_KEY` hardcoded, token de login forjável
+(`'fake-jwt-token-' + id`). A Fase 3 corrigiu os 4. Rodada 2 achou rotas chamando o ORM
+diretamente (motivo de o catálogo ganhar o AP-16, ver [§2](#2-construção-da-skill)) e validação
+duplicada. A rodada 3 (tabela acima, 11 findings, 0 CRITICAL) fechou os achados estruturais e, por
+decisão explícita do usuário durante a Fase 3, implementou autenticação/autorização real
+(token assinado + roles) no lugar do token forjável da rodada 1 — o único dos 3 projetos onde a
+Fase 3 mudou comportamento observável por design, não por correção de bug.
 
 ### 3.2 Comparação Antes e Depois
 
@@ -231,6 +273,7 @@ code-smells-project/
 │           └── scripts/
 │               └── arch-check.sh
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/
@@ -242,6 +285,7 @@ code-smells-project/
 │   ├── product_controller.py
 │   ├── system_controller.py
 │   └── user_controller.py
+├── internal-tests.py
 ├── manual-tests.sh
 ├── middlewares/
 │   ├── __init__.py
@@ -301,6 +345,7 @@ ecommerce-api-legacy/
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── api-tests.http
 ├── api.http
 ├── arch-check.sh
 ├── internal-tests.js
@@ -323,6 +368,7 @@ ecommerce-api-legacy/
     │   ├── asyncHandler.js
     │   ├── errorHandler.js
     │   ├── notFoundHandler.js
+    │   ├── requireAdminToken.js
     │   └── validators.js
     ├── models/
     │   ├── auditLogModel.js
@@ -393,6 +439,7 @@ task-manager-api/
 │               └── arch-check.sh
 ├── .env.example
 ├── README.md
+├── api-tests.http
 ├── app.py
 ├── arch-check.sh
 ├── config/
@@ -430,6 +477,7 @@ task-manager-api/
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_auth.py
+│   ├── test_n_plus_one_queries.py
 │   ├── test_task_controller.py
 │   └── test_user_controller.py
 └── utils/
@@ -455,7 +503,7 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Relatório segue o template | ✓ ⁵ | ✓ ¹ | ✓ |
 | Finding com arquivo/linha exatos | ✓ | ✓ | ✓ |
 | Ordenado CRITICAL → LOW | ✓ | ✓ | ✓ |
-| Mínimo de 5 findings | ✓ 5 (rodada 3) | ✓ 16 (rodada 3) | ✓ 11 (rodada 3) |
+| Mínimo de 5 findings | ✓ 5 (rodada 3) ⁷ | ✓ 16 (rodada 3) ⁶ | ✓ 11 (rodada 3) |
 | Detecção de API deprecated (se aplicável) | – n/a | – n/a | ✓ `datetime.utcnow()` ×18 (rodada 1) |
 | Pausa e pede confirmação antes da Fase 3 | ✓ | ✓ | ✓ |
 | Estrutura de diretórios segue MVC | ✓ | ✓ | ✓ camadas existentes ajustadas ² |
@@ -465,22 +513,42 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Controllers concentram o fluxo | ✓ | ✓ controllers finos + `services/` de domínio | ✓ `controllers/` ³ |
 | Error handling centralizado | ✓ `middlewares/error_handler.py` | ✓ `src/middlewares/errorHandler.js` | ✓ `middlewares/error_handler.py` ⁴ |
 | Entry point claro | ✓ `app.py` | ✓ `src/server.js` (o `app.js` monta, sem efeito colateral) | ✓ `app.py` |
-| Aplicação inicia sem erros | ✓ `evidence/project1-boot.png` | ✓ `evidence/project2-boot.png` + log da rodada 3 | ✓ `evidence/project3-boot.png` |
+| Aplicação inicia sem erros | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) |
 | Endpoints originais respondem | ✓ | ✓ `manual-tests.sh` na rodada 3 | ✓ |
 
-As 5 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
+As 7 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵, e as rodadas 4 de `ecommerce-api-legacy` ⁶ e `code-smells-project` ⁷ — ambas já corrigidas e validadas — que explicam por que a contagem de findings da rodada mais recente fica abaixo de 5) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 ### 3.4 Evidências de Execução
 
-![Boot do code-smells-project sem SECRET_KEY exposta](evidence/project1-boot.png)
-![Boot do ecommerce-api-legacy](evidence/project2-boot.png)
-![Boot do task-manager-api](evidence/project3-boot.png)
-
-Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh` e dos 3 `arch-check.sh`, em [`docs/results.md`](docs/results.md#evidências-de-execução). As validações mais recentes — boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa, todas capturadas com a aplicação de pé — estão em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt) (Projeto 1, rodada 3), [`evidence/logs/ecommerce-api-legacy-round3-validation.txt`](evidence/logs/ecommerce-api-legacy-round3-validation.txt) (Projeto 2, rodada 3 — inclui o detector do `arch-check` validado contra uma violação plantada e a saída de `npm run test:internal`) e dois logs do Projeto 3 — estrutura MVC/AP-16 em [`evidence/logs/task-manager-api-round3-validation.txt`](evidence/logs/task-manager-api-round3-validation.txt) e autenticação/autorização (boot com/sem `SECRET_KEY`, tokens forjados e de contas apagadas/inativas rejeitados, `pytest` 67/67) em [`evidence/logs/task-manager-api-round4-validation.txt`](evidence/logs/task-manager-api-round4-validation.txt). A skill rodando de ponta a ponta tem duas capturas complementares: [`item1-2-skill-phase1-phase2-gate-code-smells-project.txt`](evidence/logs/item1-2-skill-phase1-phase2-gate-code-smells-project.txt) (Projeto 1, modo headless e somente leitura, parando na pergunta do gate) e [`item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt`](evidence/logs/item1-2-skill-3-fases-gate-respondido-ecommerce-api-legacy.txt) (Projeto 2, execução interativa com o gate **respondido** e a Fase 3 executando). O inventário completo — o que cada screenshot e cada log mostram, e quais foram capturados antes da última rodada — está em [`docs/results.md`](docs/results.md#evidências-de-execução); as lacunas remanescentes, em [Lacunas de Evidência](docs/results.md#lacunas-de-evidência).
+O enunciado aceita screenshots **ou** logs como evidência ([9.4, item C](docs/challenge-original.md#94-requisitos)); esta entrega usa **logs de terminal reais**, capturados com a aplicação de pé, como evidência única — mais verificável linha a linha que uma captura de tela. As validações mais recentes — boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa — estão em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt) (Projeto 1, rodada 3), [`evidence/logs/ecommerce-api-legacy-round3-validation.txt`](evidence/logs/ecommerce-api-legacy-round3-validation.txt) (Projeto 2, rodada 3 — inclui o detector do `arch-check` validado contra uma violação plantada e a saída de `npm run test:internal`) e dois logs do Projeto 3 — estrutura MVC/AP-16 em [`evidence/logs/task-manager-api-round3-validation.txt`](evidence/logs/task-manager-api-round3-validation.txt) e autenticação/autorização (boot com/sem `SECRET_KEY`, tokens forjados e de contas apagadas/inativas rejeitados, `pytest` 67/67) em [`evidence/logs/task-manager-api-round4-validation.txt`](evidence/logs/task-manager-api-round4-validation.txt). A skill rodando de ponta a ponta tem duas capturas complementares: [`code-smells-project-skill-run-phase1-2-gate.txt`](evidence/logs/code-smells-project-skill-run-phase1-2-gate.txt) (Projeto 1, modo headless e somente leitura, parando na pergunta do gate) e [`ecommerce-api-legacy-skill-run-gate-answered.txt`](evidence/logs/ecommerce-api-legacy-skill-run-gate-answered.txt) (Projeto 2, execução interativa com o gate **respondido** e a Fase 3 executando). O inventário completo — o que cada log mostra, e o de qual rodada é — está em [`docs/results.md`](docs/results.md#evidências-de-execução); as lacunas remanescentes, em [Lacunas de Evidência](docs/results.md#lacunas-de-evidência).
 
 ### 3.5 Comportamento entre Diferentes Stacks
 
 A mesma skill, sem qualquer alteração, produziu relatórios e refatorações corretos em Python/Flask monolítico, Node.js/Express monolítico e Python/Flask parcialmente em camadas — a única diferença entre as 3 execuções foi o conteúdo do relatório e da refatoração, nunca o processo (`claude "/refactor-arch"` e o mesmo `SKILL.md` nos 3 casos). Detalhe rodada a rodada em [`docs/results.md`](docs/results.md#comportamento-entre-diferentes-stacks).
+
+### 3.6 Limitações Conhecidas e Melhorias Futuras
+
+Não faz parte do escopo obrigatório do desafio, mas ficou evidente durante a auditoria manual do
+Projeto 2 e vale registrar para uma próxima iteração deste repositório:
+
+- **Sem branch protection no `main`.** Confirmado via `gh api repos/.../branches/main/protection`
+  → `404 Branch not protected`. Nenhum PR é obrigado a passar por review ou por um check antes do
+  merge.
+- **Sem CI/CD.** Não existe `.github/workflows/` — nenhum pipeline roda em PR, então não há
+  execução automática de `arch-check.sh`/`manual-tests.sh`/testes unitários nem de um scanner de
+  segredos antes do merge.
+- **Sem scanner de segredos automatizado.** O único mecanismo existente é o `.gitignore`
+  (raiz e `ecommerce-api-legacy/.gitignore`), que exclui `.env`, `*.db`, `node_modules/`,
+  `instance/` — mas isso só impede que certos *tipos de arquivo* entrem no repo. Não pega segredo
+  hardcoded dentro do código-fonte (`.js`/`.py`), que foi exatamente a classe de achado CRITICAL
+  da rodada 1 em ambos os Projetos 1 e 2 (`SECRET_KEY`/`dbPass`/`pk_live_...` como string literal
+  em arquivo versionado).
+- Hoje, a única coisa que impede um segredo real de chegar ao `main` é revisão humana manual —
+  sem nenhum gate técnico forçando essa revisão a acontecer.
+
+Melhoria proposta: adicionar um workflow do GitHub Actions rodando um scanner de segredos
+(`gitleaks` ou `trufflehog`) em todo PR, e habilitar branch protection no `main` exigindo esse
+check (e ao menos 1 review) antes do merge.
 
 ## 4. Como Executar
 
@@ -511,6 +579,16 @@ A skill roda as 3 fases em sequência e **pausa depois da Fase 2**, pedindo conf
 explícita antes de tocar em qualquer arquivo. O relatório da Fase 2 é salvo
 automaticamente em `reports/` na raiz do repositório.
 
+**Subir cada aplicação** (para ver o resultado da Fase 3 rodando, fora da skill):
+
+| Projeto | Comando | Porta |
+|---|---|---|
+| `code-smells-project` | `pip install -r requirements.txt && python app.py` | `5000` |
+| `ecommerce-api-legacy` | `npm install && npm start` | `3000` (`PORT=3100 npm start` se ocupada) |
+| `task-manager-api` | `pip install -r requirements.txt && cp .env.example .env && python seed.py && python app.py` | `5000` |
+
+`task-manager-api` precisa do `seed.py` antes do primeiro boot (senão os endpoints devolvem listas vazias) e falha ao subir sem `SECRET_KEY` no `.env` — o `.env.example` já traz `FLASK_ENV=development`, que dispensa configurar uma chave real para teste local. Detalhes completos (variáveis, seeds, exemplos de requisição) ficam no `README.md` de cada projeto.
+
 ### 4.3 Validação
 
 ```bash
@@ -528,6 +606,10 @@ scripts/sync-docs.sh --check           # exit 0 = README e docs/ refletem report
 e a versão genérica empacotada na skill (`scripts/arch-check.sh`), que detecta a stack
 sozinha para projetos que ainda não têm uma. As duas checam a mesma regra (AP-16).
 
+Este é o resumo consolidado dos 3 projetos — cada um detalha, no próprio `README.md`,
+suas ferramentas de validação adicionais (`pytest` no `task-manager-api`,
+`npm run test:internal` no `ecommerce-api-legacy`, `manual-tests.sh`/`api-tests.http` nos três).
+
 ## Critérios de Aceite
 
 Mínimos exigidos pelo [enunciado](docs/challenge-original.md#critérios-de-aceite) —
@@ -537,13 +619,26 @@ relatório ou a evidência que o sustenta; célula em branco significa não veri
 | Critério | code-smells-project | ecommerce-api-legacy | task-manager-api |
 |---|---|---|---|
 | Fase 1 detecta stack corretamente | ✓ Python / Flask 3.1.1 | ✓ JavaScript / Node.js 26 + Express 4.22.1, sqlite3 6.0.1 | ✓ Python / Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 |
-| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) | ✓ 16 ([part3](reports/audit-project-2-part3.md)) | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
+| Fase 2 encontra ≥ 5 findings | ✓ 5 ([part3](reports/audit-project-1-part3.md)) ⁷ | ✓ 16 ([part3](reports/audit-project-2-part3.md)) ⁶ | ✓ 11 ([part3](reports/audit-project-3-part3.md)) |
 | Fase 2 inclui ≥ 1 CRITICAL ou HIGH | ✓ 1 CRITICAL | ✓ 1 CRITICAL + 5 HIGH | ✓ 3 HIGH |
-| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
+| Fase 3 aplicação funciona após refatoração | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) + [log rodada 4](evidence/logs/code-smells-project-round4-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) + [log rodada 4](evidence/logs/ecommerce-api-legacy-round4-validation.txt) | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) + [log rodada 4](evidence/logs/task-manager-api-round4-validation.txt) |
 
 A linha "Fase 1 detecta stack" sai da linha `Stack:` de cada relatório; as duas seguintes, da
 tabela de [§3.1](#31-resumo-das-auditorias). "Aplicação funciona" só está marcada onde há registro
-de execução real — boot mais endpoints respondendo.
+de execução real — boot mais endpoints respondendo. ⁶ `ecommerce-api-legacy` tem uma rodada 4
+([`audit-project-2-part4.md`](reports/audit-project-2-part4.md), 2026-09-20) com só 3 findings
+(1 CRITICAL + 2 LOW herdados) — abaixo do mínimo de 5, mas essa Fase 3 **já rodou e foi
+validada**: o CRITICAL (ausência de autenticação/autorização) foi fechado com uma guarda por
+API key (`X-Admin-Token`) em `GET /api/admin/financial-report` e `DELETE /api/users/:id`
+([log rodada 4](evidence/logs/ecommerce-api-legacy-round4-validation.txt)). ⁷ Mesma situação em
+`code-smells-project`: a rodada 4
+([`audit-project-1-part4.md`](reports/audit-project-1-part4.md), 2026-09-20) achou 1 HIGH + 1
+MEDIUM (mutação sem checar linha afetada; coerção de tipo sem guard virando 500), também abaixo
+do mínimo de 5, e também já corrigida e validada
+([log rodada 4](evidence/logs/code-smells-project-round4-validation.txt)). As duas notas existem
+só para explicar por que a contagem de findings da rodada mais recente fica abaixo de 5, não para
+sinalizar pendência. Detalhe de ambas em
+[`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 
 ## Manutenção da documentação

@@ -1,0 +1,810 @@
+### task-manager-api — testes manuais dos endpoints
+### Use com o HTTP Client de uma IDE JetBrains (IntelliJ/GoLand/PyCharm/WebStorm) ou a
+### extensão "REST Client" do VS Code — ambos entendem os blocos de script `> {% ... %}`
+### usados abaixo para encadear passos (token/id de uma resposta usados na próxima request).
+### Suba a aplicação antes (python app.py / flask run) — porta padrão 5000 (FLASK_PORT).
+### Atenção: mesma porta do Projeto 1 (code-smells-project) — rode só um por vez,
+### ou sobrescreva PORT/FLASK_PORT.
+
+@baseUrl = http://localhost:5000
+
+### ==========================================================
+### Sistema
+### ==========================================================
+
+### Index
+GET {{baseUrl}}/
+
+### Health check
+GET {{baseUrl}}/health
+
+
+### ==========================================================
+### Usuários / Autenticação
+### ==========================================================
+
+### Criar usuário (signup público — role fica como 'user' se anônimo) —
+### token/id reaproveitados no resto do arquivo como "o usuário comum"
+# @name criarUsuario
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "password": "senha123",
+  "role": "user"
+}
+
+> {%
+    client.global.set("criarUsuarioId", response.body.id);
+%}
+
+### Criar usuário — dados inválidos (sem senha) -> 400
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Sem Senha",
+  "email": "sem.senha@example.com"
+}
+
+### Login com usuário do seed (admin) — token reaproveitado nas seções
+### abaixo (Categorias, Limites de permissão etc.) como "o admin"
+# @name loginAdmin
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "password": "1234"
+}
+
+> {%
+    client.global.set("loginAdminToken", response.body.token);
+%}
+
+### Login com usuário do seed (manager) — usado para provar que
+### roles_required('admin', 'manager') também deixa manager passar
+# @name loginManager
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "pedro@email.com",
+  "password": "pass"
+}
+
+> {%
+    client.global.set("loginManagerToken", response.body.token);
+%}
+
+### Login — captura o token na variável global loginToken para as próximas requisições
+# @name login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "maria.silva@example.com",
+  "password": "senha123"
+}
+
+> {%
+    client.global.set("loginToken", response.body.token);
+%}
+
+### Login — credenciais inválidas -> 401
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "maria.silva@example.com",
+  "password": "senha-errada"
+}
+
+### Listar usuários (paginado)
+GET {{baseUrl}}/users?page=1&per_page=20
+
+### Buscar usuário por ID (com tasks paginadas) — usuário do seed (João)
+GET {{baseUrl}}/users/1?page=1&per_page=20
+
+### Atualizar usuário — auto-atendimento: Maria Silva edita a própria conta
+PUT {{baseUrl}}/users/{{criarUsuarioId}}
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "name": "Maria Silva Santos"
+}
+
+### Criar usuário descartável — só para demonstrar o DELETE abaixo. Evita
+### apagar a Maria Silva, cujo token ({{login...}}) é reaproveitado nas
+### seções de Tasks/Categorias/Limites de permissão mais adiante.
+# @name criarUsuarioDescartavel
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Usuario Descartavel",
+  "email": "descartavel@example.com",
+  "password": "senha123"
+}
+
+> {%
+    client.global.set("criarUsuarioDescartavelId", response.body.id);
+%}
+
+### Deletar usuário — admin deletando outro usuário (ensure_can_manage_user
+### permite dono OU admin; aqui é o caminho "admin agindo sobre outra conta")
+DELETE {{baseUrl}}/users/{{criarUsuarioDescartavelId}}
+Authorization: Bearer {{loginAdminToken}}
+
+### Listar tasks de um usuário (paginado) — usuário do seed (João)
+GET {{baseUrl}}/users/1/tasks?page=1&per_page=20
+
+
+### ==========================================================
+### Tasks
+### ==========================================================
+
+### Listar tasks (paginado)
+GET {{baseUrl}}/tasks?page=1&per_page=20
+
+### Buscar task por ID
+GET {{baseUrl}}/tasks/1
+
+### Criar task — requer autenticação. user_id aponta para o próprio autor
+### (Maria Silva): ensure_can_assign_task_owner só deixa um não-admin criar
+### task para si mesmo ou sem dono (user_id null) — ver seção "Limites de
+### permissão" para o caso de tentar atribuir a outro usuário
+# @name criarTask
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "title": "Revisar relatório de vendas",
+  "description": "Conferir números do trimestre",
+  "status": "pending",
+  "priority": 2,
+  "user_id": {{criarUsuarioId}},
+  "category_id": 1,
+  "due_date": "2026-10-15",
+  "tags": ["financeiro", "urgente"]
+}
+
+> {%
+    client.global.set("criarTaskId", response.body.id);
+%}
+
+### Criar task — título ausente -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "description": "Sem título"
+}
+
+### Atualizar task — dona da task (Maria Silva) atualizando a própria task
+PUT {{baseUrl}}/tasks/{{criarTaskId}}
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "status": "in_progress",
+  "priority": 1
+}
+
+### Deletar task — dona da task (Maria Silva) deletando a própria task
+DELETE {{baseUrl}}/tasks/{{criarTaskId}}
+Authorization: Bearer {{loginToken}}
+
+### Buscar tasks (query, status, prioridade, usuário) — filtros combinados;
+### pode não bater com nenhuma task do seed (ver "Estados vazios" para um
+### caso de busca garantidamente vazio)
+GET {{baseUrl}}/tasks/search?q=bug&status=pending&priority=1&user_id=1&page=1&per_page=20
+
+### Estatísticas das tasks
+GET {{baseUrl}}/tasks/stats
+
+
+### ==========================================================
+### Relatórios
+### ==========================================================
+
+### Relatório resumo geral
+GET {{baseUrl}}/reports/summary
+
+### Relatório de um usuário específico
+GET {{baseUrl}}/reports/user/1
+
+
+### ==========================================================
+### Categorias
+### ==========================================================
+
+### Listar categorias (paginado, com contagem de tasks)
+GET {{baseUrl}}/categories?page=1&per_page=20
+
+### Criar categoria — requer role admin ou manager (usa o token do admin;
+### login/token de role "user" aqui daria 403 — ver "Limites de permissão")
+POST {{baseUrl}}/categories
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "Financeiro",
+  "description": "Tarefas relacionadas a finanças",
+  "color": "#FF5733"
+}
+
+### Criar categoria — sem nome -> 400
+POST {{baseUrl}}/categories
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "description": "Sem nome"
+}
+
+### Atualizar categoria — requer role admin ou manager
+PUT {{baseUrl}}/categories/1
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "Financeiro Atualizado",
+  "color": "#00FF00"
+}
+
+### Deletar categoria — requer role admin ou manager
+DELETE {{baseUrl}}/categories/1
+Authorization: Bearer {{loginAdminToken}}
+
+
+### ==========================================================
+### Sad paths adicionais (404 / 409)
+### ==========================================================
+### Os 400/401 mais óbvios já aparecem junto de cada happy path acima; esta
+### seção cobre "recurso não encontrado" e "conflito" para todos os
+### recursos, usando sempre o token do admin para isolar o teste (sem
+### interferência de regra de permissão — essa fica na seção seguinte).
+
+### Buscar usuário inexistente -> 404
+GET {{baseUrl}}/users/999999
+
+### Atualizar usuário inexistente -> 404
+PUT {{baseUrl}}/users/999999
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "Não existe"
+}
+
+### Deletar usuário inexistente -> 404
+DELETE {{baseUrl}}/users/999999
+Authorization: Bearer {{loginAdminToken}}
+
+### Listar tasks de usuário inexistente -> 404
+GET {{baseUrl}}/users/999999/tasks
+
+### Buscar task inexistente -> 404
+GET {{baseUrl}}/tasks/999999
+
+### Atualizar task inexistente -> 404
+PUT {{baseUrl}}/tasks/999999
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "priority": 1
+}
+
+### Deletar task inexistente -> 404
+DELETE {{baseUrl}}/tasks/999999
+Authorization: Bearer {{loginAdminToken}}
+
+### Atualizar categoria inexistente -> 404
+PUT {{baseUrl}}/categories/999999
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "Não existe"
+}
+
+### Deletar categoria inexistente -> 404
+DELETE {{baseUrl}}/categories/999999
+Authorization: Bearer {{loginAdminToken}}
+
+### Relatório de usuário inexistente -> 404
+GET {{baseUrl}}/reports/user/999999
+
+### Criar usuário com email já cadastrado (do seed) -> 409
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Duplicado",
+  "email": "joao@email.com",
+  "password": "senha123"
+}
+
+### Atualizar usuário para um email já cadastrado por outra conta -> 409
+PUT {{baseUrl}}/users/{{criarUsuarioId}}
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "email": "pedro@email.com"
+}
+
+### Criar task com user_id inexistente -> 404 "Usuário não encontrado"
+### (_resolve_user roda antes de ensure_can_assign_task_owner em
+### controllers/task_controller.py, então o 404 aparece independente de
+### quem chama — token do admin usado aqui só por consistência com o resto
+### da seção)
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "Task com usuário inexistente",
+  "user_id": 999999
+}
+
+### Criar task com category_id inexistente -> 404 "Categoria não encontrada"
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "Task com categoria inexistente",
+  "category_id": 999999
+}
+
+
+### ==========================================================
+### Limites de permissão
+### ==========================================================
+### Cobre autenticação (401 — sem token / token malformado) e autorização
+### (403 — token válido mas sem direito sobre aquele recurso), com base nas
+### regras de services/authorization.py e middlewares/auth.py.
+
+### --- 401: rota protegida sem token ---
+
+### Criar task sem token -> 401
+POST {{baseUrl}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Sem autenticação"
+}
+
+### Atualizar task sem token -> 401
+PUT {{baseUrl}}/tasks/1
+Content-Type: application/json
+
+{
+  "priority": 1
+}
+
+### Deletar task sem token -> 401
+DELETE {{baseUrl}}/tasks/1
+
+### Atualizar usuário sem token -> 401
+PUT {{baseUrl}}/users/1
+Content-Type: application/json
+
+{
+  "name": "Sem autenticação"
+}
+
+### Deletar usuário sem token -> 401
+DELETE {{baseUrl}}/users/1
+
+### Criar categoria sem token -> 401
+POST {{baseUrl}}/categories
+Content-Type: application/json
+
+{
+  "name": "Sem autenticação"
+}
+
+### Atualizar categoria sem token -> 401
+PUT {{baseUrl}}/categories/1
+Content-Type: application/json
+
+{
+  "name": "Sem autenticação"
+}
+
+### Deletar categoria sem token -> 401
+DELETE {{baseUrl}}/categories/1
+
+### Token malformado/inválido -> 401
+POST {{baseUrl}}/tasks
+Authorization: Bearer token-invalido-123
+Content-Type: application/json
+
+{
+  "title": "Token inválido"
+}
+
+### --- 403: token válido, mas sem direito sobre o recurso ---
+
+### Usuário comum tentando editar outro usuário (Maria Silva editando o
+### usuário do seed 2, Maria Santos) -> 403 ensure_can_manage_user
+PUT {{baseUrl}}/users/2
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "name": "Não deveria conseguir"
+}
+
+### Usuário comum tentando deletar outro usuário -> 403
+DELETE {{baseUrl}}/users/2
+Authorization: Bearer {{loginToken}}
+
+### Usuário comum tentando se auto-promover a admin -> 403 ensure_can_assign_role
+PUT {{baseUrl}}/users/{{criarUsuarioId}}
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+
+### Signup anônimo tentando se auto-atribuir role admin -> 403
+### ensure_can_assign_role (anônimo só pode criar role "user")
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Aspirante a Admin",
+  "email": "aspirante.admin@example.com",
+  "password": "senha123",
+  "role": "admin"
+}
+
+### Signup anônimo tentando se auto-atribuir role manager -> 403
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Aspirante a Manager",
+  "email": "aspirante.manager@example.com",
+  "password": "senha123",
+  "role": "manager"
+}
+
+### Usuário comum criando task para outro usuário (João, id 1) -> 403
+### ensure_can_assign_task_owner — só pode criar para si mesmo ou sem dono
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "title": "Task para outro dono",
+  "user_id": 1
+}
+
+### Usuário comum (role "user") tentando criar categoria -> 403 roles_required
+POST {{baseUrl}}/categories
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "name": "Categoria Não Autorizada"
+}
+
+### Usuário comum tentando atualizar categoria -> 403
+PUT {{baseUrl}}/categories/1
+Authorization: Bearer {{loginToken}}
+Content-Type: application/json
+
+{
+  "name": "Não deveria conseguir"
+}
+
+### Usuário comum tentando deletar categoria -> 403
+DELETE {{baseUrl}}/categories/1
+Authorization: Bearer {{loginToken}}
+
+### --- role "manager" também deve passar em roles_required('admin','manager') ---
+
+### Manager cria categoria — confirma que a regra é admin OU manager, não só admin
+# @name managerCriaCategoria
+POST {{baseUrl}}/categories
+Authorization: Bearer {{loginManagerToken}}
+Content-Type: application/json
+
+{
+  "name": "Categoria Criada Por Manager",
+  "description": "Confirma que manager também tem acesso"
+}
+
+> {%
+    client.global.set("managerCriaCategoriaId", response.body.id);
+%}
+
+### Limpeza — remove a categoria criada pelo manager acima
+DELETE {{baseUrl}}/categories/{{managerCriaCategoriaId}}
+Authorization: Bearer {{loginAdminToken}}
+
+### --- usuário desativado: o token continua com assinatura válida, mas
+### _resolve_current_user (middlewares/auth.py) barra com 403 ---
+
+### Criar usuário temporário para o teste de desativação
+# @name criarUsuarioTemp
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Usuario Temporario",
+  "email": "temporario@example.com",
+  "password": "senha123"
+}
+
+> {%
+    client.global.set("criarUsuarioTempId", response.body.id);
+%}
+
+### Login do usuário temporário — token capturado ANTES da desativação
+# @name loginTemp
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "temporario@example.com",
+  "password": "senha123"
+}
+
+> {%
+    client.global.set("loginTempToken", response.body.token);
+%}
+
+### Admin desativa o usuário temporário
+PUT {{baseUrl}}/users/{{criarUsuarioTempId}}
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "active": false
+}
+
+### Usuário desativado tenta usar o token antigo -> 403 "Usuário inativo"
+### (o token em si continua válido — a conta é que foi desligada)
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginTempToken}}
+Content-Type: application/json
+
+{
+  "title": "Não deveria conseguir criar"
+}
+
+### Limpeza — admin remove o usuário temporário
+DELETE {{baseUrl}}/users/{{criarUsuarioTempId}}
+Authorization: Bearer {{loginAdminToken}}
+
+
+### ==========================================================
+### Edge cases / corner cases
+### ==========================================================
+### Valores no limite ou fora do limite dos campos validados por
+### models/task.py e utils/helpers.py. Usa o token do admin com user_id e
+### category_id omitidos para isolar o campo sob teste.
+
+### Prioridade abaixo do mínimo (MIN_PRIORITY=1) -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "Prioridade zero",
+  "priority": 0
+}
+
+### Prioridade acima do máximo (MAX_PRIORITY=5) -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "Prioridade seis",
+  "priority": 6
+}
+
+### Prioridade não numérica -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "Prioridade inválida",
+  "priority": "abc"
+}
+
+### Título abaixo do mínimo (MIN_TITLE_LENGTH=3) -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "ab"
+}
+
+### Título acima do máximo (MAX_TITLE_LENGTH=200) -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+
+### Status fora do enum de VALID_STATUSES -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "Status inválido",
+  "status": "foo"
+}
+
+### due_date em formato diferente de YYYY-MM-DD -> 400
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{loginAdminToken}}
+Content-Type: application/json
+
+{
+  "title": "Data em formato errado",
+  "due_date": "15/10/2026"
+}
+
+### page não numérico — request.args.get(..., type=int) cai no default (1)
+### em vez de quebrar; deve responder 200 igual ao GET sem page
+GET {{baseUrl}}/tasks?page=abc&per_page=20
+
+### page = 0 — confirma que não derruba a paginação com erro 500
+GET {{baseUrl}}/tasks?page=0&per_page=20
+
+### per_page negativo — confirma que não derruba a paginação com erro 500
+GET {{baseUrl}}/tasks?page=1&per_page=-1
+
+### id não numérico na URL — não casa com o conversor <int:task_id> do
+### Flask, então é o roteamento (não o controller) que responde 404; como
+### register_error_handlers captura HTTPException genericamente, ainda sai
+### como JSON {"error": ...} e não como página HTML padrão do Flask
+GET {{baseUrl}}/tasks/abc
+
+### id negativo na URL — <int:...> do Werkzeug não aceita "-", mesmo resultado
+GET {{baseUrl}}/tasks/-1
+
+
+### ==========================================================
+### Estados vazios
+### ==========================================================
+
+### Busca sem nenhum resultado -> 200 com lista vazia
+GET {{baseUrl}}/tasks/search?q=termoinexistentexyz123&page=1&per_page=20
+
+### Tasks de um usuário sem nenhuma task (Maria Silva: a única task dela foi
+### deletada na seção "Tasks") -> 200 com lista vazia
+GET {{baseUrl}}/users/{{criarUsuarioId}}/tasks?page=1&per_page=20
+
+### Página de categorias além do total existente -> 200 com lista vazia
+GET {{baseUrl}}/categories?page=999&per_page=20
+
+### Página de tasks além do total existente -> 200 com lista vazia
+GET {{baseUrl}}/tasks?page=999&per_page=20
+
+
+### ==========================================================
+### Banco de dados — persistência e integridade
+### ==========================================================
+### SQLAlchemy sobre tasks.db (ou DATABASE_URL), populado por `python seed.py`
+### com 3 usuários (joao@email.com/admin, maria@email.com/user,
+### pedro@email.com/manager), 4 categorias e 10 tasks. Rode em sequência:
+### cada leitura confere o efeito do write anterior, provando round-trip
+### real com o banco (não apenas o objeto devolvido na resposta do POST).
+
+### 1. Login com usuário do seed (admin) — confirma users populado e o hash
+### de senha (set_password/check_password) batendo; captura token e user.id
+# @name dbLogin
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "password": "1234"
+}
+
+> {%
+    client.global.set("dbLoginToken", response.body.token);
+    client.global.set("dbLoginUserId", response.body.user.id);
+%}
+
+### 2. Relatório resumo — baseline dos agregados antes das escritas abaixo
+### (total_tasks, total_users, total_categories, tasks_by_status etc.)
+GET {{baseUrl}}/reports/summary
+
+### 3. Criar categoria — captura o id gerado pelo autoincrement
+# @name dbCriarCategoria
+POST {{baseUrl}}/categories
+Authorization: Bearer {{dbLoginToken}}
+Content-Type: application/json
+
+{
+  "name": "Categoria Teste DB",
+  "description": "Criada para validar persistência",
+  "color": "#123456"
+}
+
+> {%
+    client.global.set("dbCriarCategoriaId", response.body.id);
+%}
+
+### 4. Criar task vinculada à categoria e ao usuário do passo 1 — captura o id
+# @name dbCriarTask
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{dbLoginToken}}
+Content-Type: application/json
+
+{
+  "title": "Task Teste DB",
+  "description": "Criada para validar persistência",
+  "status": "pending",
+  "priority": 3,
+  "user_id": {{dbLoginUserId}},
+  "category_id": {{dbCriarCategoriaId}}
+}
+
+> {%
+    client.global.set("dbCriarTaskId", response.body.id);
+%}
+
+### 5. Reler a task pelo id retornado no passo 4 — se os campos baterem
+### (inclusive category_name/user_name resolvidos via join), o INSERT foi
+### commitado de verdade
+GET {{baseUrl}}/tasks/{{dbCriarTaskId}}
+
+### 6. Atualizar a task (status -> in_progress, priority -> 1)
+PUT {{baseUrl}}/tasks/{{dbCriarTaskId}}
+Authorization: Bearer {{dbLoginToken}}
+Content-Type: application/json
+
+{
+  "status": "in_progress",
+  "priority": 1
+}
+
+### 7. Reler — confirma que o UPDATE foi persistido (status/priority novos)
+GET {{baseUrl}}/tasks/{{dbCriarTaskId}}
+
+### 8. Listar tasks do usuário do passo 1 — a task criada deve aparecer,
+### confirmando o relacionamento user_id -> tasks no banco
+GET {{baseUrl}}/users/{{dbLoginUserId}}/tasks?page=1&per_page=50
+
+### 9. Relatório resumo de novo — total_tasks deve ter subido 1 em relação
+### ao passo 2, e tasks_by_status.in_progress também deve refletir a task
+GET {{baseUrl}}/reports/summary
+
+### 10. Deletar a task de teste
+DELETE {{baseUrl}}/tasks/{{dbCriarTaskId}}
+Authorization: Bearer {{dbLoginToken}}
+
+### 11. Reler — deve vir 404: confirma que o DELETE removeu a linha de fato
+GET {{baseUrl}}/tasks/{{dbCriarTaskId}}
+
+### 12. Deletar a categoria de teste
+DELETE {{baseUrl}}/categories/{{dbCriarCategoriaId}}
+Authorization: Bearer {{dbLoginToken}}
+
+### 13. Relatório resumo final — total_tasks e total_categories devem voltar
+### aos valores do passo 2, confirmando que nada ficou orfão no banco
+GET {{baseUrl}}/reports/summary
