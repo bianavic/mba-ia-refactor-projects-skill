@@ -1,0 +1,45 @@
+=== code-smells-project/arch-check.sh ===
+==========================================================
+arch-check — code-smells-project
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ routes/__init__.py
+  ✓ routes/routes.py
+
+==========================================================
+PASS: no route in code-smells-project touches persistence directly.
+(2 arquivo(s) de rota verificado(s))
+==========================================================
+exit code: 0
+
+=== ecommerce-api-legacy/arch-check.sh ===
+==========================================================
+arch-check — ecommerce-api-legacy
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ src/routes/index.js
+
+==========================================================
+PASS: no route in ecommerce-api-legacy touches persistence directly.
+(1 arquivo(s) de rota verificado(s))
+==========================================================
+exit code: 0
+
+=== task-manager-api/arch-check.sh ===
+==========================================================
+arch-check — task-manager-api
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ routes/__init__.py
+  ✓ routes/report_routes.py
+  ✓ routes/task_routes.py
+  ✓ routes/user_routes.py
+
+==========================================================
+PASS: no route in task-manager-api touches persistence directly.
+(4 arquivo(s) de rota verificado(s))
+==========================================================
+exit code: 0

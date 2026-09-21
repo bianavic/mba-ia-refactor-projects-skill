@@ -11,7 +11,7 @@ The refactoring target is always MVC, adapted to the detected language/framework
 
 ### Views / Routes
 - Only responsible for: binding an HTTP method + path to a handler, parsing the incoming request into plain data, calling the Controller, and serializing the Controller's result into a response.
-- Must not contain SQL, business rules, or duplicated domain logic — if a route needs to compute something domain-specific, it calls a Model/Service method instead of reimplementing it.
+- Must not contain SQL, business rules, direct ORM/query calls, or duplicated domain logic — if a route needs something domain-specific, it calls the Controller/Service function that owns it instead of reimplementing it or reaching into the Model itself. This has no exception for partially-layered or already-organized projects (see below).
 - Must not swallow errors ad hoc per-route — delegate to centralized error handling (see below).
 
 ### Controllers
@@ -65,8 +65,31 @@ src/
 
 ### Partially-layered projects (e.g. an existing `models/routes/services/utils` structure)
 - Keep the existing folder names; fix responsibilities *inside* them instead of renaming everything.
-- If routes contain duplicated business logic (AP-06), move the shared rule into the existing Model/Service and have every route call it — do not introduce a new Controller layer if the project's routes already play that role cleanly once the duplication is removed.
-- If a `services/` folder exists but is dead code (AP-10), either wire it into the appropriate route/controller or remove it — never leave it both present and unused.
+- Every route handler must be reduced to: parse the request, call one Controller/Service function, serialize the result. A route that still contains a direct ORM/query call (`Model.query...`, `db.session.add/commit/delete`, or equivalent) is not "playing the Controller role cleanly" — that is always a Views/Routes violation, no matter how small or non-duplicated the query is, and this holds even when the project already has folders and no exception applies. Move such calls into the existing `services/` module if one already exists for that domain, or into a new lightweight `controllers/` module otherwise; the route may only call that function.
+- If routes contain duplicated business logic (AP-06), move the shared rule into the existing Model/Service and have every route call it.
+- If a `services/` folder exists but is dead code (AP-10), either wire it into the appropriate route/controller or remove it — never leave it both present and unused. If a `services/` folder is already wired for *some* routes in a module (e.g. only report reads), extend it to cover every route in that same module rather than leaving a half-migrated file.
+
+### Verifying AP-16 mechanically (Phase 3, step 6)
+
+Endpoint tests cannot verify this rule: a route that queries the DB directly and one that
+properly delegates to a Controller/Service return exactly the same HTTP response, so functional
+testing alone cannot tell them apart. Verification has to be structural — grep the route/view
+files themselves and confirm there are zero direct persistence calls left:
+
+- ORM session calls (`db.session.add/commit/delete`)
+- query attributes (`Model.query...`)
+- Model finders/writers (`Model.find/findById/create/update/get_by_id/find_by_x(...)`)
+- driver/cursor calls (`cursor.execute`, `db.run/all/get`)
+- raw SQL literals
+
+Adapt the patterns to the detected stack — `references/verification-recipes.md` has the signals per
+language, the bundled `scripts/arch-check.sh`, and the procedure for a stack not listed there. Note
+especially that languages exposing persistence as free functions rather than methods (Go, Elixir,
+Rust) need a different pattern shape: a receiver-based regex silently reports a clean result on a
+route file that is full of violations. Any hit must be moved into a Controller/Service before
+Phase 3 can be reported complete — "the project already has folders" is not an exemption (see
+*Partially-layered projects* above). This check is mandatory and is never skipped, even when
+every endpoint from step 5 responds correctly.
 
 ## Non-negotiable output constraints
 

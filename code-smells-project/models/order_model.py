@@ -1,3 +1,4 @@
+from config.settings import FAIXAS_DESCONTO_FATURAMENTO
 from models.db import get_db
 
 
@@ -47,10 +48,14 @@ def get_todos(page=1, per_page=20):
     return _hydrate_pedidos(db, cursor.fetchall())
 
 
-def get_por_usuario(usuario_id):
+def get_por_usuario(usuario_id, page=1, per_page=20):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM pedidos WHERE usuario_id = ?", (usuario_id,))
+    offset = (page - 1) * per_page
+    cursor.execute(
+        "SELECT * FROM pedidos WHERE usuario_id = ? LIMIT ? OFFSET ?",
+        (usuario_id, per_page, offset),
+    )
     return _hydrate_pedidos(db, cursor.fetchall())
 
 
@@ -58,16 +63,18 @@ def criar(usuario_id, itens):
     db = get_db()
     cursor = db.cursor()
 
+    produto_ids = [item["produto_id"] for item in itens]
+    placeholders = ",".join("?" * len(produto_ids))
+    cursor.execute(f"SELECT * FROM produtos WHERE id IN ({placeholders})", produto_ids)
+    produtos_por_id = {row["id"]: row for row in cursor.fetchall()}
+
     total = 0
-    produtos_por_id = {}
     for item in itens:
-        cursor.execute("SELECT * FROM produtos WHERE id = ?", (item["produto_id"],))
-        produto = cursor.fetchone()
+        produto = produtos_por_id.get(item["produto_id"])
         if produto is None:
             return {"erro": f"Produto {item['produto_id']} não encontrado"}
         if produto["estoque"] < item["quantidade"]:
             return {"erro": f"Estoque insuficiente para {produto['nome']}"}
-        produtos_por_id[item["produto_id"]] = produto
         total += produto["preco"] * item["quantidade"]
 
     cursor.execute(
@@ -97,7 +104,7 @@ def atualizar_status(pedido_id, novo_status):
     cursor = db.cursor()
     cursor.execute("UPDATE pedidos SET status = ? WHERE id = ?", (novo_status, pedido_id))
     db.commit()
-    return True
+    return cursor.rowcount > 0
 
 
 def relatorio_vendas():
@@ -120,12 +127,10 @@ def relatorio_vendas():
     cancelados = cursor.fetchone()[0]
 
     desconto = 0
-    if faturamento > 10000:
-        desconto = faturamento * 0.1
-    elif faturamento > 5000:
-        desconto = faturamento * 0.05
-    elif faturamento > 1000:
-        desconto = faturamento * 0.02
+    for faturamento_minimo, taxa in FAIXAS_DESCONTO_FATURAMENTO:
+        if faturamento > faturamento_minimo:
+            desconto = faturamento * taxa
+            break
 
     return {
         "total_pedidos": total_pedidos,

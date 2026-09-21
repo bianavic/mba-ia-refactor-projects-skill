@@ -1,0 +1,403 @@
+==========================================================
+VALIDACAO — ecommerce-api-legacy — rodada 3 (refactor-arch Fase 3)
+Relatorio de origem: reports/audit-project-2-part3.md
+Data: 2026-09-20T00:46:44Z
+Node: v26.9.0 | npm start -> src/server.js
+PORTA: 3100 (a 3000 estava ocupada pelo Docker nesta maquina;
+       PORT=3100 npm start + BASE=http://localhost:3100)
+==========================================================
+
+### 1. BOOT DA APLICACAO
+$ PORT=3100 npm start
+
+> ecommerce-api-legacy@1.0.0 start
+> node src/server.js
+
+{"timestamp":"2026-09-20T00:46:31.470Z","level":"info","message":"ecommerce-api-legacy rodando na porta 3100..."}
+
+### 2. ARCH-CHECK (AP-16: nenhuma rota toca persistencia)
+$ ./arch-check.sh
+==========================================================
+arch-check — ecommerce-api-legacy
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ src/routes/index.js
+
+==========================================================
+PASS: no route in ecommerce-api-legacy touches persistence directly.
+(1 arquivo(s) de rota verificado(s))
+==========================================================
+exit: 0
+
+### 2.1. VALIDACAO DO DETECTOR (verification-recipes, passo 3)
+Um PASS so vale se o padrao dispara em codigo sabidamente ruim.
+Inserido src/routes/__detector_probe.js com db.get() inline:
+$ ./arch-check.sh
+==========================================================
+arch-check — ecommerce-api-legacy
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✗ src/routes/__detector_probe.js — 1 chamada(s) inline
+      5:    db.get('SELECT * FROM courses WHERE id = ?', [req.params.id], (e, r) => res.json(r));
+  ✓ src/routes/index.js
+
+==========================================================
+FAIL: 1 chamada(s) de persistência inline em 1 arquivo(s) de rota.
+Mova cada chamada para um Controller/Service; a rota só pode chamar essa função.
+==========================================================
+exit: 1
+
+Probe removido. Reconfirmando:
+$ ./arch-check.sh
+==========================================================
+arch-check — ecommerce-api-legacy
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ src/routes/index.js
+
+==========================================================
+PASS: no route in ecommerce-api-legacy touches persistence directly.
+(1 arquivo(s) de rota verificado(s))
+==========================================================
+exit: 0
+
+### 3. MANUAL-TESTS.SH (todos os endpoints originais, servidor recem-iniciado)
+$ BASE=http://localhost:3100 ./manual-tests.sh
+==================================================
+CHECKOUT
+==================================================
+--- POST /api/checkout (sucesso - cartão começando em 4, cria usuário novo) ---
+{"msg":"Sucesso","enrollment_id":2}
+  -> conferir no terminal do servidor: o log de 'Processing payment' deve mostrar o cartão mascarado, nunca em texto plano
+--- POST /api/checkout (pagamento recusado - cartão não começa em 4) ---
+Pagamento recusado
+--- POST /api/checkout (usuário já existente - reutiliza o cadastro pelo email) ---
+{"msg":"Sucesso","enrollment_id":3}
+--- POST /api/checkout (curso inexistente, esperado 404) ---
+HTTP 404
+--- POST /api/checkout (campo obrigatório faltando, esperado 400) ---
+HTTP 400
+==================================================
+FINANCIAL REPORT
+==================================================
+--- GET /api/admin/financial-report ---
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    },
+    {
+        "course": "Docker",
+        "revenue": 994,
+        "students": [
+            {
+                "student": "Guilherme",
+                "paid": 497
+            },
+            {
+                "student": "Leonan",
+                "paid": 497
+            }
+        ]
+    }
+]
+--- GET /api/admin/financial-report?page=1&per_page=1 (paginação) ---
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    }
+]
+==================================================
+USERS
+==================================================
+--- DELETE /api/users/3 (remove o usuário 'Joao', criado no checkout recusado acima; cascade em matrículas/pagamentos) ---
+Usuário e seus registros associados (matrículas e pagamentos) foram deletados.
+--- DELETE /api/users/9999 (id inexistente, esperado 404) ---
+HTTP 404
+
+### 4. LOG DO SERVIDOR DURANTE O MANUAL-TESTS
+(cartao mascarado no gateway; rejeicoes 4xx em warn, nao em error)
+
+> ecommerce-api-legacy@1.0.0 start
+> node src/server.js
+
+{"timestamp":"2026-09-20T00:46:31.470Z","level":"info","message":"ecommerce-api-legacy rodando na porta 3100..."}
+{"timestamp":"2026-09-20T00:47:00.032Z","level":"info","message":"Processing payment","card":"4111********4444","amount":497,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T00:47:00.113Z","level":"info","message":"Processing payment","card":"5111********4444","amount":997,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T00:47:00.114Z","level":"warn","message":"Pagamento recusado","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:00.128Z","level":"info","message":"Processing payment","card":"4222********4444","amount":497,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T00:47:00.144Z","level":"warn","message":"Curso não encontrado","status":404,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:00.160Z","level":"warn","message":"Bad Request","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:00.401Z","level":"warn","message":"Usuário não encontrado","status":404,"path":"/api/users/9999"}
+
+==========================================================
+### 5. UM CURL POR FINDING CORRIGIDO (instancia limpa, reiniciada)
+==========================================================
+
+--- [CRITICAL] senha fallback '123456' — checkout sem pwd agora e rejeitado ---
+$ curl -X POST http://localhost:3100/api/checkout -d '{"usr":"SemSenha","eml":"semsenha@teste.com","c_id":1,"card":"4111222233334444"}'
+Bad Request
+HTTP 400
+esperado: HTTP 400 Bad Request (antes: 200, criava conta com a senha literal '123456')
+grep FALLBACK_PASSWORD src/ ->
+  (nenhuma ocorrencia)
+
+--- [HIGH] transacao no checkout: matricula e pagamento entram juntos ---
+$ curl -X POST http://localhost:3100/api/checkout (cartao aprovado, curso 2)
+{"msg":"Sucesso","enrollment_id":2}
+HTTP 200
+-> o relatorio mostra matricula E pagamento do mesmo checkout (nunca so um dos dois):
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    },
+    {
+        "course": "Docker",
+        "revenue": 497,
+        "students": [
+            {
+                "student": "Guilherme",
+                "paid": 497
+            }
+        ]
+    }
+]
+codigo: src/services/checkoutService.js usa withTransaction() e registra ESTORNO PENDENTE
+        no audit_log se a escrita falhar depois da cobranca.
+7:const { withTransaction } = require('../database/connection');
+19:        return await withTransaction(async () => {
+38:            .create(`ESTORNO PENDENTE: cobranca de ${price} do usuario ${userId} no curso ${courseId} sem matricula`)
+
+--- [HIGH] pagamento recusado nao deixa matricula/pagamento orfao ---
+Pagamento recusado
+HTTP 400
+-> 'Clean Architecture' continua com 1 aluno (Leonan), sem linha do Joao:
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    }
+]
+
+--- [HIGH] erro centralizado: JSON malformado nao vaza stack nem trava ---
+$ curl -X POST http://localhost:3100/api/checkout -d '{isso nao e json'
+Bad Request
+HTTP 400
+grep 'try {' nos controllers ->
+  (nenhum try/catch em controller — tratamento e do errorHandler)
+
+--- [HIGH] cascade delete: apaga de verdade e 404 para id inexistente ---
+$ curl -X DELETE http://localhost:3100/api/users/2   (Guilherme, matriculado em Docker)
+Usuário e seus registros associados (matrículas e pagamentos) foram deletados.
+HTTP 200
+-> Docker agora sem alunos e sem receita (cascade em enrollments/payments):
+[
+    {
+        "course": "Clean Architecture",
+        "revenue": 997,
+        "students": [
+            {
+                "student": "Leonan",
+                "paid": 997
+            }
+        ]
+    },
+    {
+        "course": "Docker",
+        "revenue": 0,
+        "students": []
+    }
+]
+$ curl -X DELETE http://localhost:3100/api/users/9999   (id inexistente)
+Usuário não encontrado
+HTTP 404
+esperado: HTTP 404 (antes: HTTP 200 dizendo que apagou)
+
+--- [HIGH] rollback da transacao (prova mecanica, em processo) ---
+$ npm run test:internal          (internal-tests.js, checagens 1 e 2)
+  ✓ rollback: matricula nao sobra quando o pagamento falha
+      erro propagado: falha simulada gravando o pagamento | enrollments 1 -> 1
+  ✓ controle negativo: sem transacao a linha orfa persiste (prova que a checagem acima mede algo)
+      enrollments 1 -> 2
+
+--- [HIGH] cache global write-only removido ---
+$ ls src/services/ ; grep -rn cacheService src/
+checkoutService.js
+paymentGatewayService.js
+reportService.js
+userService.js
+  (nenhuma referencia — servico removido)
+
+--- [MEDIUM] validacao de entrada: tipos malformados viram 400, nao TypeError ---
+$ curl -X POST .../api/checkout  com card numerico (antes: TypeError no maskCard, handler travava)
+Bad Request
+HTTP 400
+$ curl -X POST .../api/checkout  com c_id nao numerico (antes: 404 generico)
+Bad Request
+HTTP 400
+$ curl -X DELETE .../api/users/abc
+Bad Request
+HTTP 400
+
+--- [MEDIUM] per_page limitado + [MEDIUM] app importavel sem abrir porta ---
+$ npm run test:internal          (internal-tests.js, checagens 3 e 4)
+  ✓ app: src/app.js importavel sem abrir porta nem criar schema
+      quem chama listen() e o src/server.js
+  ✓ paginacao: per_page limitado ao teto e default vindo do config
+      per_page=999999999 -> 100 (teto 100) | sem per_page -> 20
+
+--- [MEDIUM] campos de config mortos e verifyPassword removidos ---
+$ cat src/config/index.js ; grep -rn 'dbUser|dbPass|smtpUser|verifyPassword' src/
+require('dotenv').config();
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+const config = {
+    serviceName: process.env.SERVICE_NAME || 'ecommerce-api-legacy',
+    paymentGatewayKey: process.env.PAYMENT_GATEWAY_KEY,
+    port: Number(process.env.PORT) || 3000,
+    logLevel: process.env.LOG_LEVEL || 'info',
+    defaultPageSize: Number(process.env.DEFAULT_PAGE_SIZE) || DEFAULT_PAGE_SIZE,
+    maxPageSize: Number(process.env.MAX_PAGE_SIZE) || MAX_PAGE_SIZE,
+};
+
+module.exports = config;
+  (nenhuma ocorrencia em src/ nem em .env.example)
+
+--- [LOW] rota desconhecida responde JSON, nao HTML do Express ---
+$ curl -i http://localhost:3100/api/nao-existe
+{"error":"not_found"}
+HTTP 404
+esperado: {"error":"not_found"} (antes: <pre>Cannot GET /api/nao-existe</pre>)
+
+--- [LOW] metadata do pacote e nome do servico no boot ---
+$ node -e "const p=require('./package.json'); console.log(p.name, '|', p.description); console.log(p.scripts)"
+ecommerce-api-legacy | API LMS (Node.js/Express) refatorada para MVC pela skill refactor-arch
+{"start":"node src/server.js","test":"./manual-tests.sh","arch-check":"./arch-check.sh"}
+
+### 6. LOG DO SERVIDOR NA INSTANCIA DOS CURLS POR FINDING
+
+> ecommerce-api-legacy@1.0.0 start
+> node src/server.js
+
+{"timestamp":"2026-09-20T00:47:12.605Z","level":"info","message":"ecommerce-api-legacy rodando na porta 3100..."}
+{"timestamp":"2026-09-20T00:47:22.320Z","level":"warn","message":"Bad Request","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:22.400Z","level":"info","message":"Processing payment","card":"4111********4444","amount":497,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T00:47:22.545Z","level":"info","message":"Processing payment","card":"5111********4444","amount":997,"gateway":"missing-key"}
+{"timestamp":"2026-09-20T00:47:22.545Z","level":"warn","message":"Pagamento recusado","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:35.539Z","level":"warn","message":"Malformed JSON body","path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:35.650Z","level":"warn","message":"Usuário não encontrado","status":404,"path":"/api/users/9999"}
+{"timestamp":"2026-09-20T00:47:45.339Z","level":"warn","message":"Bad Request","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:45.351Z","level":"warn","message":"Bad Request","status":400,"path":"/api/checkout"}
+{"timestamp":"2026-09-20T00:47:45.363Z","level":"warn","message":"Bad Request","status":400,"path":"/api/users/abc"}
+{"timestamp":"2026-09-20T00:47:45.576Z","level":"warn","message":"Route not found","method":"GET","path":"/api/nao-existe"}
+
+==========================================================
+### 7. ARCH-CHECK FINAL (apos todas as alteracoes)
+==========================================================
+$ ./arch-check.sh
+==========================================================
+arch-check — ecommerce-api-legacy
+AP-16: rotas não podem tocar a persistência diretamente
+==========================================================
+
+  ✓ src/routes/index.js
+
+==========================================================
+PASS: no route in ecommerce-api-legacy touches persistence directly.
+(1 arquivo(s) de rota verificado(s))
+==========================================================
+exit: 0
+
+==========================================================
+==========================================================
+### 7.1. INTERNAL-TESTS.JS (execucao completa)
+==========================================================
+Os probes desta rodada foram consolidados em ecommerce-api-legacy/internal-tests.js
+e ficam no repositorio — as checagens acima sao reproduziveis por quem avaliar.
+
+$ npm run test:internal
+==========================================================
+internal-tests — ecommerce-api-legacy
+Checagens em processo (sem servidor)
+==========================================================
+
+  ✓ rollback: matricula nao sobra quando o pagamento falha
+      erro propagado: falha simulada gravando o pagamento | enrollments 1 -> 1
+  ✓ controle negativo: sem transacao a linha orfa persiste (prova que a checagem acima mede algo)
+      enrollments 1 -> 2
+  ✓ app: src/app.js importavel sem abrir porta nem criar schema
+      quem chama listen() e o src/server.js
+  ✓ paginacao: per_page limitado ao teto e default vindo do config
+      per_page=999999999 -> 100 (teto 100) | sem per_page -> 20
+
+==========================================================
+PASS: 4 checagem(ns) internas OK.
+==========================================================
+exit: 0
+
+Validacao do proprio harness (mesmo criterio do detector do arch-check):
+uma copia adulterada, esperando per_page SEM teto, tem que reprovar.
+$ node internal-tests-tampered.js
+  ✗ paginacao: per_page limitado ao teto e default vindo do config
+      per_page=999999999 -> 100 (teto 100) | sem per_page -> 20
+FAIL: 1 de 4 checagem(ns) falharam.
+exit: 1
+
+### 8. FECHAMENTO
+==========================================================
+13 de 16 findings do audit-project-2-part3.md resolvidos.
+
+Deixados abertos de proposito (limite de escopo do RP-15 — sao contrato da API):
+  [LOW] Inconsistent language/naming conventions   — usr/eml/pwd/c_id/card e as
+        mensagens em portugues seguem como estao; documentado, nao renomeado.
+  [LOW] Inconsistent response-format conventions   — corpos texto x JSON e
+        enrollment_id em snake_case seguem como estao; documentado, nao renomeado.
+
+Resolvido por remocao, nao por integracao:
+  [MEDIUM] verifyPassword inalcancavel — nao existe rota de autenticacao neste
+        projeto e cria-la seria mudanca de feature, fora do escopo de um refactor
+        estrutural. Seguindo o RP-10 ('se a feature esta fora de escopo, apague o
+        modulo morto'), a funcao foi removida; o historico do git a preserva.
+
+Mudanca de comportamento intencional (era o defeito relatado, nao regressao):
+  DELETE /api/users/<id inexistente> agora responde 404 'Usuário não encontrado'.
+  Antes respondia 200 afirmando ter apagado registros que nunca existiram.
+  manual-tests.sh foi atualizado no rotulo desse caso para 'esperado 404'.
+
+Validadores que ficam no repositorio para esta entrega:
+  ./arch-check.sh        estrutura (AP-16)
+  npm run test:internal  caixa-branca em processo (internal-tests.js)
+  npm test               endpoints via curl (manual-tests.sh, app de pe)
+
+Fim da validacao.

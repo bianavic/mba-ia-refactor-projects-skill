@@ -1,0 +1,62 @@
+=== scripts/arch-check.sh (bundled, generic) on code-smells-project ===
+==========================================================
+arch-check — code-smells-project
+AP-16: routes must not touch persistence directly
+Detected sources: py
+==========================================================
+
+  OK   routes/__init__.py
+  OK   routes/routes.py
+
+==========================================================
+PASS: no route in code-smells-project touches persistence directly.
+(2 route file(s) checked)
+==========================================================
+exit code: 0
+
+=== scripts/arch-check.sh (bundled, generic) on ecommerce-api-legacy ===
+==========================================================
+arch-check — ecommerce-api-legacy
+AP-16: routes must not touch persistence directly
+Detected sources: js
+==========================================================
+
+  OK   src/routes/index.js
+
+==========================================================
+PASS: no route in ecommerce-api-legacy touches persistence directly.
+(1 route file(s) checked)
+==========================================================
+exit code: 0
+
+=== scripts/arch-check.sh (bundled, generic) on task-manager-api ===
+==========================================================
+arch-check — task-manager-api
+AP-16: routes must not touch persistence directly
+Detected sources: py
+==========================================================
+
+  OK   routes/__init__.py
+  OK   routes/report_routes.py
+  OK   routes/task_routes.py
+  OK   routes/user_routes.py
+
+==========================================================
+PASS: no route in task-manager-api touches persistence directly.
+(4 route file(s) checked)
+==========================================================
+exit code: 0
+
+=== scripts/arch-check.sh (bundled, generic) on a project with no identifiable route layer (INCONCLUSIVE case) ===
+==========================================================
+arch-check — no-routes-here
+AP-16: routes must not touch persistence directly
+Detected sources: js
+==========================================================
+
+INCONCLUSIVE: no route/view file identified under no-routes-here.
+This is not a pass — AP-16 was not verified. Point the check at the
+routing layer with ROUTE_DIRS / ROUTE_FILE_GLOBS (see the header, or
+references/verification-recipes.md).
+==========================================================
+exit code: 2

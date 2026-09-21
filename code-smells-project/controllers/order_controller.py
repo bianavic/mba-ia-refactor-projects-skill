@@ -2,8 +2,9 @@ import logging
 
 from flask import jsonify, request
 
-from config.settings import DEFAULT_PAGE, DEFAULT_PER_PAGE, PEDIDO_STATUS_VALIDOS
+from config.settings import PEDIDO_STATUS_VALIDOS
 from models import order_model
+from utils.pagination import parse_pagination
 
 logger = logging.getLogger(__name__)
 
@@ -42,18 +43,22 @@ def criar():
 
 def listar_por_usuario(usuario_id):
     try:
-        pedidos = order_model.get_por_usuario(usuario_id)
+        page, per_page = parse_pagination()
+        pedidos = order_model.get_por_usuario(usuario_id, page, per_page)
         return jsonify({"dados": pedidos, "sucesso": True}), 200
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
 
 def listar_todos():
     try:
-        page = int(request.args.get("page", DEFAULT_PAGE))
-        per_page = int(request.args.get("per_page", DEFAULT_PER_PAGE))
+        page, per_page = parse_pagination()
         pedidos = order_model.get_todos(page, per_page)
         return jsonify({"dados": pedidos, "sucesso": True}), 200
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
@@ -66,7 +71,9 @@ def atualizar_status(pedido_id):
         if novo_status not in PEDIDO_STATUS_VALIDOS:
             return jsonify({"erro": "Status inválido"}), 400
 
-        order_model.atualizar_status(pedido_id, novo_status)
+        atualizado = order_model.atualizar_status(pedido_id, novo_status)
+        if not atualizado:
+            return jsonify({"erro": "Pedido não encontrado"}), 404
 
         if novo_status == "aprovado":
             logger.info("Pedido %s aprovado. Preparar envio.", pedido_id)

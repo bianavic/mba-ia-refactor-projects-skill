@@ -1,4 +1,8 @@
-from config.settings import PRODUTO_CATEGORIAS_VALIDAS
+from config.settings import (
+    NOME_PRODUTO_MAX_LEN,
+    NOME_PRODUTO_MIN_LEN,
+    PRODUTO_CATEGORIAS_VALIDAS,
+)
 from models.db import get_db
 
 
@@ -20,9 +24,9 @@ def _validar_campos(nome, preco, estoque, categoria):
         raise ValueError("Preço não pode ser negativo")
     if estoque < 0:
         raise ValueError("Estoque não pode ser negativo")
-    if len(nome) < 2:
+    if len(nome) < NOME_PRODUTO_MIN_LEN:
         raise ValueError("Nome muito curto")
-    if len(nome) > 200:
+    if len(nome) > NOME_PRODUTO_MAX_LEN:
         raise ValueError("Nome muito longo")
     if categoria not in PRODUTO_CATEGORIAS_VALIDAS:
         raise ValueError(f"Categoria inválida. Válidas: {PRODUTO_CATEGORIAS_VALIDAS}")
@@ -77,7 +81,7 @@ def deletar(produto_id):
     return True
 
 
-def buscar(termo, categoria=None, preco_min=None, preco_max=None):
+def buscar(termo, categoria=None, preco_min=None, preco_max=None, page=1, per_page=20):
     db = get_db()
     cursor = db.cursor()
 
@@ -96,6 +100,10 @@ def buscar(termo, categoria=None, preco_min=None, preco_max=None):
     if preco_max is not None:
         query += " AND preco <= ?"
         params.append(preco_max)
+
+    offset = (page - 1) * per_page
+    query += " LIMIT ? OFFSET ?"
+    params.extend([per_page, offset])
 
     cursor.execute(query, params)
     return [_to_dict(row) for row in cursor.fetchall()]

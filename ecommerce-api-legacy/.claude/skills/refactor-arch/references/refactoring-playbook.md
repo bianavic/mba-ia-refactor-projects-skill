@@ -247,6 +247,120 @@ Always confirm the replacement against the installed version's own docs/changelo
 - Delete imports with no remaining reference in the file.
 - Move inline literal lists that represent configuration (valid categories, limits) into the config module or a database-backed table, and read them from there.
 
+## RP-14 — Move persistence out of routes (fixes AP-16)
+
+**Before (Flask):** the route talks to the ORM itself.
+```python
+# routes/task_routes.py
+@bp.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task = Task.query.get(task_id)      # persistence inside the route
+    if not task:
+        return jsonify({"error": "task not found"}), 404
+    db.session.delete(task)
+    db.session.commit()
+    return "", 204
+```
+
+**After:** query and commit move one layer down; the route only parses, calls once, and serializes.
+```python
+# controllers/task_controller.py
+def delete_task(task_id):
+    task = task_model.get(task_id)
+    if not task:
+        raise NotFound("task not found")   # handled by the central error handler (RP-11)
+    task_model.delete(task)
+
+# routes/task_routes.py
+@bp.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task_controller.delete_task(task_id)
+    return "", 204
+```
+
+Same shape in Node/Express: `router.delete('/tasks/:id', taskController.remove)`, with the `Task.findByPk`/`destroy` calls living in the controller or model.
+
+If a `services/` module already exists for that domain, put the function there instead of creating `controllers/`. What is never acceptable is leaving the call in the route because "the project is already layered" — and a Model finder called straight from the route (`Task.get_by_id(...)`) is the same violation: the route must make exactly one Controller/Service call.
+
+## RP-15 — Apply one naming/language convention (fixes AP-15)
+
+**Before:** identifiers in two languages inside the same layer, with no rule for which goes where.
+```python
+# routes/product_routes.py
+def listar_produtos():
+    product_list = Produto.query.all()          # "product_list" here, "produtos" three lines below
+    return jsonify([p.to_dict() for p in product_list])
+```
+
+**After:** adopt the convention already dominant in the project and apply it consistently to the code it owns.
+```python
+# routes/product_routes.py
+def listar_produtos():
+    produtos = produto_controller.listar()
+    return jsonify(produtos)
+```
+
+**Scope limit — this one is deliberately narrow.** Rename only what is internal: local variables, helper functions, private methods. Route paths, request/response field names, and database column names are part of the contract the refactor promised not to change (see `architecture-guidelines.md`, *Non-negotiable output constraints*), so leave them exactly as they are even when they do not match the chosen convention. Same for user-facing message strings: they stay in the language the API already answers in. If a name can only be fixed by changing a response field, it is not an AP-15 fix — report it and leave it.
+
+## RP-16 — Add authentication/authorization enforcement (fixes AP-17)
+
+**Before (Flask):** a login endpoint issues a token, but nothing ever reads it back; every route trusts any caller.
+```python
+# routes/user_routes.py
+@app.route('/login', methods=['POST'])
+def login():
+    user = User.query.filter_by(email=request.json['email']).first()
+    if not user or not user.check_password(request.json['password']):
+        return jsonify({'error': 'invalid credentials'}), 401
+    token = serializer.dumps(user.id)   # issued...
+    return jsonify({'token': token})
+
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    User.query.get(user_id).delete()    # ...and never checked again, by this or any other route
+    return '', 204
+```
+**After (Flask):** a guard reads the token back and every sensitive route requires it.
+```python
+# middlewares/auth.py
+def login_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        token = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+        try:
+            user_id = serializer.loads(token, max_age=TOKEN_MAX_AGE_SECONDS)
+        except (BadSignature, SignatureExpired):
+            abort(401, description='Credenciais inválidas')
+        user = db.session.get(User, user_id)
+        if not user or not user.active:
+            abort(401 if not user else 403)
+        g.current_user = user
+        return view(*args, **kwargs)
+    return wrapper
+
+# routes/user_routes.py
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+@login_required
+def delete_user(user_id):
+    ...
+```
+
+**Before (Node.js/Express):** every route is public, including one whose path says otherwise.
+```js
+router.get('/api/admin/financial-report', reportController.financialReport);
+router.delete('/api/users/:id', userController.deleteUser);
+```
+**After (Node.js/Express):**
+```js
+const requireAuth = require('../middlewares/requireAuth'); // verifies a session/JWT, sets req.user
+const requireRole = require('../middlewares/requireRole');
+
+router.get('/api/admin/financial-report', requireAuth, requireRole('admin'), reportController.financialReport);
+router.delete('/api/users/:id', requireAuth, userController.deleteUser);
+```
+
+**Scope limit — this one changes observable behavior, unlike every other pattern in this playbook.** Every other RP here is a refactor: same inputs, same outputs, different internal structure. Wiring enforcement onto a previously-open endpoint is not — a caller that worked yesterday gets a 401/403 today, which is exactly the kind of silent breaking change Phase 2's confirmation gate exists to prevent. Report the AP-17 finding in Phase 2 like any other, but do not apply this specific fix automatically just because the user answered "y" to the generic "proceed with refactoring" question — call out *this* change by name and get explicit confirmation of it before writing the guard and adding it to routes. If the project has no notion of accounts/roles at all (no `users` table, no login endpoint, nothing to build a guard on top of), do not invent an auth system from scratch — report the gap and stop; that is a product decision, not a mechanical refactor.
+
 ---
 
 Every finding reported in Phase 2 must map to one of the RP-xx patterns above (or a project-specific variant following the same before/after principle) before Phase 3 starts making changes.

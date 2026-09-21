@@ -1,6 +1,10 @@
 # Audit Report Template (Phase 2)
 
-Render the Phase 2 output using exactly this structure. Keep the box-drawn headers (`====`) as shown — they make phase boundaries easy to spot in the terminal.
+Run the Phase 2 architecture audit and produce a report for every execution. Save the report to the `reports/` directory at the root of the enclosing git repository — find it with `git rev-parse --show-toplevel` (never assume the current working directory), then use `<that path>/reports/`. This repo holds several project folders side by side (each with its own copy of this skill) and shares one `reports/` directory and one project-numbering sequence across all of them — do not create or use a project-local `reports/` folder even though the project directory is the working directory this skill was invoked from. Print the report to the terminal in the exact format below.
+
+## Report format
+
+Render the Phase 2 output using exactly this structure. Keep the box-drawn headers (`====`) as shown — they make phase boundaries easy to spot in the terminal. This structure applies identically whether it's the project's first Phase 2 report or a re-run.
 
 ```
 ================================
@@ -36,6 +40,30 @@ Total: <N> findings
 Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]
 ```
 
+## Report persistence and history
+
+Naming convention:
+
+- First report for a project: `reports/audit-project-<N>.md`
+- Re-run for the same project: `reports/audit-project-<N>-part<M>.md`, where `<M>` starts at 2 for the second audit and increments sequentially, continuing the existing numbering rather than starting a new sequence
+
+Example: `reports/audit-project-7.md`, `reports/audit-project-7-part2.md`, `reports/audit-project-7-part3.md`.
+
+Never overwrite an existing report. Each file is an immutable snapshot of one Phase 2 execution, saved regardless of whether it's the first audit or a re-run. Before saving, inspect the repo-root `reports/` directory (see above — not a project-local one) to determine the next available filename. The `<N>` in `audit-project-<N>.md` is a repo-wide sequence shared across all projects, not a per-project counter — check every existing report's `Project:` line to find whether this project already has a number, rather than assuming the next free `<N>` belongs to it.
+
+Handling re-runs: review the previous report(s) first. Confirm resolution of every finding from the previous part before treating it as closed — a finding that reappears, even partially (e.g. a fix that addressed the letter of the recommendation but not its intent), is not new; note it as still open.
+
+Consolidated summary: when a project has more than one part and someone needs a single view for action planning, build a separate deliverable by merging all parts chronologically, marking each finding's status (resolved / still open / duplicate-of-earlier-round), then closing with one deduplicated count of only the currently open, unique findings. This is the number that drives the next Phase 3 run, not the raw sum of findings across every part.
+
+## Execution order
+
+1. Complete the architecture audit.
+2. Determine the next available report filename (see "Report persistence and history" above).
+3. Save the complete report to that file.
+4. Print the complete report to the terminal, exactly as formatted above.
+5. Stop. Ask the user the literal question: `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]`
+6. Wait for an affirmative reply before starting Phase 3. Do not proceed automatically.
+
 ## Rules for filling the template
 
 - **Order:** findings must be sorted CRITICAL → HIGH → MEDIUM → LOW. Within the same severity, keep the order you discovered them.
@@ -43,4 +71,4 @@ Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]
 - **Description vs. Impact:** description is what the code does; impact is why that matters (what an attacker/user/operator experiences as a result). Don't merge them into one vague sentence.
 - **Recommendation:** must reference the anti-pattern catalog ID (`AP-xx`) and/or the playbook pattern ID (`RP-xx`) that Phase 3 will apply — this is what lets Phase 3 execute mechanically off the report instead of re-deriving fixes from scratch.
 - **Minimum bar:** at least 5 findings total, with at least 1 CRITICAL or HIGH, at least 2 MEDIUM, and at least 2 LOW. If the real count is short in a category, look harder before finalizing — never invent a finding to fill a slot.
-- **The final line is mandatory and literal.** After printing the report, stop. Do not proceed to Phase 3 until the user responds affirmatively in a follow-up message.
+- **Final line:** must match the literal template line exactly — `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]`.
