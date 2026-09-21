@@ -388,10 +388,13 @@ quando o projeto já tem pastas `services/`/`controllers/` usadas por outras rot
 `a6527c1` (2026-09-19) foi além: tornou a verificação **mecânica e agnóstica de stack** —
 `scripts/arch-check.sh`, empacotado pela skill, detecta a linguagem, seleciona os arquivos de
 rota e aplica os sinais de persistência corretos por stack (Python, JS/TS, Go, Java/Kotlin,
-Ruby, PHP, C#), documentados em `references/verification-recipes.md`. Um Go real expôs mais um
-ajuste necessário: lá persistência é função de pacote, não método de receiver, então o padrão
-inicial (baseado em `Model.find(...)`) dava falso PASS numa rota cheia de violações — corrigido
-no mesmo commit. Desde então, a Fase 3 do `SKILL.md` trata esse check como **obrigatório e
+Ruby, PHP, C#), documentados em `references/verification-recipes.md`. Um projeto Go/Gin público
+de terceiros — rodado só nas Fases 1 e 2, fora deste repositório, e cujo relatório não faz parte
+da entrega — expôs mais um ajuste necessário, e este **não tem relação com o AP-16 do
+`task-manager-api` descrito acima**: em Go a persistência é função de pacote, não método de
+receiver, então o padrão inicial (baseado em `Model.find(...)`) dava falso PASS numa rota cheia
+de violações — corrigido no mesmo commit. Contexto completo em
+[Evolução do Uso de IA, 7.3](ai-evolution.md#73-modo-headless-e-ci). Desde então, a Fase 3 do `SKILL.md` trata esse check como **obrigatório e
 nunca substituível** por teste de endpoint (passo 6, "Static AP-16 audit").
 
 **Confirmação em `task-manager-api`:** a rodada 3 ([`audit-project-3-part3.md`](../reports/audit-project-3-part3.md))
