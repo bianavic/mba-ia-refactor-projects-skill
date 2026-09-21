@@ -91,31 +91,44 @@ listar_arquivos() {
 # Bloco 1 — tabela de auditoria
 # --------------------------------------------------------------------------
 gerar_audit_summary() {
-  local projeto n relatorio stack crit high med low total
-  echo "| # | Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |"
-  echo "|---|---|---|---:|---:|---:|---:|---:|---|"
+  local projeto n rodada relatorio stack crit high med low total partes parte primeira
+  echo "| # | Projeto | Rodada | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |"
+  echo "|---|---|---:|---|---:|---:|---:|---:|---:|---|"
   n=0
   for projeto in "${PROJETOS[@]}"; do
     n=$((n + 1))
-    # relatório corrente = maior -partM existente; na ausência de partes, o base
-    relatorio="reports/audit-project-${n}.md"
-    # o glob pode não casar nada (projeto sem re-auditoria): pipefail não pode matar o script
-    parte="$( { ls -1 reports/audit-project-${n}-part*.md 2>/dev/null || true; } \
-             | sed 's|.*-part\([0-9]*\)\.md$|\1|' | sort -n | tail -1)"
-    if [[ -n "$parte" ]]; then relatorio="reports/audit-project-${n}-part${parte}.md"; fi
-    if [[ ! -f "$relatorio" ]]; then
-      echo "| $n | \`$projeto\` | — | — | — | — | — | — | _pendente_ |"
+    if [[ ! -f "reports/audit-project-${n}.md" ]]; then
+      echo "| $n | \`$projeto\` | — | — | — | — | — | — | — | _pendente_ |"
       continue
     fi
-    stack="$(sed -n 's/^Stack: *//p' "$relatorio" | head -1)"
-    read -r crit high med low <<<"$(sed -n '/^## Summary/,/^$/p' "$relatorio" \
-      | sed -n 's/.*CRITICAL: *\([0-9]*\).*HIGH: *\([0-9]*\).*MEDIUM: *\([0-9]*\).*LOW: *\([0-9]*\).*/\1 \2 \3 \4/p' | head -1)"
-    : "${crit:=0}" "${high:=0}" "${med:=0}" "${low:=0}"
-    total=$((crit + high + med + low))
-    echo "| $n | \`$projeto\` | $stack | $crit | $high | $med | $low | **$total** | [\`${relatorio#reports/}\`]($relatorio) |"
+    # rodada 1 = relatório base; rodadas seguintes = -part2, -part3, ... em ordem numérica.
+    # o glob pode não casar nada (projeto sem re-auditoria): pipefail não pode matar o script
+    partes="$( { ls -1 reports/audit-project-${n}-part*.md 2>/dev/null || true; } \
+              | sed 's|.*-part\([0-9]*\)\.md$|\1|' | sort -n)"
+    primeira=1
+    for parte in "" $partes; do
+      if [[ -z "$parte" ]]; then
+        rodada=1
+        relatorio="reports/audit-project-${n}.md"
+      else
+        rodada="$parte"
+        relatorio="reports/audit-project-${n}-part${parte}.md"
+      fi
+      stack="$(sed -n 's/^Stack: *//p' "$relatorio" | head -1)"
+      read -r crit high med low <<<"$(sed -n '/^## Summary/,/^$/p' "$relatorio" \
+        | sed -n 's/.*CRITICAL: *\([0-9]*\).*HIGH: *\([0-9]*\).*MEDIUM: *\([0-9]*\).*LOW: *\([0-9]*\).*/\1 \2 \3 \4/p' | head -1)"
+      : "${crit:=0}" "${high:=0}" "${med:=0}" "${low:=0}"
+      total=$((crit + high + med + low))
+      if (( primeira )); then
+        echo "| $n | \`$projeto\` | $rodada | $stack | $crit | $high | $med | $low | **$total** | [\`${relatorio#reports/}\`]($relatorio) |"
+        primeira=0
+      else
+        echo "| | | $rodada | $stack | $crit | $high | $med | $low | **$total** | [\`${relatorio#reports/}\`]($relatorio) |"
+      fi
+    done
   done
   echo
-  echo "<sub>Gerado por \`scripts/sync-docs.sh\` a partir de \`reports/\`. Não edite à mão.</sub>"
+  echo "<sub>Gerado por \`scripts/sync-docs.sh\` a partir de \`reports/\`: uma linha por rodada, da primeira à mais recente. Não edite à mão.</sub>"
 }
 
 # --------------------------------------------------------------------------

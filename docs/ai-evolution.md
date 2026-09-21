@@ -35,13 +35,13 @@ A Fase 2 é read-only por definição — o que a torna o candidato natural para
 
 - **Auditoria como gate de PR.** `claude -p` com as ferramentas restritas a leitura transforma "a Fase 2 nunca modifica arquivos" numa garantia do processo, não do modelo. Falhar o PR quando aparece um CRITICAL/HIGH ausente do baseline converte os relatórios de `reports/` — hoje evidência estática do estado "antes" — em baseline executável.
 - **Saída estruturada.** Se a Fase 2 emitisse `audit.json` junto com o markdown, o diff entre auditorias seria mecânico. É exatamente o trabalho que hoje é feito à mão nos relatórios `-part2`, cuja seção `## Resolved since ...` é redigida manualmente.
-- **Execução em lote multi-repo.** O teste da seção 5.6 foi um projeto externo. O mesmo procedimento sobre N repositórios públicos produziria uma medida de genericidade em vez de um argumento — e é como a lacuna do Go apareceria numa quarta linguagem antes de alguém tropeçar nela.
+- **Execução em lote multi-repo.** O teste com o projeto Go externo ([Bug Encontrado Após a Entrega](results.md#bug-encontrado-após-a-entrega)) foi um repositório só. O mesmo procedimento sobre N repositórios públicos produziria uma medida de genericidade em vez de um argumento — e é como a lacuna do Go apareceria numa quarta linguagem antes de alguém tropeçar nela.
 
 ## 7.4 Decomposição da Skill e Evals
 
 - **Três skills em vez de três fases.** `arch-audit` (read-only), `arch-refactor` e `arch-verify`. O gate entre Fase 2 e Fase 3 viraria uma fronteira real, e `arch-verify` ficaria reutilizável em CI sem arrastar o resto do fluxo.
 - **Testes de caracterização antes da Fase 3.** "Preservar o comportamento existente" hoje é verificado por um `manual-tests.sh` escrito à mão, depois do fato. A Fase 1 já monta a tabela de rotas: gerar os testes *antes* de tocar no código transforma a preservação de comportamento em medida, não em afirmação.
-- **Evals da skill.** Rodar a skill contra repositórios não vistos e medir se ela dispara, se atinge a distribuição mínima de achados e se todo achado cita arquivo:linha real. É a forma de substituir "a skill é agnóstica de tecnologia" por um número — e a seção 5.6 mostra que a pergunta não é retórica.
+- **Evals da skill.** Rodar a skill contra repositórios não vistos e medir se ela dispara, se atinge a distribuição mínima de achados e se todo achado cita arquivo:linha real. É a forma de substituir "a skill é agnóstica de tecnologia" por um número — e o falso PASS do Go ([Bug Encontrado Após a Entrega](results.md#bug-encontrado-após-a-entrega)) mostra que a pergunta não é retórica.
 - **Distribuição como plugin.** A triplicata da skill é exigência do enunciado ([seção 9.4.3](challenge-original.md#94-requisitos)), não uma escolha de design. Fora deste contexto, empacotar como plugin instalável resolveria a duplicação sem copiar diretórios.
 
 ## 7.5 Limites Conhecidos

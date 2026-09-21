@@ -12,7 +12,7 @@ nunca removida quando uma rodada nova é adicionada, porque é a evidência do e
 ### code-smells-project
 
 **Rodada 1 — [`audit-project-1.md`](../reports/audit-project-1.md).**
-13 findings (4 CRITICAL, 3 HIGH, 2 MEDIUM, 4 LOW) sobre o boilerplate original de 4 arquivos
+12 findings (4 CRITICAL, 3 HIGH, 2 MEDIUM, 3 LOW) sobre o boilerplate original de 4 arquivos
 (`app.py`, `controllers.py`, `database.py`, `models.py`, ~780 linhas). A Fase 3 reestruturou o
 projeto em `config/`, `controllers/`, `models/`, `routes/`, `middlewares/`, `utils/`; parametrizou
 todas as queries; moveu `SECRET_KEY`/`DEBUG`/`DB_PATH`/host/porta para `config/settings.py`; parou
@@ -258,15 +258,20 @@ controle positivo (`X-Admin-Token` correto continua 200).
 
 Achado colateral, registrado no relatório mas fora do formato da Fase 2: nem
 `references/anti-patterns-catalog.md` nem `references/refactoring-playbook.md` (nas 3 cópias)
-tem entrada para "ausência de autenticação/autorização" — é o motivo mecânico do gap ter
-atravessado três rodadas sem ser pego. Próximo id livre: AP-17. `code-smells-project` e
-`task-manager-api` nunca foram auditados especificamente para esse gap, então o mesmo pode
-existir neles sem ter sido reportado ainda.
+tinha entrada para "ausência de autenticação/autorização" — é o motivo mecânico do gap ter
+atravessado três rodadas sem ser pego. **Fechado em 2026-09-20:** o catálogo das 3 cópias da
+skill ganhou o `AP-17 — Missing Authentication/Authorization on Sensitive Endpoints`
+(CRITICAL) e o playbook, o `RP-16` correspondente — o único padrão do playbook que muda
+comportamento observável e por isso exige confirmação explícita além do gate da Fase 2.
+O catálogo passou de 16 para 17 entradas e o playbook, de 15 para 16 padrões.
+`code-smells-project` e `task-manager-api` nunca foram auditados especificamente para esse gap
+antes da catalogação; hoje os dois têm guarda de token nas rotas sensíveis, cada um em seu
+`middlewares/auth.py`.
 
 ### task-manager-api
 
 **Rodada 1 — [`audit-project-3.md`](../reports/audit-project-3.md).**
-14 findings (4 CRITICAL, 2 HIGH, 4 MEDIUM, 4 LOW) sobre o projeto original de 15 arquivos
+13 findings (4 CRITICAL, 2 HIGH, 4 MEDIUM, 3 LOW) sobre o projeto original de 15 arquivos
 (~1158 linhas), que já tinha `models/`, `routes/`, `services/`, `utils/` mas ainda concentrava
 lógica e persistência nas rotas. Os CRITICAL: `User.to_dict()` devolvia o hash da senha em
 toda resposta; senha hasheada com MD5 sem sal; `SECRET_KEY` hardcoded + `debug=True` em
@@ -345,7 +350,9 @@ decisão.
 [`evidence/logs/task-manager-api-round3-validation.txt`](../evidence/logs/task-manager-api-round3-validation.txt)
 (649 linhas, estrutura MVC/AP-16 e os achados estruturais da rodada 3) e
 [`evidence/logs/task-manager-api-round4-validation.txt`](../evidence/logs/task-manager-api-round4-validation.txt)
-(auth/autorização). Destaques do segundo: boot aborta com `RuntimeError` claro quando
+(auth/autorização). **Os dois pertencem à rodada 3** — ver
+[Como as rodadas são numeradas](#como-as-rodadas-são-numeradas): o `round4` no nome do segundo
+arquivo é anterior à regra e não corresponde a nenhum relatório. Destaques do segundo: boot aborta com `RuntimeError` claro quando
 `SECRET_KEY` está ausente fora de dev; `FLASK_ENV=development` sobe com chave efêmera de 64
 caracteres + warning; `manual-tests.sh` com casos negativos retornando 401/401/401/403/403/403
 exatamente como desenhado; um token forjado com a string antiga `'dev-secret-change-in-production'`
@@ -376,7 +383,7 @@ nenhum teste de endpoint (`manual-tests.sh`) o pega — um `curl` não distingue
 delega de uma que consulta o ORM direto, só o código-fonte revela isso.
 
 **Correção:** o commit `c4d523d` (2026-09-18) adicionou o **AP-16** ao catálogo (16 entradas
-no total), com sinal explícito de detecção mesmo quando a chamada aparece uma única vez ou
+no total à época; hoje são 17, com o AP-17 acrescentado em 2026-09-20), com sinal explícito de detecção mesmo quando a chamada aparece uma única vez ou
 quando o projeto já tem pastas `services/`/`controllers/` usadas por outras rotas. O commit
 `a6527c1` (2026-09-19) foi além: tornou a verificação **mecânica e agnóstica de stack** —
 `scripts/arch-check.sh`, empacotado pela skill, detecta a linguagem, seleciona os arquivos de
@@ -394,7 +401,7 @@ ver [nota ² acima](#task-manager-api) e
 
 ## Checklist de Validação Preenchido
 
-Notas de rodapé referenciadas pela tabela da [§3.3 do README](../README.md#33-checklist-de-validação-preenchido):
+Versão longa das notas de rodapé da tabela da [§3.3 do README](../README.md#33-checklist-de-validação-preenchido). A numeração é a mesma das duas páginas — o README traz a versão curta de cada uma; aqui fica a narrativa completa.
 
 ¹ — nota de `ecommerce-api-legacy` (célula "Relatório segue o template"). Verificada na
 rodada 3 (2026-09-20), lendo os três relatórios do projeto: os três seguem
@@ -416,20 +423,28 @@ genérico da skill) — ver
 e `controllers/user_controller.py` concentram parsing/validação/autorização e delegam
 persistência ao model; recebem `actor` explícito (`SYSTEM` por padrão, `None` para chamador
 HTTP anônimo) em vez de ler estado global, o que manteve os 40 testes de controller originais
-passando sem alteração ao acrescentar autorização na rodada 4.
+passando sem alteração ao acrescentar autorização na Fase 3 da rodada 3.
 
 ⁴ — nota de `task-manager-api` (célula "Error handling centralizado"). `middlewares/error_handler.py`
 registra dois handlers globais via `register_error_handlers(app)`: um para `HTTPException`
 (preserva código e mensagem) e um catch-all para exceção não tratada (loga e devolve 500
 genérico) — nenhuma rota trata exceção por conta própria.
 
-⁵ — **O achado de `admin_controller.py` que motivou a re-auditoria de `code-smells-project`.**
-Entre a rodada 1 e a rodada 2, a Fase 3 corrigiu o vazamento de segredo e a injeção de SQL nas
-rotas de negócio, mas manteve `POST /admin/query` executando SQL vindo do cliente. A rodada 2
-achou isso de novo (agora autenticado, mas ainda cru) e recomendou removê-lo. A rodada 3 (2026-09-19)
-finalmente fechou: `models/admin_model.py` não aceita mais SQL do cliente — só uma tabela de uma
-allow-list fixa (`produtos`, `usuarios`, `pedidos`, `itens_pedido`), cada uma resolvendo para uma
-query parametrizada hardcoded. Ver [rodada 3 de `code-smells-project`](#code-smells-project) acima.
+⁵ — **Ressalva**, nota de `code-smells-project` (célula "Error handling centralizado").
+Achado da auditoria de release de 2026-09-20, **ainda não corrigido**.
+`code-smells-project/middlewares/error_handler.py` registra dois handlers:
+`@app.errorhandler(404)` e `@app.errorhandler(Exception)`. Falta o de `HTTPException` — e como o
+Flask resolve o handler subindo a hierarquia de classes da exceção, qualquer `HTTPException` que
+não seja 404 (a mais fácil de provocar é um **405 Method Not Allowed**, mas vale para qualquer
+`abort()` com outro código) casa com o catch-all e volta ao cliente como **500 "Erro interno do
+servidor"**. O `task-manager-api` registra `HTTPException` e por isso não tem o problema.
+Segundo ponto da mesma ressalva: os controllers do projeto mantêm cerca de 30 blocos
+`try/except` locais (14 em `controllers/product_controller.py`, 8 em `order_controller.py`,
+5 em `user_controller.py`, 2 em `admin_controller.py`, 1 em `system_controller.py`), vários
+respondendo `jsonify({"erro": str(e)}), 500` — ou seja, vazando a mensagem crua da exceção.
+O handler global existe e funciona, mas não é o caminho único de erro que a célula sugere.
+Nenhuma das 4 rodadas levantou nada disso, e `manual-tests.sh` não exercita um 405 no Projeto 1
+(o do `task-manager-api` exercita, em `manual-tests.sh:67`).
 
 ⁶ — nota de `ecommerce-api-legacy` (célula "Mínimo de 5 findings" em §3.3). A rodada 4
 ([`audit-project-2-part4.md`](../reports/audit-project-2-part4.md), 2026-09-20) achou só 3
@@ -454,6 +469,43 @@ achados foram corrigidos e validados com a aplicação de pé em
 [`evidence/logs/code-smells-project-round4-validation.txt`](../evidence/logs/code-smells-project-round4-validation.txt) —
 ver [Rodada 4](#code-smells-project) acima.
 
+⁸ — nota de `task-manager-api` (células "Aplicação inicia sem erros" e a linha do projeto em
+§3.4). O projeto tem 3 rodadas, não 4: o trabalho de autenticação/autorização foi a Fase 3 da
+rodada 3, sobre os achados de
+[`audit-project-3-part3.md`](../reports/audit-project-3-part3.md). O arquivo
+`evidence/logs/task-manager-api-round4-validation.txt` foi nomeado antes da regra de numeração
+e não foi renomeado — ver [Como as rodadas são numeradas](#como-as-rodadas-são-numeradas).
+
+⁹ — **Ressalva**, nota de `task-manager-api` (célula "Controllers concentram o fluxo").
+Achado da auditoria de release de 2026-09-20, **ainda não corrigido**. A migração para
+controllers ficou incompleta: `routes/report_routes.py` chama `services/report_service.py`
+diretamente nas linhas 11, 16, 23, 30, 37 e 43 — **6 dos 22 endpoints do projeto não passam por
+controller nenhum**. E `services/report_service.py:163-221` concentra o CRUD de Category
+(`create_category`, `update_category`, `delete_category`), que é trabalho de controller + model
+sob um módulo chamado "report". Isso **passa** no `arch-check.sh` porque a regra do AP-16 aceita
+service como alvo de delegação — o check está correto, é a convenção interna do projeto (rotas
+→ controller → model) que não é seguida nesses 6 casos.
+
+¹⁰ — **Ressalva**, nota de `task-manager-api` (célula "Models abstraem dados").
+Achado da auditoria de release de 2026-09-20, **ainda não corrigido**. Parte da lógica de query
+está no model, como deveria (`models/task.py:96` `search`, `:116` `status_counts`, `:128`
+`overdue_query`, `:143` `get_statistics`), mas o resto do acesso a dados — `db.session.*` e
+`Task.query` — está espalhado por `controllers/task_controller.py`,
+`controllers/user_controller.py` e `services/report_service.py`. Os models não são uma fachada
+de persistência: são entidades que às vezes são contornadas. Diferente dos Projetos 1 e 2, onde
+todo SQL está confinado em `models/`.
+
+### O achado de `admin_controller.py` que motivou a re-auditoria de `code-smells-project`
+
+Não é nota de rodapé de nenhuma célula — é a narrativa que explica por que o projeto teve 4
+rodadas. Entre a rodada 1 e a rodada 2, a Fase 3 corrigiu o vazamento de segredo e a injeção de
+SQL nas rotas de negócio, mas manteve `POST /admin/query` executando SQL vindo do cliente. A
+rodada 2 achou isso de novo (agora autenticado, mas ainda cru) e recomendou removê-lo. A rodada
+3 (2026-09-19) finalmente fechou: `models/admin_model.py` não aceita mais SQL do cliente — só
+uma tabela de uma allow-list fixa (`produtos`, `usuarios`, `pedidos`, `itens_pedido`), cada uma
+resolvendo para uma query parametrizada hardcoded. Ver
+[rodada 3 de `code-smells-project`](#code-smells-project) acima.
+
 ## Evidências de Execução
 
 Logs de terminal em [`evidence/logs/`](../evidence/logs/), citados em
@@ -462,6 +514,24 @@ Logs de terminal em [`evidence/logs/`](../evidence/logs/), citados em
 usa só logs de terminal reais, capturados com a aplicação de pé, como evidência única.
 Inventário conferido arquivo a arquivo em 2026-09-20 — cada linha descreve o que o log
 realmente mostra.
+
+### Como as rodadas são numeradas
+
+Uma **rodada** é definida pelo relatório que a dispara: a rodada N é
+`audit-project-<N>.md` (N = 1) ou `audit-project-<N>-part<M>.md`, e a Fase 3 que corrige os
+achados desse relatório pertence à mesma rodada N — não à seguinte. Só existe rodada N se
+existir relatório N.
+
+Consequências da regra no estado atual:
+
+- `code-smells-project` e `ecommerce-api-legacy` têm 4 rodadas cada (`-part4.md` é a última).
+- `task-manager-api` tem **3 rodadas**. Não existe `audit-project-3-part4.md` e não é um
+  relatório faltando: o trabalho de autenticação/autorização foi a Fase 3 da rodada 3, sobre
+  os achados de [`audit-project-3-part3.md`](../reports/audit-project-3-part3.md).
+- O arquivo `evidence/logs/task-manager-api-round4-validation.txt` é a única exceção de nome:
+  foi capturado antes desta regra e cobre a Fase 3 da rodada 3. Não foi renomeado — log
+  capturado é artefato e está citado no README —, mas todo texto que o menciona diz a que
+  rodada ele pertence.
 
 ### Logs de terminal (15)
 
@@ -485,7 +555,7 @@ suíte completa de uma rodada.
 | `ecommerce-api-legacy-skill-run-gate-answered.txt` | 2 | O que faltava no anterior: execução **interativa**, com o gate **respondido** (`y` digitado pelo desenvolvedor, com timestamp) e a Fase 3 executando até o resumo de conclusão. Extraído do transcript da própria sessão. |
 | `task-manager-api-manual-tests.txt` | 3 | Suíte `manual-tests.sh` completa. É a evidência que sustenta "aplicação funciona" do Projeto 3 nos Critérios de Aceite. |
 | `task-manager-api-round3-validation.txt` | 3 | Validação completa da rodada 3: estrutura MVC/AP-16 e os achados estruturais da rodada. |
-| `task-manager-api-round4-validation.txt` | 3 | Validação da rodada 4 (auth/autorização): boot com/sem `SECRET_KEY`, tokens forjados/expirados/de contas apagadas ou inativas rejeitados, `pytest` 67/67. |
+| `task-manager-api-round4-validation.txt` | 3 | Validação de autenticação/autorização da **rodada 3** (o `round4` no nome é anterior à regra de numeração e não corresponde a relatório nenhum): boot com/sem `SECRET_KEY`, tokens forjados/expirados/de contas apagadas ou inativas rejeitados, `pytest` 67/67. |
 
 Os itens marcados com ⚠️ continuam válidos para o que provam, mas foram capturados antes da
 rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
@@ -522,6 +592,29 @@ rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
   antigo do pacote, `node src/app.js` e "Frankenstein LMS". Continua válido para o que prova
   (cartão mascarado no log), mas não reflete o entry point atual.
 
+### Erratas da auditoria de release (2026-09-20)
+
+Revisão de coerência do conjunto entregue, sem execução de skill nem mudança de código. O que
+foi corrigido na documentação:
+
+- **Contagem própria de dois relatórios de rodada 1.** `audit-project-1.md` declara
+  `LOW: 4 | Total: 13 findings` trazendo 3 LOW e 12 findings; `audit-project-3.md` declara
+  `LOW: 4 | Total: 14 findings` trazendo 3 LOW e 13. Os dois relatórios **não foram editados**:
+  são a evidência congelada do estado "antes", e o gate de evidência de
+  `scripts/sync-docs.sh --check` trata relatório alterado como auditoria nova, exigindo captura
+  de validação com a aplicação de pé. A correção está em
+  [`reports/ERRATA.md`](../reports/ERRATA.md), e os números derivados no README (§3.1) e nesta
+  página usam os valores corretos (12 e 13). `audit-project-2.md` não tem divergência.
+- **Catálogo e playbook defasados na documentação.** README e `skill-design.md` descreviam 16
+  anti-patterns e 15 padrões de transformação; o AP-17/RP-16 já estavam nas 3 cópias da skill
+  desde 2026-09-20. Corrigido para 17 e 16.
+- **Nome de log citado dentro de uma evidência.**
+  `evidence/logs/ecommerce-api-legacy-skill-run-gate-answered.txt`, na linha 5, cita um
+  companion log chamado `item1-2-skill-phase1-phase2-gate-code-smells-project.txt`. Esse arquivo
+  não existe: o nome atual é `code-smells-project-skill-run-phase1-2-gate.txt`, renomeado quando
+  a convenção `<projeto>-<o-que-prova>.txt` foi adotada. O log **não** foi editado — evidência
+  capturada é artefato; a correção fica registrada aqui.
+
 ## Comportamento entre Diferentes Stacks
 
 A mesma skill (`SKILL.md` + `references/` + `scripts/`, sem nenhuma edição entre execuções)
@@ -545,8 +638,9 @@ ver [§3.5 do README](../README.md#35-comportamento-entre-diferentes-stacks):
 
 O único ponto onde o processo teve que evoluir entre projetos foi o catálogo em si, não a
 skill: o anti-pattern AP-16 (persistência chamada direto da rota) só entrou no catálogo depois
-de aparecer em `task-manager-api` e atravessar a auditoria original sem ser pego — ver o
-achado ⁵ acima e o postmortem em [README](../README.md#2-construção-da-skill). Depois de
+de aparecer em `task-manager-api` e atravessar a auditoria original sem ser pego — ver
+[Bug Encontrado Após a Entrega](#bug-encontrado-após-a-entrega) acima e o postmortem em
+[README](../README.md#2-construção-da-skill). Depois de
 catalogado, o mesmo `arch-check.sh` (versão genérica da skill) e as versões específicas de
 cada projeto passaram a detectar AP-16 nos 3 projetos sem qualquer lógica por stack além da
 detecção de rota já prevista em `references/verification-recipes.md`.

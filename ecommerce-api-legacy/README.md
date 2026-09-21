@@ -22,7 +22,7 @@ ADMIN_TOKEN=algum-token npm start
 carrega variáveis de ambiente via `dotenv`) e envie o header `X-Admin-Token: algum-token`
 nas chamadas a essas duas rotas.
 
-Exemplos de requisições estão em `api.http` (boilerplate original). Para uma cobertura completa
+Exemplos de requisições estão em `api.http` (boilerplate original) — mas atenção: os exemplos de `GET /api/admin/financial-report` e `DELETE /api/users/1` desse arquivo são anteriores à guarda de autenticação e **não mandam o header `X-Admin-Token`**, então hoje respondem 401 (ou 403, se `ADMIN_TOKEN` não estiver definido no servidor). O arquivo é mantido como registro do estado original. Para uma cobertura completa
 e interativa (todos os endpoints, edge cases, e os casos de auth do `X-Admin-Token`), use
 `api-tests.http` com a extensão "REST Client" do VS Code ou equivalente — ajuste a variável
 `@adminToken` para o mesmo valor usado em `ADMIN_TOKEN` ao subir o servidor.

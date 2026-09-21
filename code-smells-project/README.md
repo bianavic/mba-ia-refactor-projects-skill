@@ -11,6 +11,19 @@ python app.py
 
 A aplicação sobe em `http://localhost:5000`. O banco SQLite (`loja.db`) é criado automaticamente no primeiro boot, já com produtos e usuários de exemplo.
 
+### Variáveis de ambiente
+
+Este projeto **não tem `.env.example`** (diferente dos outros dois do repositório); as variáveis
+são lidas em `config/settings.py` e todas têm default:
+
+| Variável | Default | Observação |
+|---|---|---|
+| `SECRET_KEY` | `dev-only-change-me` | Default versionado — **troque em qualquer uso real**. Ao contrário do `task-manager-api`, a aplicação não se recusa a subir sem ela. |
+| `ADMIN_TOKEN` | *(vazio)* | Sem valor, `/admin/*` responde 403. Ver a seção de testes. |
+| `DB_PATH` | `loja.db` | Caminho do SQLite. |
+| `HOST` / `PORT` | `0.0.0.0` / `5000` | Projetos 1 e 3 usam a 5000 — rode um por vez. |
+| `DEBUG` | `false` | |
+
 ## Testes
 
 ### Testes manuais (comportamento HTTP)
@@ -36,6 +49,15 @@ Para explorar a API interativamente (endpoint por endpoint, com resposta formata
 `api-tests.http` com a extensão "REST Client" do VS Code ou equivalente — cobre os mesmos
 endpoints do `manual-tests.sh`, além de edge cases (parâmetros inválidos, limites de permissão
 do `/admin/*`) que o script não exercita.
+
+### Testes internos (caixa-branca)
+
+```bash
+python internal-tests.py
+```
+
+Roda em processo, sem precisar da aplicação de pé, e cobre o que a resposta HTTP não revela.
+Complementa o `manual-tests.sh` — nenhum dos dois substitui o outro.
 
 ### Checagem arquitetural (AP-16)
 

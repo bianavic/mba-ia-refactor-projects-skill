@@ -65,7 +65,7 @@ cd <projeto-da-rodada> && ./arch-check.sh
 Termine listando, em texto:
 
 - projetos ainda sem relatório em `reports/`
-- `<!-- TODO -->` que continuam no README (seções 1, 2, 3.5)
+- células de §3.3 marcadas "com ressalva" e achados em aberto listados em §3.6
 - projetos rodados que ainda não têm nada em `evidence/`
 - células de checklist / critérios de aceite que ficaram em branco e por quê
 

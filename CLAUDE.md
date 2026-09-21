@@ -9,7 +9,7 @@ code-smells-project/     Projeto 1 — Python/Flask, SQLite cru       (e-commerc
 ecommerce-api-legacy/    Projeto 2 — Node.js/Express, sqlite3       (LMS/e-learning)
 task-manager-api/        Projeto 3 — Python/Flask + SQLAlchemy      (task manager)
 reports/                 relatórios de auditoria (saída da Fase 2)
-evidence/                screenshots + logs citados na seção 3.4 do README
+evidence/                logs citados na seção 3.4 do README
 docs/                    deep dives + `challenge-original.md` (o enunciado do desafio)
 scripts/                 `sync-docs.sh` — regenera as partes geradas do README e de docs/
 ```
@@ -35,6 +35,16 @@ não duplicação acidental.
   `references/audit-report-template.md` (§ Execution order, passo 3), que resolve a raiz do
   repo com `git rev-parse --show-toplevel`. Não é passo manual. O que continua manual é o
   rollup para README/`docs/` — veja a seção abaixo.
+- **Uma rodada é definida pelo relatório que a dispara**, e a Fase 3 que corrige aqueles
+  achados pertence à mesma rodada — não à seguinte. Só existe rodada N se existir relatório N.
+  Por isso o `task-manager-api` tem 3 rodadas, não 4, apesar do
+  `evidence/logs/task-manager-api-round4-validation.txt` (nome anterior à regra). Detalhe em
+  [`docs/results.md`](docs/results.md#como-as-rodadas-são-numeradas).
+- Achou um erro num relatório já commitado (contagem que não bate, typo)? **Não edite o
+  relatório** — além de ser a evidência do "antes", alterá-lo faz o gate de evidência do
+  `sync-docs.sh --check` exigir uma captura de validação nova, com a aplicação de pé. A
+  correção vai para `reports/ERRATA.md`, dizendo o que está errado e qual é o valor certo,
+  e os números derivados no README e em `docs/` passam a usar o valor correto.
 
 ## Antes de dar uma refatoração por concluída
 
@@ -87,7 +97,7 @@ Quem escreve o quê:
 | README §3.3 (checklist) e Critérios de Aceite | comando `/sync-docs` | fim de uma Fase 3 |
 | `evidence/logs/<projeto>-round<N>-validation.txt` | você, **durante** a validação (app de pé) | toda Fase 3 — ver seção acima, é gate obrigatório |
 | README §3.4 + `evidence/` (citação do arquivo) | comando `/sync-docs` | evidência nova capturada |
-| README §1, §2, §3.5 (`<!-- TODO -->`) | você | análise manual / design da skill |
+| README §1, §2, §3.5, §3.6 | você | análise manual / design da skill / achados em aberto |
 
 Blocos entre `<!-- BEGIN:x -->` e `<!-- END:x -->` são **gerados** — editá-los à mão é
 desfeito na rodada seguinte. Se o conteúdo está errado, o defeito está no
