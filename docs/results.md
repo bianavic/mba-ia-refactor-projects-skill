@@ -82,9 +82,6 @@ injeção `usuarios; DROP TABLE usuarios;--`; `/pedidos/usuario/2` devolve pedid
 devolvem a mesma mensagem de campo obrigatório (helper compartilhado); e o nome de 1 caractere é
 barrado pelos limites agora vindos de `config/settings.py`.
 
-Nenhuma screenshot nova foi capturada nesta rodada — as imagens em `evidence/` continuam sendo das
-rodadas anteriores; ver [Lacunas de Evidência](#lacunas-de-evidência).
-
 **Rodada 4 — [`audit-project-1-part4.md`](../reports/audit-project-1-part4.md), 2026-09-20.**
 Re-auditoria manual e pontual, não uma passada completa Fase 1-3 — disparada ao escrever
 `code-smells-project/api-tests.http` (cobertura manual de todos os endpoints) e cair em dois bugs
@@ -459,24 +456,12 @@ ver [Rodada 4](#code-smells-project) acima.
 
 ## Evidências de Execução
 
-Galeria em [`evidence/`](../evidence/), citada em
-[§3.4 do README](../README.md#34-evidências-de-execução). Inventário conferido arquivo a
-arquivo em 2026-09-20 — cada linha descreve o que a imagem ou o log realmente mostra.
-
-### Screenshots (10)
-
-| Arquivo | Projeto | O que mostra |
-|---|---|---|
-| `project1-boot.png` | 1 | Terminal: `INFO __main__: Servidor iniciado em http://0.0.0.0:5000` com `Debug mode: off`. Prova as duas correções da rodada 1 de uma vez — `logging` estruturado no lugar de `print`, e `DEBUG` vindo do config em vez de `True` fixo. |
-| `project1-admin-bloqueado.png` | 1 | Postman: `POST /admin/query` com `{"sql": "SELECT 1"}` → **403 FORBIDDEN**, `{"erro": "Endpoints administrativos desabilitados"}`. |
-| `project1-usuarios-sem-senha.png` | 1 | Postman: `GET /usuarios` → 200, objetos com `criado_em`/`email`/`id`/`nome`/`tipo` — **sem o campo `senha`**, que a versão legada devolvia. |
-| `project2-boot.png` | 2 | Terminal: log JSON de boot na porta 3000. ⚠️ Anterior à rodada 3 — mostra `desafio-arquitetura-ia-boilerplate@1.0.0`, `node src/app.js` e o nome "Frankenstein LMS", os três substituídos depois (`ecommerce-api-legacy@1.0.0`, `node src/server.js`, nome vindo do config). |
-| `project2-checkout-sem-cartao.png` | 2 | Postman: `POST /api/checkout` com `card` no request → 200 `{"msg":"Sucesso","enrollment_id":2}`. O ponto é a resposta **não** ecoar o cartão. |
-| `project2-checkout-sem-cartao-log.png` | 2 | Terminal do mesmo checkout: `"card":"4111*******1111"` — mascarado no log. ⚠️ Mesma ressalva de rodada do `project2-boot.png`. |
-| `project3-boot.png` | 3 | Terminal: Flask subindo com `Debug mode: off`. |
-| `project3-login-token.png` | 3 | Postman: `POST /login` → 200 com `token` assinado e objeto `user` **sem campo de senha/hash**. |
-| `project3-tasks-paginacao.png` | 3 | Postman: `GET /tasks?page=1&per_page=2` → exatamente 2 tarefas. Prova a paginação que o legado não tinha. |
-| `project3-users-sem-senha.png` | 3 | Postman: `GET /users/1` → 200 com `tasks` aninhadas e **sem campo de senha**. |
+Logs de terminal em [`evidence/logs/`](../evidence/logs/), citados em
+[§3.4 do README](../README.md#34-evidências-de-execução). O enunciado aceita screenshots
+**ou** logs como evidência ([9.4, item C](challenge-original.md#94-requisitos)) — esta entrega
+usa só logs de terminal reais, capturados com a aplicação de pé, como evidência única.
+Inventário conferido arquivo a arquivo em 2026-09-20 — cada linha descreve o que o log
+realmente mostra.
 
 ### Logs de terminal (15)
 
@@ -517,27 +502,12 @@ rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
   com a aplicação de pé em
   [`evidence/logs/code-smells-project-round4-validation.txt`](../evidence/logs/code-smells-project-round4-validation.txt) —
   ver [Rodada 4](#code-smells-project) acima.
-- **TODO (opcional):** capturar screenshot nova da rodada 3 de `code-smells-project`
-  (2026-09-19) — `evidence/project1-*` ainda são das rodadas anteriores. Opcional porque o log
-  de validação completo já cobre essa rodada em
-  `evidence/logs/code-smells-project-round3-validation.txt`; a screenshot só reforçaria o que
-  o log já prova, não fecha uma lacuna real de evidência. A primeira tentativa desta rodada
-  tinha terminado sem nenhuma evidência: a captura era uma linha passiva numa tabela de
-  referência do `CLAUDE.md`, lida só no rollup de documentação, quando a aplicação já havia
-  sido derrubada. Corrigido em duas frentes — a captura virou gate obrigatório na seção "Antes
-  de dar uma refatoração por concluída" do `CLAUDE.md` (executada com o app de pé, não depois),
-  e `scripts/sync-docs.sh --check` agora falha com exit 1 quando um relatório em `reports/` é
-  mais novo que a evidência do mesmo projeto.
-- **TODO (opcional):** capturar screenshot nova do auth/autorização de `task-manager-api`
-  (rodada 4, 2026-09-20) — `evidence/project3-boot.png` ainda é de uma rodada anterior.
-  Opcional pelo mesmo motivo acima: a evidência da rodada 4 já está completa em
-  `evidence/logs/task-manager-api-round4-validation.txt` (boot com/sem `SECRET_KEY`, tokens
-  forjados/expirados/de contas apagadas ou inativas rejeitados, `pytest` 67/67); uma screenshot
-  só ilustraria o mesmo resultado.
-- **TODO (opcional):** capturar screenshot nova da rodada 3 de `ecommerce-api-legacy`
-  (2026-09-20) — `evidence/project2-*.png` continuam sendo das rodadas anteriores. Mesmo
-  motivo: `evidence/logs/ecommerce-api-legacy-round3-validation.txt` já cobre boot, os dois
-  validadores e um `curl` por finding, capturados com a aplicação de pé.
+- A captura de evidência via screenshot foi descontinuada nesta rodada (2026-09-20): as 10
+  imagens em `evidence/` foram removidas porque o enunciado aceita screenshots **ou** logs
+  ([9.4, item C](challenge-original.md#94-requisitos)), e os logs de terminal já cobriam o
+  mesmo resultado com mais detalhe verificável (não só o estado final, o comando e a saída
+  completa). Nenhuma lacuna de evidência resulta disso: cada rodada citada nos itens abaixo já
+  tem log completo com a aplicação de pé.
 - ~~A skill rodando as 3 fases interativamente e o gate de confirmação da Fase 2 sem evidência
   gravada.~~ **Fechado em 2026-09-20** por
   `evidence/logs/ecommerce-api-legacy-skill-run-gate-answered.txt`: execução
@@ -548,10 +518,9 @@ rodada 3 do Projeto 2 — ver [Lacunas de Evidência](#lacunas-de-evidência).
   foram escritas nesta rodada de merge (2026-09-20) — ver
   [Resultados por Projeto](#resultados-por-projeto). Nenhuma pendência de narrativa restante
   para os 3 projetos no estado atual.
-- Três capturas do Projeto 2 (`project2-boot.png`, `project2-checkout-sem-cartao-log.png`,
-  `ecommerce-api-legacy-checkout-server-log.txt`) são anteriores à rodada 3 e ainda mostram o nome
-  antigo do pacote, `node src/app.js` e "Frankenstein LMS". Continuam válidas para o que provam
-  (cartão mascarado, boot com log estruturado), mas não refletem o entry point atual.
+- `ecommerce-api-legacy-checkout-server-log.txt` é anterior à rodada 3 e ainda mostra o nome
+  antigo do pacote, `node src/app.js` e "Frankenstein LMS". Continua válido para o que prova
+  (cartão mascarado no log), mas não reflete o entry point atual.
 
 ## Comportamento entre Diferentes Stacks
 

@@ -12,7 +12,7 @@ code-smells-project/     Projeto 1 — Python/Flask, SQLite cru    (e-commerce)
 ecommerce-api-legacy/    Projeto 2 — Node.js/Express, sqlite3    (LMS/e-learning)
 task-manager-api/        Projeto 3 — Python/Flask + SQLAlchemy   (task manager)
 reports/                 relatórios de auditoria (saída da Fase 2)
-evidence/                screenshots e logs das aplicações rodando
+evidence/                logs das aplicações rodando
 docs/                    deep dives e o enunciado original
 scripts/                 sync-docs.sh — regenera as tabelas e árvores deste README
 ```
@@ -76,7 +76,7 @@ mba-ia-refactor-projects-skill/
 ├── ecommerce-api-legacy/       # Projeto 2 — Node.js/Express (LMS)
 ├── task-manager-api/           # Projeto 3 — Python/Flask (Task Manager)
 ├── reports/                    # saída da Fase 2 de cada projeto
-└── evidence/                   # screenshots + logs (seção 3.4)
+└── evidence/                   # logs (seção 3.4)
 ```
 
 Árvore completa em [`docs/project-structure.md`](docs/project-structure.md).
@@ -513,18 +513,14 @@ Checklist do [enunciado 9.4](docs/challenge-original.md#94-requisitos), preenchi
 | Controllers concentram o fluxo | ✓ | ✓ controllers finos + `services/` de domínio | ✓ `controllers/` ³ |
 | Error handling centralizado | ✓ `middlewares/error_handler.py` | ✓ `src/middlewares/errorHandler.js` | ✓ `middlewares/error_handler.py` ⁴ |
 | Entry point claro | ✓ `app.py` | ✓ `src/server.js` (o `app.js` monta, sem efeito colateral) | ✓ `app.py` |
-| Aplicação inicia sem erros | ✓ `evidence/project1-boot.png` | ✓ `evidence/project2-boot.png` + log da rodada 3 | ✓ `evidence/project3-boot.png` |
+| Aplicação inicia sem erros | ✓ [log rodada 3](evidence/logs/code-smells-project-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/ecommerce-api-legacy-round3-validation.txt) | ✓ [log rodada 3](evidence/logs/task-manager-api-round3-validation.txt) |
 | Endpoints originais respondem | ✓ | ✓ `manual-tests.sh` na rodada 3 | ✓ |
 
 As 7 notas de rodapé narrativas (¹⁻⁴ acima, incluindo o achado de `admin_controller.py` que motivou a re-auditoria ⁵, e as rodadas 4 de `ecommerce-api-legacy` ⁶ e `code-smells-project` ⁷ — ambas já corrigidas e validadas — que explicam por que a contagem de findings da rodada mais recente fica abaixo de 5) estão em [`docs/results.md`](docs/results.md#checklist-de-validação-preenchido).
 
 ### 3.4 Evidências de Execução
 
-![Boot do code-smells-project sem SECRET_KEY exposta](evidence/project1-boot.png)
-![Boot do ecommerce-api-legacy](evidence/project2-boot.png)
-![Boot do task-manager-api](evidence/project3-boot.png)
-
-Galeria completa (10 screenshots: senha não vazada, admin bloqueado, checkout sem cartão em claro, token de login assinado, paginação) e **logs de terminal reais** dos 3 `manual-tests.sh` e dos 3 `arch-check.sh`, em [`docs/results.md`](docs/results.md#evidências-de-execução). As validações mais recentes — boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa, todas capturadas com a aplicação de pé — estão em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt) (Projeto 1, rodada 3), [`evidence/logs/ecommerce-api-legacy-round3-validation.txt`](evidence/logs/ecommerce-api-legacy-round3-validation.txt) (Projeto 2, rodada 3 — inclui o detector do `arch-check` validado contra uma violação plantada e a saída de `npm run test:internal`) e dois logs do Projeto 3 — estrutura MVC/AP-16 em [`evidence/logs/task-manager-api-round3-validation.txt`](evidence/logs/task-manager-api-round3-validation.txt) e autenticação/autorização (boot com/sem `SECRET_KEY`, tokens forjados e de contas apagadas/inativas rejeitados, `pytest` 67/67) em [`evidence/logs/task-manager-api-round4-validation.txt`](evidence/logs/task-manager-api-round4-validation.txt). A skill rodando de ponta a ponta tem duas capturas complementares: [`code-smells-project-skill-run-phase1-2-gate.txt`](evidence/logs/code-smells-project-skill-run-phase1-2-gate.txt) (Projeto 1, modo headless e somente leitura, parando na pergunta do gate) e [`ecommerce-api-legacy-skill-run-gate-answered.txt`](evidence/logs/ecommerce-api-legacy-skill-run-gate-answered.txt) (Projeto 2, execução interativa com o gate **respondido** e a Fase 3 executando). O inventário completo — o que cada screenshot e cada log mostram, e quais foram capturados antes da última rodada — está em [`docs/results.md`](docs/results.md#evidências-de-execução); as lacunas remanescentes, em [Lacunas de Evidência](docs/results.md#lacunas-de-evidência).
+O enunciado aceita screenshots **ou** logs como evidência ([9.4, item C](docs/challenge-original.md#94-requisitos)); esta entrega usa **logs de terminal reais**, capturados com a aplicação de pé, como evidência única — mais verificável linha a linha que uma captura de tela. As validações mais recentes — boot, `arch-check.sh`, um `curl` por finding corrigido e a suíte completa — estão em [`evidence/logs/code-smells-project-round3-validation.txt`](evidence/logs/code-smells-project-round3-validation.txt) (Projeto 1, rodada 3), [`evidence/logs/ecommerce-api-legacy-round3-validation.txt`](evidence/logs/ecommerce-api-legacy-round3-validation.txt) (Projeto 2, rodada 3 — inclui o detector do `arch-check` validado contra uma violação plantada e a saída de `npm run test:internal`) e dois logs do Projeto 3 — estrutura MVC/AP-16 em [`evidence/logs/task-manager-api-round3-validation.txt`](evidence/logs/task-manager-api-round3-validation.txt) e autenticação/autorização (boot com/sem `SECRET_KEY`, tokens forjados e de contas apagadas/inativas rejeitados, `pytest` 67/67) em [`evidence/logs/task-manager-api-round4-validation.txt`](evidence/logs/task-manager-api-round4-validation.txt). A skill rodando de ponta a ponta tem duas capturas complementares: [`code-smells-project-skill-run-phase1-2-gate.txt`](evidence/logs/code-smells-project-skill-run-phase1-2-gate.txt) (Projeto 1, modo headless e somente leitura, parando na pergunta do gate) e [`ecommerce-api-legacy-skill-run-gate-answered.txt`](evidence/logs/ecommerce-api-legacy-skill-run-gate-answered.txt) (Projeto 2, execução interativa com o gate **respondido** e a Fase 3 executando). O inventário completo — o que cada log mostra, e o de qual rodada é — está em [`docs/results.md`](docs/results.md#evidências-de-execução); as lacunas remanescentes, em [Lacunas de Evidência](docs/results.md#lacunas-de-evidência).
 
 ### 3.5 Comportamento entre Diferentes Stacks
 
