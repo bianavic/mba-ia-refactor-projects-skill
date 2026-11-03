@@ -1,4 +1,4 @@
-# ecommerce-api-legacy — 2026-11-03 10:27:43
+# ecommerce-api-legacy — 2026-11-03 10:51:01
 Domain: LMS / course checkout API (checkout, courses, enrollments, payments, users, financial report)
 
 ## AP-12
@@ -11,14 +11,14 @@ AP-12: sqlite3@6.0.1 | clean (was 5.1.7, finding) | npm audit: 0 vulnerabilities
 > desafio-arquitetura-ia-boilerplate@1.0.0 start
 > node src/app.js
 
-2026-11-03T13:27:43.468Z [INFO] Frankenstein LMS rodando na porta 3000...
+2026-11-03T13:51:01.257Z [INFO] Frankenstein LMS rodando na porta 3000...
 [harness] application listening on port 3000 — preflight answered HTTP 401
 
 ## api-test.sh
 ==============================================
 api-test — ecommerce-api-legacy
 Base URL: http://localhost:3000
-Início:   2026-11-03 10:27:43
+Início:   2026-11-03 10:51:01
 ==============================================
 
 T0. Preflight
@@ -118,6 +118,7 @@ T6. Persistência e integridade
   ok   DB: checkouts simultâneos do mesmo e-mail criam uma só conta (= 1)
   ok   DB: índice UNIQUE em users.email (= 1)
   ok   banco rejeita e-mail duplicado (UNIQUE)
+  ok   delete não espera a fila durante rajada de senhas erradas (delete 0.359089s vs export 0.358827s) (= 1)
 
 T7. Privacidade
   ok   export não traz hash de senha
@@ -142,7 +143,7 @@ T8. Exclusão do titular
   ok   DB: pagamentos mantidos para contabilidade (= 11)
 
 ==============================================
-TOTAL: 99 checks | failures: 0 | skipped: 0
+TOTAL: 100 checks | failures: 0 | skipped: 0
 Coverage: 4 endpoints inventoried / 4 exercised
 ==============================================
 api-test.sh exit code: 0

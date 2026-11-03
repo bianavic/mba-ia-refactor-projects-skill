@@ -12,9 +12,14 @@ function findPublicById(id) {
     return db.get(`SELECT ${PUBLIC_FIELDS} FROM users WHERE id = ?`, [id]);
 }
 
-async function create({ name, email, password }) {
+// Hash calculado fora de transações: o scrypt é lento e não deve segurar a fila do banco.
+function hashForStorage(password) {
+    return hashPassword(password);
+}
+
+async function create({ name, email, passwordHash }) {
     const { lastID } = await db.run('INSERT INTO users (name, email, pass) VALUES (?, ?, ?)',
-        [name, email, await hashPassword(password)]);
+        [name, email, passwordHash]);
     return lastID;
 }
 
@@ -27,4 +32,4 @@ async function deleteById(id) {
     return changes;
 }
 
-module.exports = { findByEmail, findPublicById, create, passwordMatches, deleteById };
+module.exports = { findByEmail, findPublicById, hashForStorage, create, passwordMatches, deleteById };

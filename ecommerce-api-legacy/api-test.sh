@@ -261,6 +261,20 @@ if [ -n "$DB_CLI" ]; then
     check_db "1" "índice UNIQUE em users.email" "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_users_email'"
     DUP=$(sqlite3 "$DB" "INSERT INTO users (name, email, pass) VALUES ('x', '$RACE_EMAIL', 'x')" 2>&1)
     case "$DUP" in *UNIQUE*) pass "banco rejeita e-mail duplicado (UNIQUE)";; *) fail "banco aceitou e-mail duplicado";; esac
+    # Senha errada em rajada não pode segurar a fila de transações (scrypt fora da transação).
+    # Compara uma operação que usa a fila (DELETE) com uma que não usa (export) durante a mesma rajada:
+    # a carga de CPU do scrypt atinge as duas; só a fila de transações atrasaria apenas o DELETE.
+    for k in $(seq 1 20); do
+        post_checkout "{\"usr\":\"X\",\"eml\":\"$EMAIL\",\"pwd\":\"errada-$k\",\"c_id\":1,\"card\":\"4111222233334444\"}" >/dev/null &
+    done
+    sleep 0.05
+    TF=$(mktemp)
+    curl -s -o /dev/null -w '%{time_total}' -X DELETE "${A[@]}" "$BASE/api/users/99999998" >"$TF.del" &
+    curl -s -o /dev/null -w '%{time_total}' "${A[@]}" "$BASE/api/users/$USER_ID/export" >"$TF.exp" &
+    wait
+    T_DEL=$(cat "$TF.del"); T_EXP=$(cat "$TF.exp"); rm -f "$TF" "$TF.del" "$TF.exp"
+    FAST=$(python3 -c "print(1 if float('$T_DEL') <= float('$T_EXP') + 0.25 else 0)")
+    check_equal "1" "$FAST" "delete não espera a fila durante rajada de senhas erradas (delete ${T_DEL}s vs export ${T_EXP}s)"
 else
     skip "verificações no banco" "$DB_REASON"
 fi
