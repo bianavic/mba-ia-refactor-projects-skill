@@ -142,19 +142,27 @@ Como ler os relatórios:
   `File:` apontam para as linhas do código original do boilerplate. Vários desses arquivos não
   existem mais na árvore atual (ex.: `code-smells-project/models.py`); para conferir uma linha,
   consulte o código original no boilerplate do desafio (mesmo caminho).
-- **Os relatórios não foram regravados depois da Fase 3.** O que cada finding virou está no
-  plano aplicado, no log de validação e em `## Future improvements` do README de cada projeto
-  (§3.6). Uma nova execução da Fase 2 removeria os findings corrigidos e manteria os abertos, pela
-  regra de re-execução do template
+- **Os relatórios não foram regravados depois da Fase 3.** O que cada finding virou está no log de
+  validação, em `## Future improvements` do README de cada projeto (§3.6) e em
+  [`docs/results-deep-dive.md`](docs/results-deep-dive.md). Uma nova execução da Fase 2 re-auditaria o
+  projeto inteiro: removeria os findings corrigidos, manteria sem alteração os abertos (inclusive os
+  corrigidos só em parte) e inseriria os novos na posição da severidade, pela regra de re-execução do
+  template
   ([`audit-report-template.md`](code-smells-project/.claude/skills/refactor-arch/references/audit-report-template.md#re-runs)).
 
 | Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |
 |---|---|---:|---:|---:|---:|---:|---|
+| `code-smells-project` | Python 3.11.15 + Flask 3.1.1 | 8 | 3 | 7 | 4 | 22 | [audit-project-1.md](reports/audit-project-1.md) |
+| `ecommerce-api-legacy` | JavaScript (Node.js 26.13.0) + Express 4.22.1 | 7 | 3 | 5 | 4 | 19 | [audit-project-2.md](reports/audit-project-2.md) |
+| `task-manager-api` | Python 3.11.15 + Flask 3.0.0 (Flask-SQLAlchemy 3.1.1, SQLite) | 7 | 3 | 8 | 4 | 22 | [audit-project-3.md](reports/audit-project-3.md) |
+
+Total recontado pelos blocos `### [SEVERIDADE]` de cada relatório; bate com a linha `## Summary` e
+com o rodapé `Total: <N> findings`.
 
 ### 3.2 Estrutura antes/depois
 
 <!-- BEGIN:project-trees -->
-#### `code-smells-project` (ainda não refatorado — as duas colunas mostram o boilerplate)
+#### `code-smells-project` (refatorado)
 
 <table><tr><th>Antes (boilerplate)</th><th>Depois (árvore de trabalho)</th></tr><tr><td>
 
@@ -172,6 +180,7 @@ code-smells-project/
 
 ```
 code-smells-project/
+├── .arch-check.conf
 ├── .claude/
 │   └── skills/
 │       └── refactor-arch/
@@ -186,17 +195,62 @@ code-smells-project/
 │           └── scripts/
 │               ├── arch-check.sh
 │               └── completion-box.sh
+├── .env.example
+├── .python-version
 ├── README.md
+├── api-test.sh
 ├── app.py
-├── controllers.py
-├── database.py
-├── models.py
-└── requirements.txt
+├── config/
+│   ├── __init__.py
+│   └── settings.py
+├── controllers/
+│   ├── __init__.py
+│   ├── admin_controller.py
+│   ├── pedido_controller.py
+│   ├── produto_controller.py
+│   ├── relatorio_controller.py
+│   ├── sistema_controller.py
+│   └── usuario_controller.py
+├── database/
+│   ├── __init__.py
+│   └── connection.py
+├── errors/
+│   ├── __init__.py
+│   ├── exceptions.py
+│   └── handlers.py
+├── middleware/
+│   ├── __init__.py
+│   └── auth.py
+├── models/
+│   ├── __init__.py
+│   ├── pedido_model.py
+│   ├── produto_model.py
+│   └── usuario_model.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   ├── admin_routes.py
+│   ├── pedido_routes.py
+│   ├── produto_routes.py
+│   ├── relatorio_routes.py
+│   ├── sistema_routes.py
+│   └── usuario_routes.py
+├── services/
+│   ├── __init__.py
+│   ├── admin_service.py
+│   ├── notificacao_service.py
+│   ├── pedido_service.py
+│   └── usuario_service.py
+└── utils/
+    ├── __init__.py
+    ├── mascaramento.py
+    ├── paginacao.py
+    └── seguranca.py
 ```
 
 </td></tr></table>
 
-#### `ecommerce-api-legacy` (ainda não refatorado — as duas colunas mostram o boilerplate)
+#### `ecommerce-api-legacy` (refatorado)
 
 <table><tr><th>Antes (boilerplate)</th><th>Depois (árvore de trabalho)</th></tr><tr><td>
 
@@ -230,19 +284,52 @@ ecommerce-api-legacy/
 │           └── scripts/
 │               ├── arch-check.sh
 │               └── completion-box.sh
+├── .env.example
 ├── README.md
+├── api-test.sh
 ├── api.http
 ├── package-lock.json
 ├── package.json
 └── src/
-    ├── AppManager.js
     ├── app.js
-    └── utils.js
+    ├── config/
+    │   └── index.js
+    ├── controllers/
+    │   ├── checkoutController.js
+    │   ├── reportController.js
+    │   └── userController.js
+    ├── database/
+    │   ├── connection.js
+    │   └── schema.js
+    ├── errors/
+    │   ├── AppError.js
+    │   └── errorHandler.js
+    ├── middleware/
+    │   └── requireAdmin.js
+    ├── models/
+    │   ├── auditLogModel.js
+    │   ├── courseModel.js
+    │   ├── enrollmentModel.js
+    │   ├── paymentModel.js
+    │   └── userModel.js
+    ├── routes/
+    │   ├── adminRoutes.js
+    │   ├── checkoutRoutes.js
+    │   └── userRoutes.js
+    ├── services/
+    │   ├── checkoutService.js
+    │   ├── paymentGatewayService.js
+    │   ├── reportService.js
+    │   └── userService.js
+    └── utils/
+        ├── asyncHandler.js
+        ├── logger.js
+        └── password.js
 ```
 
 </td></tr></table>
 
-#### `task-manager-api` (ainda não refatorado — as duas colunas mostram o boilerplate)
+#### `task-manager-api` (refatorado)
 
 <table><tr><th>Antes (boilerplate)</th><th>Depois (árvore de trabalho)</th></tr><tr><td>
 
@@ -289,9 +376,32 @@ task-manager-api/
 │           └── scripts/
 │               ├── arch-check.sh
 │               └── completion-box.sh
+├── .env.example
+├── .python-version
 ├── README.md
+├── api-test.sh
 ├── app.py
-├── database.py
+├── config/
+│   ├── __init__.py
+│   └── settings.py
+├── controllers/
+│   ├── __init__.py
+│   ├── auth_controller.py
+│   ├── category_controller.py
+│   ├── report_controller.py
+│   ├── system_controller.py
+│   ├── task_controller.py
+│   └── user_controller.py
+├── database/
+│   ├── __init__.py
+│   └── connection.py
+├── errors/
+│   ├── __init__.py
+│   ├── exceptions.py
+│   └── handlers.py
+├── middleware/
+│   ├── __init__.py
+│   └── auth.py
 ├── models/
 │   ├── __init__.py
 │   ├── category.py
@@ -300,16 +410,23 @@ task-manager-api/
 ├── requirements.txt
 ├── routes/
 │   ├── __init__.py
+│   ├── category_routes.py
 │   ├── report_routes.py
+│   ├── system_routes.py
 │   ├── task_routes.py
 │   └── user_routes.py
 ├── seed.py
 ├── services/
 │   ├── __init__.py
-│   └── notification_service.py
+│   ├── category_service.py
+│   ├── report_service.py
+│   ├── task_service.py
+│   └── user_service.py
 └── utils/
     ├── __init__.py
-    └── helpers.py
+    ├── helpers.py
+    ├── pagination.py
+    └── security.py
 ```
 
 </td></tr></table>
@@ -322,23 +439,58 @@ Checklist do enunciado ([`docs/original-challenge.md`](docs/original-challenge.m
 
 | Fase | Item | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
 |---|---|---|---|---|
+| 1 — Análise | Linguagem detectada corretamente | ✓ Python 3.11.15 | ✓ JavaScript (Node.js 26.13.0) | ✓ Python 3.11.15 |
+| 1 — Análise | Framework detectado corretamente | ✓ Flask 3.1.1 | ✓ Express 4.22.1 | ✓ Flask 3.0.0 + Flask-SQLAlchemy 3.1.1 |
+| 1 — Análise | Domínio da aplicação descrito corretamente | ✓ E-commerce API (produtos, usuarios, pedidos, relatorios de vendas) | ✓ LMS / course checkout API (checkout, courses, enrollments, payments, users, financial report) | ✓ Task management API (tasks, users, categories, reports) |
+| 1 — Análise | Número de arquivos analisados condiz com a realidade | ✓ 4 arquivos, ~780 linhas (original: 4 `.py`, 780 linhas) | ✓ 3 arquivos, ~180 linhas (original: 3 `.js`, 180 linhas) | ✓ 15 arquivos, ~1160 linhas (original: 15 `.py`, 1158 linhas) |
+| 2 — Auditoria | Relatório segue o template | ✓ cabeçalho, `## Summary`, 22/22 findings com `File`/`Description`/`Impact`/`Recommendation`, `Total:` | ✓ cabeçalho, `## Summary`, 19/19 findings com os 4 campos, `Total:` | ✓ cabeçalho, `## Summary`, 22/22 findings com os 4 campos, `Total:` |
+| 2 — Auditoria | Cada finding tem arquivo e linhas exatos | ✓ 22/22 `File:` com `arquivo:linha` | ✓ 19/19 `File:` com `arquivo:linha` | ✓ 22/22 `File:` com `arquivo:linha` |
+| 2 — Auditoria | Findings ordenados por severidade | ✓ CRITICAL → LOW | ✓ CRITICAL → LOW | ✓ CRITICAL → LOW |
+| 2 — Auditoria | Mínimo de 5 findings | ✓ 22 | ✓ 19 | ✓ 22 |
+| 2 — Auditoria | Detecção de APIs deprecated (se aplicável) | ✓ finding AP-12 (MEDIUM: Flask 3.1.1, flask-cors 5.0.1, Python 3.11.15); após a Fase 3, `clean`: python 3.11.18, flask 3.1.3, flask-cors 6.0.5, werkzeug 3.1.9, itsdangerous 2.2.0, sqlite3 stdlib | ✓ findings AP-12 (CRITICAL express 4.22.1, MEDIUM sqlite3 5.1.7); após a Fase 3, `clean`: node 26.13.0, express 4.22.3, sqlite3 6.0.1 (sem manutenção, risco aceito) | ✓ findings AP-12 (MEDIUM: Flask 3.0.0/Python 3.11.15/pins sem uso; MEDIUM: `Query.get()` deprecated); após a Fase 3, `clean`: python 3.11.18, flask 3.1.3, flask-cors 6.0.5, sqlalchemy 2.1.6 (`Query.get` ×16 → 0), python-dotenv 1.2.2; marshmallow e requests removidos |
+| 2 — Auditoria | Skill pausa e pede confirmação antes da Fase 3 | ✓ `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]` | ✓ mesma linha | ✓ mesma linha |
+| 3 — Refatoração | Estrutura de diretórios segue padrão MVC | ✓ `routes/` → `controllers/` → `services/` → `models/` | ✓ `src/routes/` → `src/controllers/` → `src/services/` → `src/models/` | ✓ `routes/` → `controllers/` → `services/` → `models/` |
+| 3 — Refatoração | Configuração extraída para módulo de config | ✓ `config/settings.py` (único leitor do ambiente; `.env.example`) | ✓ `src/config/index.js` (único leitor do ambiente; `.env.example`) | ✓ `config/settings.py` (único leitor do ambiente; `.env.example`) |
+| 3 — Refatoração | Models criados para abstrair dados | ✓ `models/`: pedido, produto, usuario | ✓ `src/models/`: auditLog, course, enrollment, payment, user | ✓ `models/`: category, task, user |
+| 3 — Refatoração | Views/Routes separadas | ✓ `routes/`: 6 módulos (blueprints) | ✓ `src/routes/`: 3 routers | ✓ `routes/`: 5 módulos (blueprints) |
+| 3 — Refatoração | Controllers concentram o fluxo | ✓ `controllers/`: 6; `arch-check.sh` PASS | ✓ `src/controllers/`: 3; `arch-check.sh` PASS | ✓ `controllers/`: 6; `arch-check.sh` PASS |
+| 3 — Refatoração | Error handling centralizado | ✓ `errors/handlers.py` (`AppError` + `Exception`), registrado em `app.py` | ✓ `src/errors/errorHandler.js`, último middleware de `src/app.js` | ✓ `errors/handlers.py` (`AppError` + `Exception`), registrado em `app.py` |
+| 3 — Refatoração | Entry point claro | ✓ `app.py` (raiz de composição) | ✓ `src/app.js` (raiz de composição; `npm start`) | ✓ `app.py` (raiz de composição) + `seed.py` |
+| 3 — Refatoração | Aplicação inicia sem erros | ✓ boot no log, `GET /health` 200 | ✓ boot no log, escutando na porta 3000 | ✓ seed + boot no log, `GET /health` 200 |
+| 3 — Refatoração | Endpoints originais respondem corretamente | ✓ 173 checks, 0 falhas, 21/21 endpoints | ✓ 100 checks, 0 falhas, 4/4 endpoints | ✓ 217 checks, 0 falhas, 22/22 endpoints |
+
+Fontes por coluna (as mesmas nos três projetos):
+- Linguagem, framework, arquivos, template, `File:`, ordem, total e pausa: o relatório do projeto
+  ([1](reports/audit-project-1.md), [2](reports/audit-project-2.md), [3](reports/audit-project-3.md)) —
+  cabeçalho, blocos `### [SEVERIDADE]` e última linha. A contagem "original" de arquivos e linhas é a
+  dos arquivos-fonte da versão original do boilerplate.
+- Domínio e APIs deprecated: linhas `Domain:` e `AP-12:` do log de validação
+  ([1](evidence/logs/code-smells-project-validation.txt), [2](evidence/logs/ecommerce-api-legacy-validation.txt),
+  [3](evidence/logs/task-manager-api-validation.txt)) e os findings AP-12 do relatório.
+- Itens da Fase 3: a árvore "depois" da §3.2, o código do projeto (`app.py`/`src/app.js`, `config/`,
+  `errors/`) e a saída de `arch-check.sh <projeto>` (exit 0 nos três).
+- Inicia / endpoints respondem: seções `## Boot` e rodapé do `api-test.sh` no log de validação.
 
 ### 3.4 Evidências
 
 | Projeto | Log de validação | Checks | Falhas | Pulados | Cobertura | Exit `api-test.sh` | Exit `arch-check.sh` |
 |---|---|---:|---:|---:|---|---:|---:|
-| `code-smells-project` | [log](evidence/logs/code-smells-project-validation.txt) | | | | | | |
-| `ecommerce-api-legacy` | [log](evidence/logs/ecommerce-api-legacy-validation.txt) | | | | | | |
-| `task-manager-api` | [log](evidence/logs/task-manager-api-validation.txt) | | | | | | |
+| `code-smells-project` | [log](evidence/logs/code-smells-project-validation.txt) | 173 | 0 | 0 | 21/21 | 0 | 0 |
+| `ecommerce-api-legacy` | [log](evidence/logs/ecommerce-api-legacy-validation.txt) | 100 | 0 | 0 | 4/4 | 0 | 0 |
+| `task-manager-api` | [log](evidence/logs/task-manager-api-validation.txt) | 217 | 0 | 0 | 22/22 | 0 | 0 |
+
+Checks, falhas, pulados, cobertura e exit do `api-test.sh` vêm do rodapé de cada log. O exit do
+`arch-check.sh` não fica no log: é o de `<projeto>/.claude/skills/refactor-arch/scripts/arch-check.sh <projeto>`
+na árvore atual (PASS nos três) — o mesmo portão que o `completion-box.sh` exige para emitir a caixa abaixo.
 
 #### Caixa de conclusão da Fase 3
 
 <!-- BEGIN:completion-box -->
 Saída literal do `completion-box.sh` de cada projeto, na seção "Conclusão da Fase 3" do README dele:
 
-- `code-smells-project` — _pendente — projeto ainda sem relatório e log de validação._
-- `ecommerce-api-legacy` — _pendente — projeto ainda sem relatório e log de validação._
-- `task-manager-api` — _pendente — projeto ainda sem relatório e log de validação._
+- [`code-smells-project`](code-smells-project/README.md#conclusão-da-fase-3)
+- [`ecommerce-api-legacy`](ecommerce-api-legacy/README.md#conclusão-da-fase-3)
+- [`task-manager-api`](task-manager-api/README.md#conclusão-da-fase-3)
 
 <!-- END:completion-box -->
 
@@ -360,10 +512,22 @@ Os achados que ficaram em aberto após a Fase 3 estão na seção `## Future imp
 - [`ecommerce-api-legacy/README.md`](ecommerce-api-legacy/README.md#future-improvements)
 - [`task-manager-api/README.md`](task-manager-api/README.md#future-improvements)
 
+Rodada a rodada — findings por severidade, o que a Fase 3 mudou e o que ficou em aberto em cada projeto:
+[`docs/results-deep-dive.md`](docs/results-deep-dive.md).
+
 ### 3.7 Critérios de Aceite
 
 | Critério | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
 |---|---|---|---|
+| Stack detectada | ✓ Python 3.11.15 + Flask 3.1.1 | ✓ JavaScript (Node.js 26.13.0) + Express 4.22.1 | ✓ Python 3.11.15 + Flask 3.0.0 (Flask-SQLAlchemy 3.1.1, SQLite) |
+| ≥ 5 findings | ✓ 22 | ✓ 19 | ✓ 22 |
+| ≥ 1 CRITICAL ou HIGH | ✓ 8 CRITICAL, 3 HIGH | ✓ 7 CRITICAL, 3 HIGH | ✓ 7 CRITICAL, 3 HIGH |
+| Aplicação funciona após a refatoração | ✓ boot + `api-test.sh` exit 0 | ✓ boot + `api-test.sh` exit 0 | ✓ boot + `api-test.sh` exit 0 |
+
+Stack da linha `Stack:` de cada relatório; contagens da §3.1; "funciona" do log de validação (§3.4).
+Os mínimos de 2 MEDIUM e 2 LOW são da análise manual (enunciado, "Requisitos" §1), não critério de
+aceite da skill. Distribuição MEDIUM/LOW de cada relatório (§3.1): `code-smells-project` 7 MEDIUM / 4 LOW,
+`ecommerce-api-legacy` 5 MEDIUM / 4 LOW, `task-manager-api` 8 MEDIUM / 4 LOW.
 
 ## 4. Como Executar
 
@@ -396,6 +560,22 @@ Em cada execução: a Fase 1 imprime a caixa `PHASE 1: PROJECT ANALYSIS`; a Fase
 
 | Projeto | Subir | Porta padrão |
 |---|---|---|
+| `code-smells-project` | `pip install -r requirements.txt`; `cp .env.example .env` (preencha e exporte `SECRET_KEY`, `ADMIN_PASSWORD`, `SEED_CUSTOMER_PASSWORD`…); `python app.py` | 5000 (`APP_PORT`) |
+| `ecommerce-api-legacy` | `npm install`; `ADMIN_TOKEN=<token-admin> SEED_USER_PASSWORD=<senha-do-seed> npm start` | 3000 (`PORT`) |
+| `task-manager-api` | `python -m venv .venv && source .venv/bin/activate`; `pip install -r requirements.txt`; `cp .env.example .env` (preencha `SECRET_KEY`, `SEED_ADMIN_PASSWORD`, `SEED_USER_PASSWORD`); `python seed.py`; `python app.py` | 5000 (`APP_PORT`) |
+
+Requisitos de cada projeto, copiados do README dele e dos cabeçalhos dos scripts:
+- `code-smells-project` — Python 3.11.18 (`.python-version`). Banco SQLite em `DB_PATH` (padrão
+  `loja.db`), criado no primeiro boot. Detalhes em [`code-smells-project/README.md`](code-smells-project/README.md#como-rodar).
+- `ecommerce-api-legacy` — Node.js e npm; o projeto não fixa a versão de Node (sem `engines` no
+  `package.json` nem `.nvmrc`; a validação rodou em Node.js 26.13.0, segundo a linha `AP-12: node@` do log).
+  Banco SQLite em memória por padrão (`DB_FILE`). Variáveis e acesso por rota em
+  [`ecommerce-api-legacy/README.md`](ecommerce-api-legacy/README.md#como-rodar).
+- `task-manager-api` — Python 3.11.18 (`.python-version`). Banco SQLite em `DATABASE_URL` (padrão
+  `sqlite:///tasks.db`), populado por `seed.py`. Detalhes em [`task-manager-api/README.md`](task-manager-api/README.md#como-rodar).
+
+`code-smells-project` e `task-manager-api` usam a mesma porta padrão; para subir os dois juntos, mude
+`APP_PORT` de um deles.
 
 ### 4.4 Validação
 

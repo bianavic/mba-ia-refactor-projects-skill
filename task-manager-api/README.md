@@ -24,6 +24,78 @@ python seed.py && python app.py > "$APP_LOG_FILE" 2>&1 &
 BASE_URL=http://localhost:5000 ./api-test.sh
 ```
 
+## Conclusão da Fase 3
+
+Saída do `completion-box.sh` da skill, que só emite a caixa quando `arch-check.sh` e o
+log de validação passam. Log: [`evidence/logs/task-manager-api-validation.txt`](../evidence/logs/task-manager-api-validation.txt).
+
+<!-- BEGIN:completion-box -->
+```text
+================================
+PHASE 3: REFACTORING COMPLETE
+================================
+## New Project Structure
+task-manager-api/
+├── .env.example
+├── .python-version
+├── README.md
+├── api-test.sh
+├── app.py
+├── config/
+│   ├── __init__.py
+│   └── settings.py
+├── controllers/
+│   ├── __init__.py
+│   ├── auth_controller.py
+│   ├── category_controller.py
+│   ├── report_controller.py
+│   ├── system_controller.py
+│   ├── task_controller.py
+│   └── user_controller.py
+├── database/
+│   ├── __init__.py
+│   └── connection.py
+├── errors/
+│   ├── __init__.py
+│   ├── exceptions.py
+│   └── handlers.py
+├── middleware/
+│   ├── __init__.py
+│   └── auth.py
+├── models/
+│   ├── __init__.py
+│   ├── category.py
+│   ├── task.py
+│   └── user.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   ├── category_routes.py
+│   ├── report_routes.py
+│   ├── system_routes.py
+│   ├── task_routes.py
+│   └── user_routes.py
+├── seed.py
+├── services/
+│   ├── __init__.py
+│   ├── category_service.py
+│   ├── report_service.py
+│   ├── task_service.py
+│   └── user_service.py
+└── utils/
+    ├── __init__.py
+    ├── helpers.py
+    ├── pagination.py
+    └── security.py
+
+## Validation
+  ✓ Application boots without errors
+  ✓ All endpoints respond correctly
+  ✓ Zero anti-patterns remaining
+================================
+```
+<!-- END:completion-box -->
+
 ## Future improvements
 
 - Retention limit for users' personal data (names and emails are kept indefinitely, also for deactivated accounts) — left open in the plan — the retention period is a policy decision; needs a deactivation timestamp and a de-link/anonymize job.

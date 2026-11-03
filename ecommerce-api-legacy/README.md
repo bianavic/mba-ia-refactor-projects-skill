@@ -44,6 +44,68 @@ ADMIN_TOKEN=<token-admin> SEED_USER_PASSWORD=<senha-do-seed> ./api-test.sh
 Para as verificações no banco (`check_db`), suba e rode com o mesmo `DB_FILE` apontando para um arquivo
 em um diretório temporário (`mktemp -d`); `APP_LOG=<arquivo de log do app>` habilita as checagens de log.
 
+## Conclusão da Fase 3
+
+Saída do `completion-box.sh` da skill, que só emite a caixa quando `arch-check.sh` e o
+log de validação passam. Log: [`evidence/logs/ecommerce-api-legacy-validation.txt`](../evidence/logs/ecommerce-api-legacy-validation.txt).
+
+<!-- BEGIN:completion-box -->
+```text
+================================
+PHASE 3: REFACTORING COMPLETE
+================================
+## New Project Structure
+ecommerce-api-legacy/
+├── .env.example
+├── README.md
+├── api-test.sh
+├── api.http
+├── package-lock.json
+├── package.json
+└── src/
+    ├── app.js
+    ├── config/
+    │   └── index.js
+    ├── controllers/
+    │   ├── checkoutController.js
+    │   ├── reportController.js
+    │   └── userController.js
+    ├── database/
+    │   ├── connection.js
+    │   └── schema.js
+    ├── errors/
+    │   ├── AppError.js
+    │   └── errorHandler.js
+    ├── middleware/
+    │   └── requireAdmin.js
+    ├── models/
+    │   ├── auditLogModel.js
+    │   ├── courseModel.js
+    │   ├── enrollmentModel.js
+    │   ├── paymentModel.js
+    │   └── userModel.js
+    ├── routes/
+    │   ├── adminRoutes.js
+    │   ├── checkoutRoutes.js
+    │   └── userRoutes.js
+    ├── services/
+    │   ├── checkoutService.js
+    │   ├── paymentGatewayService.js
+    │   ├── reportService.js
+    │   └── userService.js
+    └── utils/
+        ├── asyncHandler.js
+        ├── logger.js
+        └── password.js
+
+## Validation
+  ✓ Application boots without errors
+  ✓ All endpoints respond correctly
+  ✓ Zero anti-patterns remaining
+================================
+```
+<!-- END:completion-box -->
+
 ## Future improvements
 
 - Limite de retenção de dados pessoais (AP-19) — left open in the plan — você escolheu adicionar apenas o endpoint de exportação; dados pessoais continuam guardados até a exclusão.

@@ -24,6 +24,79 @@ python app.py > "$(dirname "$DB_PATH")/app.log" 2>&1 &
 APP_LOG_FILE="$(dirname "$DB_PATH")/app.log" ./api-test.sh
 ```
 
+## Conclusão da Fase 3
+
+Saída do `completion-box.sh` da skill, que só emite a caixa quando `arch-check.sh` e o
+log de validação passam. Log: [`evidence/logs/code-smells-project-validation.txt`](../evidence/logs/code-smells-project-validation.txt).
+
+<!-- BEGIN:completion-box -->
+```text
+================================
+PHASE 3: REFACTORING COMPLETE
+================================
+## New Project Structure
+code-smells-project/
+├── .arch-check.conf
+├── .env.example
+├── .python-version
+├── README.md
+├── api-test.sh
+├── app.py
+├── config/
+│   ├── __init__.py
+│   └── settings.py
+├── controllers/
+│   ├── __init__.py
+│   ├── admin_controller.py
+│   ├── pedido_controller.py
+│   ├── produto_controller.py
+│   ├── relatorio_controller.py
+│   ├── sistema_controller.py
+│   └── usuario_controller.py
+├── database/
+│   ├── __init__.py
+│   └── connection.py
+├── errors/
+│   ├── __init__.py
+│   ├── exceptions.py
+│   └── handlers.py
+├── middleware/
+│   ├── __init__.py
+│   └── auth.py
+├── models/
+│   ├── __init__.py
+│   ├── pedido_model.py
+│   ├── produto_model.py
+│   └── usuario_model.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   ├── admin_routes.py
+│   ├── pedido_routes.py
+│   ├── produto_routes.py
+│   ├── relatorio_routes.py
+│   ├── sistema_routes.py
+│   └── usuario_routes.py
+├── services/
+│   ├── __init__.py
+│   ├── admin_service.py
+│   ├── notificacao_service.py
+│   ├── pedido_service.py
+│   └── usuario_service.py
+└── utils/
+    ├── __init__.py
+    ├── mascaramento.py
+    ├── paginacao.py
+    └── seguranca.py
+
+## Validation
+  ✓ Application boots without errors
+  ✓ All endpoints respond correctly
+  ✓ Zero anti-patterns remaining
+================================
+```
+<!-- END:completion-box -->
+
 ## Future improvements
 
 - Retention limit for user personal data — left open in the plan — needs a retention policy (age after which personal fields are de-linked).
