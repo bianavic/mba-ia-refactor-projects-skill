@@ -97,7 +97,7 @@ Markdown em `references/`, carregadas sob demanda por fase, e dois scripts em `s
 | Guidelines de arquitetura | `architecture-guidelines.md` | Camadas MVC e tabela de decisão de colocação |
 | Playbook de refatoração | `refactoring-playbook.md` | 22 padrões antes/depois (Python; 17 também em JavaScript/Node), um ou mais por anti-pattern |
 
-Há ainda `phase3-validation.md` (validação da Fase 3: `api-test.sh`, `arch-check.sh`, checagem por
+Há ainda `refactoring-validation.md` (validação da Fase 3: `api-test.sh`, `arch-check.sh`, checagem por
 finding, anti-tautologia, log de validação, evidências da caixa final). `arch-check.sh` faz a
 verificação estrutural agnóstica de stack; `completion-box.sh` gera a caixa
 `PHASE 3: REFACTORING COMPLETE` e só a imprime quando as pré-condições passam. As regras das

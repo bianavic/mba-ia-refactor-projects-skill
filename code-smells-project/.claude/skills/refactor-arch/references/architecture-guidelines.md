@@ -100,7 +100,7 @@ Rules the table implies:
   holds the request flow is layers renamed, not separated.
 - Authorization follows the owner rule of RP-16.
 - Create a controller file with its functions before editing the route that will call it. After
-  moving code, run the delegation and smoke check (`references/phase3-validation.md` → 4).
+  moving code, run the delegation and smoke check (`references/refactoring-validation.md` → 4).
 - Keep the project's language, naming and response keys; never translate domain nouns.
 - Validation errors name the field and expected shape; 500s never carry exception text.
 - Logging goes through the stack's logger and never writes personal data.
