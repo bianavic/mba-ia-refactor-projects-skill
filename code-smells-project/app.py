@@ -1,88 +1,46 @@
-from flask import Flask, jsonify, request
+"""Composition root: configuração, banco, CORS, rotas e tratamento de erros."""
+import logging
+
+from flask import Flask
 from flask_cors import CORS
-import controllers
-from database import get_db
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = "minha-chave-super-secreta-123"
-app.config["DEBUG"] = True
-CORS(app)
+from config import settings
+from database.connection import fechar_db, inicializar_db
+from errors.handlers import registrar_handlers
+from models import usuario_model
+from routes import (admin_routes, pedido_routes, produto_routes, relatorio_routes,
+                    sistema_routes, usuario_routes)
 
-app.add_url_rule("/produtos", "listar_produtos", controllers.listar_produtos, methods=["GET"])
-app.add_url_rule("/produtos/busca", "buscar_produtos", controllers.buscar_produtos, methods=["GET"])
-app.add_url_rule("/produtos/<int:id>", "buscar_produto", controllers.buscar_produto, methods=["GET"])
-app.add_url_rule("/produtos", "criar_produto", controllers.criar_produto, methods=["POST"])
-app.add_url_rule("/produtos/<int:id>", "atualizar_produto", controllers.atualizar_produto, methods=["PUT"])
-app.add_url_rule("/produtos/<int:id>", "deletar_produto", controllers.deletar_produto, methods=["DELETE"])
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-app.add_url_rule("/usuarios", "listar_usuarios", controllers.listar_usuarios, methods=["GET"])
-app.add_url_rule("/usuarios/<int:id>", "buscar_usuario", controllers.buscar_usuario, methods=["GET"])
-app.add_url_rule("/usuarios", "criar_usuario", controllers.criar_usuario, methods=["POST"])
-app.add_url_rule("/login", "login", controllers.login, methods=["POST"])
 
-app.add_url_rule("/pedidos", "criar_pedido", controllers.criar_pedido, methods=["POST"])
-app.add_url_rule("/pedidos", "listar_todos_pedidos", controllers.listar_todos_pedidos, methods=["GET"])
-app.add_url_rule("/pedidos/usuario/<int:usuario_id>", "listar_pedidos_usuario", controllers.listar_pedidos_usuario, methods=["GET"])
-app.add_url_rule("/pedidos/<int:pedido_id>/status", "atualizar_status_pedido", controllers.atualizar_status_pedido, methods=["PUT"])
+def criar_app():
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = settings.SECRET_KEY
+    app.config["DEBUG"] = settings.DEBUG
+    CORS(app)
 
-app.add_url_rule("/relatorios/vendas", "relatorio_vendas", controllers.relatorio_vendas, methods=["GET"])
+    for modulo in (produto_routes, usuario_routes, pedido_routes, relatorio_routes,
+                   sistema_routes, admin_routes):
+        app.register_blueprint(modulo.bp)
 
-app.add_url_rule("/health", "health_check", controllers.health_check, methods=["GET"])
+    registrar_handlers(app)
+    app.teardown_appcontext(fechar_db)
 
-@app.route("/")
-def index():
-    return jsonify({
-        "mensagem": "Bem-vindo à API da Loja",
-        "versao": "1.0.0",
-        "endpoints": {
-            "produtos": "/produtos",
-            "usuarios": "/usuarios",
-            "pedidos": "/pedidos",
-            "login": "/login",
-            "relatorios": "/relatorios/vendas",
-            "health": "/health"
-        }
-    })
+    with app.app_context():
+        inicializar_db()
+        migradas = usuario_model.migrar_senhas_em_texto_puro()
+        if migradas:
+            logger.info("Senhas em texto puro convertidas em hash: %s", migradas)
 
-@app.route("/admin/reset-db", methods=["POST"])
-def reset_database():
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("DELETE FROM itens_pedido")
-    cursor.execute("DELETE FROM pedidos")
-    cursor.execute("DELETE FROM produtos")
-    cursor.execute("DELETE FROM usuarios")
-    db.commit()
-    print("!!! BANCO DE DADOS RESETADO !!!")
-    return jsonify({"mensagem": "Banco de dados resetado", "sucesso": True}), 200
+    if settings.SECRET_KEY_GERADA:
+        logger.warning("SECRET_KEY não definido: chave aleatória gerada (tokens não sobrevivem a reinícios)")
+    return app
 
-@app.route("/admin/query", methods=["POST"])
-def executar_query():
-    dados = request.get_json()
-    query = dados.get("sql", "")
-    if not query:
-        return jsonify({"erro": "Query não informada"}), 400
 
-    db = get_db()
-    cursor = db.cursor()
-    try:
-        cursor.execute(query)
-        if query.strip().upper().startswith("SELECT"):
-            rows = cursor.fetchall()
-            result = [dict(row) for row in rows]
-            return jsonify({"dados": result, "sucesso": True}), 200
-        else:
-            db.commit()
-            return jsonify({"mensagem": "Query executada", "sucesso": True}), 200
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+app = criar_app()
 
 if __name__ == "__main__":
-
-    get_db()
-    print("=" * 50)
-    print("SERVIDOR INICIADO")
-    print("Rodando em http://localhost:5000")
-    print("=" * 50)
-
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    logger.info("SERVIDOR INICIADO em http://%s:%s", settings.HOST, settings.PORT)
+    app.run(host=settings.HOST, port=settings.PORT, debug=settings.DEBUG)
