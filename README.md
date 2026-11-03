@@ -379,15 +379,15 @@ Rode a skill a partir da pasta de cada projeto (é lá que fica a cópia em `.cl
 ```bash
 # Projeto 1 — Python/Flask (e-commerce)
 cd code-smells-project
-claude "/refactor-arch"
+claude /refactor-arch
 
 # Projeto 2 — Node.js/Express (LMS com checkout)
 cd ../ecommerce-api-legacy
-claude "/refactor-arch"
+claude /refactor-arch
 
 # Projeto 3 — Python/Flask (task manager)
 cd ../task-manager-api
-claude "/refactor-arch"
+claude /refactor-arch
 ```
 
 Em cada execução: a Fase 1 imprime a caixa `PHASE 1: PROJECT ANALYSIS`; a Fase 2 grava `reports/audit-project-<N>.md` na raiz do repositório, faz as perguntas das decisões em aberto, mostra o plano e para em `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]`. Responda `y` para liberar a Fase 3, que termina com a caixa `PHASE 3: REFACTORING COMPLETE`. Para reproduzir a refatoração desde o início, rode os comandos acima numa cópia com o código original dos 3 projetos (o boilerplate) e a skill na versão atual.
