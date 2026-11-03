@@ -13,14 +13,16 @@ async function checkout({ name, email, password, courseId, card }) {
     const course = await courseModel.findActiveById(courseId);
     if (!course) throw new NotFoundError('Curso não encontrado');
 
-    // Conta existente: só o titular (senha correta) pode comprar em seu nome.
-    const existing = await userModel.findByEmail(email);
-    if (existing && !(await userModel.passwordMatches(existing, password))) throw new UnauthorizedError();
-
-    const status = paymentGateway.charge({ card, amount: course.price });
-    if (status !== constants.paymentStatus.PAID) throw new PaymentDeclinedError();
-
+    // Busca da conta, checagem da senha e gravações na mesma transação: as transações são serializadas,
+    // então dois checkouts simultâneos do mesmo e-mail novo não criam duas contas.
     return db.transaction(async () => {
+        // Conta existente: só o titular (senha correta) pode comprar em seu nome.
+        const existing = await userModel.findByEmail(email);
+        if (existing && !(await userModel.passwordMatches(existing, password))) throw new UnauthorizedError();
+
+        const status = paymentGateway.charge({ card, amount: course.price });
+        if (status !== constants.paymentStatus.PAID) throw new PaymentDeclinedError();
+
         const userId = existing ? existing.id : await userModel.create({ name, email, password });
         const enrollmentId = await enrollmentModel.create(userId, course.id);
         await paymentModel.create(enrollmentId, course.price, status);

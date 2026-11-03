@@ -251,6 +251,16 @@ if [ -n "$DB_CLI" ]; then
     check_db "0" "curso inexistente não criou usuário" "SELECT COUNT(*) FROM users WHERE email='nf.$RUN@t.com'"
     check_db "0" "nenhum pagamento sem matrícula" "SELECT COUNT(*) FROM payments WHERE enrollment_id NOT IN (SELECT id FROM enrollments)"
     check_db "0" "nenhuma matrícula sem pagamento" "SELECT COUNT(*) FROM enrollments WHERE id NOT IN (SELECT enrollment_id FROM payments)"
+    # Corrida: dois checkouts simultâneos do mesmo e-mail novo com senhas diferentes
+    RACE_EMAIL="corrida.$RUN@teste.com"
+    for pw in senha-a senha-b; do
+        post_checkout "{\"usr\":\"Corrida\",\"eml\":\"$RACE_EMAIL\",\"pwd\":\"$pw\",\"c_id\":1,\"card\":\"4111222233334444\"}" >/dev/null &
+    done
+    wait
+    check_db "1" "checkouts simultâneos do mesmo e-mail criam uma só conta" "SELECT COUNT(*) FROM users WHERE email='$RACE_EMAIL'"
+    check_db "1" "índice UNIQUE em users.email" "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_users_email'"
+    DUP=$(sqlite3 "$DB" "INSERT INTO users (name, email, pass) VALUES ('x', '$RACE_EMAIL', 'x')" 2>&1)
+    case "$DUP" in *UNIQUE*) pass "banco rejeita e-mail duplicado (UNIQUE)";; *) fail "banco aceitou e-mail duplicado";; esac
 else
     skip "verificações no banco" "$DB_REASON"
 fi

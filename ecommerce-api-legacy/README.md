@@ -52,5 +52,4 @@ em um diretório temporário (`mktemp -d`); `APP_LOG=<arquivo de log do app>` ha
 - Rotas admin protegidas por um único token compartilhado (`ADMIN_TOKEN`), sem identidade por administrador — accepted by the user — resíduo declarado da opção "Env admin token".
 - Relatório financeiro ainda mostra nomes de alunos a administradores — accepted by the user — resíduo declarado da opção "Keep name, admin-only".
 - `sqlite3` 6.x está marcado como não mantido; advisories futuros podem ficar sem correção — accepted by the user — resíduo declarado da opção "Upgrade to 6.0.1".
-- `users.email` sem restrição UNIQUE: dois checkouts simultâneos do mesmo e-mail novo podem criar usuários duplicados — noticed during Phase 3 — fora do plano aprovado, mantido como no original.
 - `arch-check.sh` não detecta uma função de controller escrita em uma única linha que chama 2 models — noticed during Phase 3 — limitação do verificador (a forma multilinha é detectada), confirmada na anti-tautologia.

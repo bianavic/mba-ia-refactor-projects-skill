@@ -1,4 +1,4 @@
-# ecommerce-api-legacy — 2026-11-03 10:19:12
+# ecommerce-api-legacy — 2026-11-03 10:27:43
 Domain: LMS / course checkout API (checkout, courses, enrollments, payments, users, financial report)
 
 ## AP-12
@@ -11,14 +11,14 @@ AP-12: sqlite3@6.0.1 | clean (was 5.1.7, finding) | npm audit: 0 vulnerabilities
 > desafio-arquitetura-ia-boilerplate@1.0.0 start
 > node src/app.js
 
-2026-11-03T13:19:12.352Z [INFO] Frankenstein LMS rodando na porta 3000...
+2026-11-03T13:27:43.468Z [INFO] Frankenstein LMS rodando na porta 3000...
 [harness] application listening on port 3000 — preflight answered HTTP 401
 
 ## api-test.sh
 ==============================================
 api-test — ecommerce-api-legacy
 Base URL: http://localhost:3000
-Início:   2026-11-03 10:19:12
+Início:   2026-11-03 10:27:43
 ==============================================
 
 T0. Preflight
@@ -115,6 +115,9 @@ T6. Persistência e integridade
   ok   DB: curso inexistente não criou usuário (= 0)
   ok   DB: nenhum pagamento sem matrícula (= 0)
   ok   DB: nenhuma matrícula sem pagamento (= 0)
+  ok   DB: checkouts simultâneos do mesmo e-mail criam uma só conta (= 1)
+  ok   DB: índice UNIQUE em users.email (= 1)
+  ok   banco rejeita e-mail duplicado (UNIQUE)
 
 T7. Privacidade
   ok   export não traz hash de senha
@@ -130,16 +133,16 @@ T8. Exclusão do titular
   ok   mensagem de sucesso do delete (= Usuário deletado)
   ok   segundo delete do mesmo id → 404 Usuário não encontrado
   ok   export após delete → 404 Usuário não encontrado
-  ok   relatório após delete → 200 [{"course":"Clean Architecture","revenue":7976,"students":[{"student":"Leonan","
+  ok   relatório após delete → 200 [{"course":"Clean Architecture","revenue":8973,"students":[{"student":"Leonan","
   ok   relatório não mostra mais o nome apagado
   ok   DB: linha do usuário removida (= 0)
   ok   DB: nenhuma matrícula aponta para o id (= 0)
   ok   DB: nenhuma auditoria com 'por <id>' (= 0)
   ok   DB: auditoria anonimizada mantida (= 1)
-  ok   DB: pagamentos mantidos para contabilidade (= 10)
+  ok   DB: pagamentos mantidos para contabilidade (= 11)
 
 ==============================================
-TOTAL: 96 checks | failures: 0 | skipped: 0
+TOTAL: 99 checks | failures: 0 | skipped: 0
 Coverage: 4 endpoints inventoried / 4 exercised
 ==============================================
 api-test.sh exit code: 0
