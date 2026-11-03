@@ -5,9 +5,13 @@ LMS API (com fluxo de checkout) em Node.js/Express usada como entrada do desafio
 ## Como rodar
 
 ```bash
-npm install
-ADMIN_TOKEN=<token-admin> SEED_USER_PASSWORD=<senha-do-seed> npm start
+npm install                                  # Node.js e npm (testado com Node 26.13.0)
+[ -f .env ] || cp .env.example .env          # só na primeira vez; preencha ADMIN_TOKEN e SEED_USER_PASSWORD
+set -a; source .env; set +a                  # carrega o .env no terminal (o app não lê o arquivo sozinho)
+npm start                                    # sobe em http://localhost:3000
 ```
+
+Gere um `ADMIN_TOKEN` forte com: `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`
 
 A aplicação sobe em `http://localhost:3000` (ou na porta de `PORT`). Por padrão o banco SQLite é em memória
 (`DB_FILE=:memory:`) e é semeado automaticamente no boot; com `DB_FILE=<arquivo>` ele usa um arquivo e só
@@ -22,7 +26,7 @@ Variáveis de ambiente (todas listadas, sem valores reais, em `.env.example`):
 | `DB_FILE` | `:memory:` (padrão) ou caminho de um arquivo SQLite |
 | `ADMIN_TOKEN` | Token exigido no header `X-Admin-Token` das rotas administrativas; vazio = elas respondem `401` |
 | `SEED_USER_PASSWORD` | Senha do usuário semente `leonan@fullcycle.com.br`; vazio = senha aleatória, nunca exibida |
-| `PAYMENT_GATEWAY_KEY`, `DB_USER`, `DB_PASSWORD`, `SMTP_USER` | Credenciais de integrações, apenas pelo ambiente |
+| `PAYMENT_GATEWAY_KEY` | Chave do gateway de pagamento; vazia = o log de pagamento indica "gateway sem chave configurada" |
 
 Acesso por rota:
 
@@ -33,16 +37,55 @@ Acesso por rota:
 | `DELETE /api/users/:id` | Admin (`X-Admin-Token`) |
 | `GET /api/users/:id/export` | Admin (`X-Admin-Token`) |
 
-Exemplos de requisições estão em `api.http` (defina `@adminToken` com o mesmo valor de `ADMIN_TOKEN`).
+Exemplos de requisições estão em `ecommerce-api-legacy-api-curls.http` (preencha `@admin_token` e `@seed_user_password`
+com os mesmos valores de `ADMIN_TOKEN` e `SEED_USER_PASSWORD`).
 
-Testes de contrato (com a aplicação rodando):
+### Testar com SQLite (passo a passo)
+
+Usa um arquivo SQLite temporário. Assim o `api-test.sh` consegue fazer as checagens no banco (`check_db`) e no log (`APP_LOG`).
 
 ```bash
-ADMIN_TOKEN=<token-admin> SEED_USER_PASSWORD=<senha-do-seed> ./api-test.sh
+cd ecommerce-api-legacy
+
+[ -f .env ] || cp .env.example .env                  # só na primeira vez; preencha ADMIN_TOKEN e SEED_USER_PASSWORD
+set -a; source .env; set +a                          # carrega o .env neste terminal
+export DB_FILE="$(mktemp -d)/loja.sqlite"            # banco temporário (sobrescreve DB_FILE=:memory: do .env)
+export TMP_DIR="$(dirname "$DB_FILE")"
+
+npm start > "$TMP_DIR/app.log" 2>&1 &                # sobe a app gravando o log
+sleep 3
+grep "rodando na porta" "$TMP_DIR/app.log"           # Frankenstein LMS rodando na porta 3000...
+
+APP_LOG="$TMP_DIR/app.log" ./api-test.sh             # testes de contrato
 ```
 
-Para as verificações no banco (`check_db`), suba e rode com o mesmo `DB_FILE` apontando para um arquivo
-em um diretório temporário (`mktemp -d`); `APP_LOG=<arquivo de log do app>` habilita as checagens de log.
+> **Atenção à ordem:** a app e o terminal só enxergam as variáveis do momento em que foram iniciados. Se
+> você já tinha a app rodando, ou exportou variáveis antes de editar o `.env`, pare a app
+> (`kill $(lsof -t -iTCP:3000 -sTCP:LISTEN)`) e repita o bloco inteiro, na ordem acima. Sem o `source .env`,
+> a app sobe sem `ADMIN_TOKEN` e o `api-test.sh` mostra "ADMIN_TOKEN não informado".
+
+Resultado esperado no fim: `TOTAL: 100 checks | failures: 0 | skipped: 0`.
+
+Conferir o banco:
+
+```bash
+sqlite3 "$DB_FILE" "SELECT id, name, email FROM users;"        # Leonan (usuário semente)
+sqlite3 "$DB_FILE" "SELECT id, title, price FROM courses;"     # Clean Architecture e Docker
+```
+
+Encerrar a aplicação e apagar o banco temporário:
+
+```bash
+kill $(lsof -t -iTCP:3000 -sTCP:LISTEN)
+rm -rf "$TMP_DIR"
+```
+
+Pontos de atenção:
+
+- `DB_FILE` precisa estar numa pasta temporária (`/var/folders`, `/tmp` ou `/private/tmp`). Fora dela, o `api-test.sh` recusa com "not isolated".
+- Para começar do zero, use um `mktemp -d` novo. O seed só roda em banco vazio.
+- Com `DB_FILE=:memory:`, as checagens de banco são puladas.
+- Sem `.env`, exporte as variáveis antes: `export ADMIN_TOKEN=... SEED_USER_PASSWORD=...`.
 
 ## Conclusão da Fase 3
 

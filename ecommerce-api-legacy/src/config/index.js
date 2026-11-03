@@ -14,11 +14,8 @@ const config = {
     logLevel: process.env.LOG_LEVEL || 'info',
     db: {
         filename: process.env.DB_FILE || ':memory:',
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
     },
     paymentGatewayKey: process.env.PAYMENT_GATEWAY_KEY,
-    smtpUser: process.env.SMTP_USER,
     adminToken: process.env.ADMIN_TOKEN || '',
     // Sem SEED_USER_PASSWORD, o usuário semente recebe uma senha aleatória que nunca é exibida.
     seedUserPassword: process.env.SEED_USER_PASSWORD || crypto.randomBytes(24).toString('hex'),
