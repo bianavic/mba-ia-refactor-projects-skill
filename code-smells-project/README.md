@@ -84,6 +84,7 @@ code-smells-project/
 ├── README.md
 ├── api-test.sh
 ├── app.py
+├── code-smells-project-api-curls.http
 ├── config/
 │   ├── __init__.py
 │   └── settings.py

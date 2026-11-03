@@ -103,6 +103,7 @@ ecommerce-api-legacy/
 ├── README.md
 ├── api-test.sh
 ├── api.http
+├── ecommerce-api-legacy-api-curls.http
 ├── package-lock.json
 ├── package.json
 └── src/

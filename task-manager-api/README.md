@@ -82,6 +82,7 @@ task-manager-api/
 │   ├── report_service.py
 │   ├── task_service.py
 │   └── user_service.py
+├── task-manager-api-api-curls.http
 └── utils/
     ├── __init__.py
     ├── helpers.py
