@@ -615,3 +615,5 @@ Cada projeto traz `api-test.sh` (precisa de banco descartável: o script escreve
 <projeto>/.claude/skills/refactor-arch/scripts/arch-check.sh <projeto>   # exit 0 = PASS
 cd <projeto> && ./api-test.sh                                            # exit 0 = sem falhas (variáveis no cabeçalho)
 ```
+
+Como alternativa manual, cada projeto traz um arquivo `*-api-curls.http` com as mesmas requisições para o cliente HTTP do JetBrains (GoLand, IntelliJ, PyCharm etc.). Preencha as variáveis do topo do arquivo, suba a aplicação com um banco novo e execute as requisições na ordem, porque tokens e ids são guardados pelas respostas. O cabeçalho de cada arquivo indica o que apaga dados e o que depende de configuração.
