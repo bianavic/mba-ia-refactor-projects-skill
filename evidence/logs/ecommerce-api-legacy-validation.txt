@@ -1,4 +1,4 @@
-# ecommerce-api-legacy — 2026-11-03 10:51:01
+# ecommerce-api-legacy — 2026-11-03 19:26:07
 Domain: LMS / course checkout API (checkout, courses, enrollments, payments, users, financial report)
 
 ## AP-12
@@ -8,17 +8,31 @@ AP-12: sqlite3@6.0.1 | clean (was 5.1.7, finding) | npm audit: 0 vulnerabilities
 
 ## Boot
 
+```
+
 > desafio-arquitetura-ia-boilerplate@1.0.0 start
 > node src/app.js
 
-2026-11-03T13:51:01.257Z [INFO] Frankenstein LMS rodando na porta 3000...
+2026-11-03T22:26:02.624Z [INFO] Frankenstein LMS rodando na porta 3000...
+2026-11-03T22:26:03.309Z [INFO] Pagamento PAID de 497 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:03.949Z [INFO] Pagamento DENIED de 997 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:04.333Z [INFO] Pagamento PAID de 997 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:04.637Z [INFO] Pagamento PAID de 997 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:04.712Z [INFO] Pagamento PAID de 497 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:05.030Z [INFO] Pagamento PAID de 997 no cartão ****3333 (gateway sem chave configurada)
+2026-11-03T22:26:05.105Z [INFO] Pagamento PAID de 997 no cartão ****4555 (gateway sem chave configurada)
+2026-11-03T22:26:05.284Z [INFO] Pagamento PAID de 997 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:05.505Z [INFO] Pagamento PAID de 997 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:06.248Z [INFO] Pagamento PAID de 997 no cartão ****4444 (gateway sem chave configurada)
+2026-11-03T22:26:06.332Z [INFO] Pagamento PAID de 997 no cartão ****4444 (gateway sem chave configurada)
+```
 [harness] application listening on port 3000 — preflight answered HTTP 401
 
 ## api-test.sh
 ==============================================
 api-test — ecommerce-api-legacy
 Base URL: http://localhost:3000
-Início:   2026-11-03 10:51:01
+Início:   2026-11-03 19:26:03
 ==============================================
 
 T0. Preflight
@@ -118,7 +132,7 @@ T6. Persistência e integridade
   ok   DB: checkouts simultâneos do mesmo e-mail criam uma só conta (= 1)
   ok   DB: índice UNIQUE em users.email (= 1)
   ok   banco rejeita e-mail duplicado (UNIQUE)
-  ok   delete não espera a fila durante rajada de senhas erradas (delete 0.359089s vs export 0.358827s) (= 1)
+  ok   delete não espera a fila durante rajada de senhas erradas (delete 0.361332s vs export 0.361136s) (= 1)
 
 T7. Privacidade
   ok   export não traz hash de senha
