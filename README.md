@@ -133,4 +133,247 @@ skill. Todos são usados: cada `AP-xx` aparece em pelo menos um dos três relat�
 
 ## 3. Resultados
 
+### 3.1 Findings por severidade
+
+Números copiados da linha `## Summary` de cada relatório em `reports/`.
+
+Como ler os relatórios:
+- **São a saída da Fase 2.** Cada finding descreve o código como estava antes da refatoração, e os
+  `File:` apontam para as linhas do código original do boilerplate. Vários desses arquivos não
+  existem mais na árvore atual (ex.: `code-smells-project/models.py`); para conferir uma linha,
+  consulte o código original no boilerplate do desafio (mesmo caminho).
+- **Os relatórios não foram regravados depois da Fase 3.** O que cada finding virou está no
+  plano aplicado, no log de validação e em `## Future improvements` do README de cada projeto
+  (§3.6). Uma nova execução da Fase 2 removeria os findings corrigidos e manteria os abertos, pela
+  regra de re-execução do template
+  ([`audit-report-template.md`](code-smells-project/.claude/skills/refactor-arch/references/audit-report-template.md#re-runs)).
+
+| Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Relatório |
+|---|---|---:|---:|---:|---:|---:|---|
+
+### 3.2 Estrutura antes/depois
+
+<!-- BEGIN:project-trees -->
+#### `code-smells-project` (ainda não refatorado — as duas colunas mostram o boilerplate)
+
+<table><tr><th>Antes (boilerplate)</th><th>Depois (árvore de trabalho)</th></tr><tr><td>
+
+```
+code-smells-project/
+├── README.md
+├── app.py
+├── controllers.py
+├── database.py
+├── models.py
+└── requirements.txt
+```
+
+</td><td>
+
+```
+code-smells-project/
+├── .claude/
+│   └── skills/
+│       └── refactor-arch/
+│           ├── SKILL.md
+│           ├── references/
+│           │   ├── anti-patterns-catalog.md
+│           │   ├── architecture-guidelines.md
+│           │   ├── audit-report-template.md
+│           │   ├── project-analysis.md
+│           │   ├── refactoring-playbook.md
+│           │   └── refactoring-validation.md
+│           └── scripts/
+│               ├── arch-check.sh
+│               └── completion-box.sh
+├── README.md
+├── app.py
+├── controllers.py
+├── database.py
+├── models.py
+└── requirements.txt
+```
+
+</td></tr></table>
+
+#### `ecommerce-api-legacy` (ainda não refatorado — as duas colunas mostram o boilerplate)
+
+<table><tr><th>Antes (boilerplate)</th><th>Depois (árvore de trabalho)</th></tr><tr><td>
+
+```
+ecommerce-api-legacy/
+├── README.md
+├── api.http
+├── package-lock.json
+├── package.json
+└── src/
+    ├── AppManager.js
+    ├── app.js
+    └── utils.js
+```
+
+</td><td>
+
+```
+ecommerce-api-legacy/
+├── README.md
+├── api.http
+├── package-lock.json
+├── package.json
+└── src/
+    ├── AppManager.js
+    ├── app.js
+    └── utils.js
+```
+
+</td></tr></table>
+
+#### `task-manager-api` (ainda não refatorado — as duas colunas mostram o boilerplate)
+
+<table><tr><th>Antes (boilerplate)</th><th>Depois (árvore de trabalho)</th></tr><tr><td>
+
+```
+task-manager-api/
+├── README.md
+├── app.py
+├── database.py
+├── models/
+│   ├── __init__.py
+│   ├── category.py
+│   ├── task.py
+│   └── user.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   ├── report_routes.py
+│   ├── task_routes.py
+│   └── user_routes.py
+├── seed.py
+├── services/
+│   ├── __init__.py
+│   └── notification_service.py
+└── utils/
+    ├── __init__.py
+    └── helpers.py
+```
+
+</td><td>
+
+```
+task-manager-api/
+├── README.md
+├── app.py
+├── database.py
+├── models/
+│   ├── __init__.py
+│   ├── category.py
+│   ├── task.py
+│   └── user.py
+├── requirements.txt
+├── routes/
+│   ├── __init__.py
+│   ├── report_routes.py
+│   ├── task_routes.py
+│   └── user_routes.py
+├── seed.py
+├── services/
+│   ├── __init__.py
+│   └── notification_service.py
+└── utils/
+    ├── __init__.py
+    └── helpers.py
+```
+
+</td></tr></table>
+
+<!-- END:project-trees -->
+
+### 3.3 Checklist de Validação
+
+Checklist do enunciado ([`docs/original-challenge.md`](docs/original-challenge.md)).
+
+| Fase | Item | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
+|---|---|---|---|---|
+
+### 3.4 Evidências
+
+| Projeto | Log de validação | Checks | Falhas | Pulados | Cobertura | Exit `api-test.sh` | Exit `arch-check.sh` |
+|---|---|---:|---:|---:|---|---:|---:|
+| `code-smells-project` | [log](evidence/logs/code-smells-project-validation.txt) | | | | | | |
+| `ecommerce-api-legacy` | [log](evidence/logs/ecommerce-api-legacy-validation.txt) | | | | | | |
+| `task-manager-api` | [log](evidence/logs/task-manager-api-validation.txt) | | | | | | |
+
+#### Caixa de conclusão da Fase 3
+
+<!-- BEGIN:completion-box -->
+Saída literal do `completion-box.sh` de cada projeto, na seção "Conclusão da Fase 3" do README dele:
+
+- `code-smells-project` — _pendente — projeto ainda sem relatório e log de validação._
+- `ecommerce-api-legacy` — _pendente — projeto ainda sem relatório e log de validação._
+- `task-manager-api` — _pendente — projeto ainda sem relatório e log de validação._
+
+<!-- END:completion-box -->
+
+### 3.5 Comportamento entre diferentes stacks
+
+A mesma skill, sem nenhuma alteração entre projetos (as três cópias são idênticas), rodou em dois
+ecossistemas e em três níveis de organização.
+
+| | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
+|---|---|---|---|
+
+**Observações**
+
+### 3.6 Achados em aberto e melhorias futuras
+
+Os achados que ficaram em aberto após a Fase 3 estão na seção `## Future improvements` do README de cada projeto, cada item com a sua origem (deixado em aberto no plano, risco aceito, fora do código, notado na Fase 3 ou na revisão de segurança pós-Fase 3):
+
+- [`code-smells-project/README.md`](code-smells-project/README.md#future-improvements)
+- [`ecommerce-api-legacy/README.md`](ecommerce-api-legacy/README.md#future-improvements)
+- [`task-manager-api/README.md`](task-manager-api/README.md#future-improvements)
+
+### 3.7 Critérios de Aceite
+
+| Critério | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
+|---|---|---|---|
+
 ## 4. Como Executar
+
+### 4.1 Pré-requisitos
+
+**Ferramenta: Claude Code.** Instalação
+([setup oficial](https://code.claude.com/docs/en/setup)):
+
+### 4.2 Executar a skill (reproduzir a refatoração)
+
+Rode a skill a partir da pasta de cada projeto (é lá que fica a cópia em `.claude/skills/refactor-arch/`):
+
+```bash
+# Projeto 1 — Python/Flask (e-commerce)
+cd code-smells-project
+claude "/refactor-arch"
+
+# Projeto 2 — Node.js/Express (LMS com checkout)
+cd ../ecommerce-api-legacy
+claude "/refactor-arch"
+
+# Projeto 3 — Python/Flask (task manager)
+cd ../task-manager-api
+claude "/refactor-arch"
+```
+
+Em cada execução: a Fase 1 imprime a caixa `PHASE 1: PROJECT ANALYSIS`; a Fase 2 grava `reports/audit-project-<N>.md` na raiz do repositório, faz as perguntas das decisões em aberto, mostra o plano e para em `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]`. Responda `y` para liberar a Fase 3, que termina com a caixa `PHASE 3: REFACTORING COMPLETE`. Para reproduzir a refatoração desde o início, rode os comandos acima numa cópia com o código original dos 3 projetos (o boilerplate) e a skill na versão atual.
+
+### 4.3 Rodar os projetos refatorados
+
+| Projeto | Subir | Porta padrão |
+|---|---|---|
+
+### 4.4 Validação
+
+Cada projeto traz `api-test.sh` (precisa de banco descartável: o script escreve e apaga dados; o cabeçalho de cada um tem o passo a passo) e a skill traz `arch-check.sh`:
+
+```bash
+<projeto>/.claude/skills/refactor-arch/scripts/arch-check.sh <projeto>   # exit 0 = PASS
+cd <projeto> && ./api-test.sh                                            # exit 0 = sem falhas (variáveis no cabeçalho)
+```
