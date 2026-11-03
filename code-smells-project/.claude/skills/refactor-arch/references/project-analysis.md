@@ -71,8 +71,8 @@ there are the deciding signal, not the file count.
 
 Also record, for Phase 2 and the Phase 3 layout table: the source files at the project root and the
 role each plays (entry point, config, auth, errors, security, database, layer file), and which
-layer directories already exist (`routes/`, `controllers/`, `services/`, `models/`, `middlewares/`,
-`utils/`, …).
+layer directories already exist (`routes/`, `controllers/`, `services/`, `models/`, `middleware/`
+or `middlewares/`, `utils/`, …), keeping the name the project uses.
 
 ## 4. Ambiguous or missing signals
 

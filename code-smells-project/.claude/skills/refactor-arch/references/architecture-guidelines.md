@@ -65,8 +65,12 @@ Rules the table implies:
 - **Root holds only the entry point, manifests, standalone scripts (a seed), tool config files and
   tests** (`AP-23`, the same exemptions as `arch-check.sh`). Every other source file lives in a
   directory named for its role: the MVC layers — `models/`, `routes/` (or `views/`), `controllers/`
-  — plus `services/` when the table requires one and the supporting `config/`, `middlewares/`,
-  `errors/`, `utils/`, `database/`, adapting to names the project already uses.
+  — plus `services/` when the table requires one and the supporting `config/`, `middleware/`,
+  `errors/`, `utils/`, `database/`, adapting to names the project already uses. New names follow
+  the stack's conventions: lowercase directories; Python packages and modules in lowercase
+  snake_case (PEP 8) with `__init__.py`; JavaScript files in the case the project already uses
+  (camelCase or kebab-case). `middleware/` stays singular, as Express, Django and the wider
+  ecosystem use the word (uncountable).
 - **A model imports no other model and no HTTP/routing code** (`AP-22`).
 - **A controller function calls at most one model**; a second model, or an external system, makes
   it a Service call.
@@ -116,6 +120,6 @@ Rules the table implies:
   Services rule allows; it never becomes a domain's controller or data-access layer.
 - Duplicated rules move into the Model of their entity, or into a Service when they span entities
   (RP-04); when the Model already has the rule, the copies are replaced by calls to it.
-- Supporting modules already grouped (`utils/`, `middlewares/`) are kept; loose ones join them (RP-22).
+- Supporting modules already grouped (`utils/`, `middleware/`) are kept; loose ones join them (RP-22).
 - A dead `services/` module is wired or removed (RP-10); one wired for only some routes of a module
   is extended to all of them — no half-migrated files.
