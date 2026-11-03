@@ -302,7 +302,9 @@ kill %1
 test -s "$LOG"
 ```
 
-The log is valid only with the `Domain:` line, one `AP-12:` line per component (none `BLOCKED`),
+The log is valid only with the `Domain:` line, one `AP-12:` line per component (none `BLOCKED`;
+a component the user left open in Phase 2 after a `BLOCKED` lookup is written with the state
+`BLOCKED (left open)` and counted under `left open` in `Findings:`),
 a boot section showing the application listening, a passing `DB target:` line, and a footer with
 `TOTAL`, the coverage line and exit code 0. A log of a failing run is not evidence: fix, re-run,
 overwrite.

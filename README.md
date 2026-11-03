@@ -120,6 +120,7 @@ skill. Todos são usados: cada `AP-xx` aparece em pelo menos um dos três relat�
 - **Agnóstica.** A stack é detectada a cada execução, os sinais descrevem padrões e não sintaxe, e stack sem cobertura é relatada como lacuna, nunca como aprovação. Python/Flask e Node.js/Express são o perfil coberto.
 - **Pausa obrigatória.** A Fase 2 grava o relatório, pergunta cada decisão em aberto e só segue após `y` à pergunta literal do enunciado; antes disso o único arquivo escrito é o relatório em `reports/`, e nenhum arquivo do projeto muda.
 - **Prova, não declaração.** A Fase 3 só conclui com boot, `api-test.sh` exit 0, `arch-check.sh` exit 0 e artefatos em disco; cada `✓` da caixa final exige sua evidência.
+- **Proteção de dados.** LGPD, GDPR e PCI-DSS orientam o `Impact` e a `Recommendation` dos findings que envolvem dado pessoal ou de cartão (quem lê o dado, por quanto tempo, o que acontece com o que já foi gravado), sem mudar a escala de severidade do enunciado.
 
 **Desafios** (tabela completa em [`docs/skill-construction.md`](docs/skill-construction.md#desafios-e-como-a-skill-os-trata)):
 - **Finding fabricado:** regra de `file:line` real, reaberto e conferido, nas regras inegociáveis e no catálogo.

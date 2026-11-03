@@ -158,7 +158,10 @@ optional: it may locate official material, never the only authority; if it fails
 
 **Gate:** one `AP-12:` line per component in `Checked, no findings`
 (`references/audit-report-template.md`). A component whose every applicable source failed is
-`BLOCKED`: Phase 2 is incomplete — do not ask the Phase 3 question.
+`BLOCKED`: never `clean`, and never skipped. It becomes an open decision of Phase 2, asked before
+the Phase 3 question — (a) retry the lookup now, or (b) proceed with that component unverified, as a
+`left open` plan line. On (a) the line takes the new result; on (b) the report keeps `BLOCKED` and
+the gap is carried to the validation evidence and *Future improvements*.
 
 - **Severity:** MEDIUM. CRITICAL when the deprecation notice gives a security reason (insecure, not merely superseded) or the advisory is reachable through how this code uses the package — cite the notice or advisory.
 - **Impact:** deprecated calls break on upgrade; a vulnerable or unsupported release ships known flaws that no longer get fixes.
