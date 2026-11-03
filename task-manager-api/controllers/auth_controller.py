@@ -28,5 +28,5 @@ def login(data, secret_key):
     return {
         'message': 'Login realizado com sucesso',
         'user': user.to_dict(full_email=True),
-        'token': create_token(secret_key, {'id': user.id}),
+        'token': create_token(secret_key, {'id': user.id, 'fp': user.token_fingerprint()}),
     }, 200

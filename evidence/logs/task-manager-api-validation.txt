@@ -1,4 +1,4 @@
-# task-manager-api — 2026-11-03 11:34:42
+# task-manager-api — 2026-11-03 11:40:46
 Domain:        Task management API (tasks, users, categories, reports)
 
 ## AP-12
@@ -14,26 +14,26 @@ AP-12: marshmallow, requests | removed (were 3.20.1 / 2.31.0, unimported, with a
 
 ## Boot
 $ DATABASE_URL=sqlite:///<tmp>/tasks.db SEED_ADMIN_PASSWORD=<REDACTED> SEED_USER_PASSWORD=<REDACTED> APP_PORT=5070 python seed.py && python app.py   (Python 3.11.18)
-2026-11-03 11:34:41,451 WARNING app: SECRET_KEY not set: a random key was generated (tokens do not survive restarts)
+2026-11-03 11:40:44,988 WARNING app: SECRET_KEY not set: a random key was generated (tokens do not survive restarts)
 Seed concluído com sucesso!
   3 usuários
   4 categorias
   10 tasks
-2026-11-03 11:34:42,146 WARNING __main__: SECRET_KEY not set: a random key was generated (tokens do not survive restarts)
+2026-11-03 11:40:45,761 WARNING __main__: SECRET_KEY not set: a random key was generated (tokens do not survive restarts)
  * Serving Flask app 'app'
  * Debug mode: off
-2026-11-03 11:34:42,171 INFO werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+2026-11-03 11:40:45,790 INFO werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5070
  * Running on http://<REDACTED-LAN-IP>:5070
-2026-11-03 11:34:42,171 INFO werkzeug: [33mPress CTRL+C to quit[0m
-2026-11-03 11:34:42,194 INFO werkzeug: 127.0.0.1 - - [03/Nov/2026 11:34:42] "GET /health HTTP/1.1" 200 -
+2026-11-03 11:40:45,790 INFO werkzeug: [33mPress CTRL+C to quit[0m
+2026-11-03 11:40:46,069 INFO werkzeug: 127.0.0.1 - - [03/Nov/2026 11:40:46] "GET /health HTTP/1.1" 200 -
 
 ## api-test.sh
 ==================================================
 api-test.sh — task-manager-api
 Base URL: http://localhost:5070
-Start:    2026-11-03 11:34:42
+Start:    2026-11-03 11:40:46
 ==================================================
 
 == T0. Preflight
@@ -44,46 +44,46 @@ DB target: temp-file
 == T1. Happy path
   PASS [200] GET / — index :: {"message":"Task Manager API","version":"1.0"}
   PASS GET / message
-  PASS [200] GET /health — health :: {"status":"ok","timestamp":"2026-11-03 11:34:42.928924"}
+  PASS [200] GET /health — health :: {"status":"ok","timestamp":"2026-11-03 11:40:46.946759"}
   PASS GET /health status
-  PASS [200] POST /login — login returns own data and a token :: {"message":"Login realizado com sucesso","token":"<REDACTED>","u
+  PASS [200] POST /login — login returns own data and a token :: {"message":"Login realizado com sucesso","token":"eyJpZCI6MiwiZnAiOiI5YWVkNzY0OTgyMTlhOWE0NWQ1ZDI3Yj
   PASS login shows the subject's own full email
   PASS token is signed, not fake-jwt-token-<id>
-  PASS [200] GET /tasks — list all tasks :: [{"category_id":1,"category_name":"Backend","created_at":"2026-11-03 14:34:41.791669","description":
+  PASS [200] GET /tasks — list all tasks :: [{"category_id":1,"category_name":"Backend","created_at":"2026-11-03 14:40:45.336282","description":
   PASS GET /tasks returns every task (no default page)
   PASS GET /tasks rows carry user_name, category_name, overdue
-  PASS [200] GET /tasks/<int:task_id> — seeded overdue task :: {"category_id":1,"created_at":"2026-11-03 14:34:41.791669","description":"Adicionar autentica\u00e7\
+  PASS [200] GET /tasks/<int:task_id> — seeded overdue task :: {"category_id":1,"created_at":"2026-11-03 14:40:45.336282","description":"Adicionar autentica\u00e7\
   PASS overdue computed by Task.is_overdue
-  PASS [200] GET /tasks/search — search by text :: [{"category_id":1,"created_at":"2026-11-03 14:34:41.791673","description":"Endpoints retornam todos 
+  PASS [200] GET /tasks/search — search by text :: [{"category_id":1,"created_at":"2026-11-03 14:40:45.336286","description":"Endpoints retornam todos 
   PASS search finds the matching task
   PASS [200] GET /tasks/stats — stats :: {"cancelled":1,"completion_rate":10.0,"done":1,"in_progress":2,"overdue":2,"pending":6,"total":10}
   PASS stats total equals DB
   PASS stats done equals DB
-  PASS [201] POST /tasks — maria creates a task assigned to herself :: {"category_id":1,"created_at":"2026-11-03 14:34:43.425188","description":"","due_date":"2030-01-15 0
+  PASS [201] POST /tasks — maria creates a task assigned to herself :: {"category_id":1,"created_at":"2026-11-03 14:40:47.452305","description":"","due_date":"2030-01-15 0
   PASS created task values
-  PASS [200] PUT /tasks/<int:task_id> — owner updates status :: {"category_id":1,"created_at":"2026-11-03 14:34:43.425188","description":"","due_date":null,"id":11,
+  PASS [200] PUT /tasks/<int:task_id> — owner updates status :: {"category_id":1,"created_at":"2026-11-03 14:40:47.452305","description":"","due_date":null,"id":11,
   PASS update applied
-  PASS [200] GET /users — admin lists users :: [{"active":true,"created_at":"2026-11-03 14:34:41.783698","email":"<REDACTED>","id":1,"name":"Jo
+  PASS [200] GET /users — admin lists users :: [{"active":true,"created_at":"2026-11-03 14:40:45.328602","email":"<REDACTED>","id":1,"name":"Jo
   PASS GET /users returns every user
   PASS task_count for maria equals DB
-  PASS [200] GET /users/<int:user_id> — maria reads herself :: {"active":true,"created_at":"2026-11-03 14:34:41.783702","email":"<REDACTED>","id":2,"name":"Ma
+  PASS [200] GET /users/<int:user_id> — maria reads herself :: {"active":true,"created_at":"2026-11-03 14:40:45.328606","email":"<REDACTED>","id":2,"name":"Ma
   PASS own record with full email and her tasks
-  PASS [201] POST /users — anonymous signup :: {"active":true,"created_at":"2026-11-03 14:34:43.792848","email":"<REDACTED>","id":4,
+  PASS [201] POST /users — anonymous signup :: {"active":true,"created_at":"2026-11-03 14:40:47.863415","email":"<REDACTED>","id":4,
   PASS signup gets role user and sees own email
-  PASS [200] PUT /users/<int:user_id> — user renames himself :: {"active":true,"created_at":"2026-11-03 14:34:43.792848","email":"<REDACTED>","id":4,
+  PASS [200] PUT /users/<int:user_id> — user renames himself :: {"active":true,"created_at":"2026-11-03 14:40:47.863415","email":"<REDACTED>","id":4,
   PASS rename applied
-  PASS [200] GET /users/<int:user_id>/tasks — maria's tasks :: [{"created_at":"2026-11-03 14:34:41.791671","description":"Tela de login responsiva","due_date":"202
+  PASS [200] GET /users/<int:user_id>/tasks — maria's tasks :: [{"created_at":"2026-11-03 14:40:45.336284","description":"Tela de login responsiva","due_date":"202
   PASS user tasks shape (with overdue, without user_id)
-  PASS [200] GET /reports/summary — admin summary :: {"generated_at":"2026-11-03 14:34:44.137890","overdue":{"count":2,"tasks":[{"days_overdue":3,"due_da
+  PASS [200] GET /reports/summary — admin summary :: {"generated_at":"2026-11-03 14:40:48.214629","overdue":{"count":2,"tasks":[{"days_overdue":3,"due_da
   PASS summary overview equals DB
   PASS summary priority 1 → critical
   PASS [200] GET /reports/user/<int:user_id> — maria's own report :: {"statistics":{"cancelled":0,"completion_rate":0.0,"done":0,"high_priority":3,"in_progress":3,"overd
   PASS user report values
-  PASS [200] GET /categories — list categories :: [{"color":"#3498db","created_at":"2026-11-03 14:34:41.786005","description":"Tarefas de backend","id
+  PASS [200] GET /categories — list categories :: [{"color":"#3498db","created_at":"2026-11-03 14:40:45.330945","description":"Tarefas de backend","id
   PASS category 1 task_count equals DB
-  PASS [201] POST /categories — admin creates category :: {"color":"#123abc","created_at":"2026-11-03 14:34:44.338925","description":"","id":5,"name":"Cat 151
+  PASS [201] POST /categories — admin creates category :: {"color":"#123abc","created_at":"2026-11-03 14:40:48.418043","description":"","id":5,"name":"Cat 253
   PASS category values (description defaults to '')
-  PASS [200] PUT /categories/<int:cat_id> — admin updates category :: {"color":"#123abc","created_at":"2026-11-03 14:34:44.338925","description":"Nova","id":5,"name":"Cat
+  PASS [200] PUT /categories/<int:cat_id> — admin updates category :: {"color":"#123abc","created_at":"2026-11-03 14:40:48.418043","description":"Nova","id":5,"name":"Cat
   PASS category update applied
 
 == T2. Sad paths
@@ -93,7 +93,7 @@ DB target: temp-file
   PASS [400] POST /tasks — numeric title (was 500) :: {"error":"T\u00edtulo inv\u00e1lido"}
   PASS [400] POST /tasks — invalid status :: {"error":"Status inv\u00e1lido"}
   PASS status message kept
-  PASS [404] POST /tasks — unknown user_id :: {"error":"Usu\u00e1rio n\u00e3o encontrado"}
+  PASS [404] POST /tasks — unknown user_id (admin) :: {"error":"Usu\u00e1rio n\u00e3o encontrado"}
   PASS [404] POST /tasks — unknown category_id :: {"error":"Categoria n\u00e3o encontrada"}
   PASS [400] POST /tasks — bad date :: {"error":"Formato de data inv\u00e1lido. Use YYYY-MM-DD"}
   PASS [400] POST /tasks — malformed JSON :: {"error":"Dados inv\u00e1lidos"}
@@ -152,53 +152,63 @@ DB target: temp-file
   PASS [403] PUT /categories/<int:cat_id> — regular user :: {"error":"Acesso negado"}
   PASS [403] DELETE /categories/<int:cat_id> — regular user :: {"error":"Acesso negado"}
   PASS [403] GET /users/<int:user_id> — another user :: {"error":"Acesso negado"}
-  PASS [200] GET /users/<int:user_id> — admin :: {"active":true,"created_at":"2026-11-03 14:34:41.783702","email":"<REDACTED>","id":2,"name":"Mar
+  PASS [200] GET /users/<int:user_id> — admin :: {"active":true,"created_at":"2026-11-03 14:40:45.328606","email":"<REDACTED>","id":2,"name":"Mar
   PASS [403] PUT /users/<int:user_id> — another user :: {"error":"Acesso negado"}
-  PASS [200] PUT /users/<int:user_id> — admin :: {"active":true,"created_at":"2026-11-03 14:34:41.783702","email":"<REDACTED>","id":2,"name":"Mar
+  PASS [200] PUT /users/<int:user_id> — admin :: {"active":true,"created_at":"2026-11-03 14:40:45.328606","email":"<REDACTED>","id":2,"name":"Mar
   PASS [403] DELETE /users/<int:user_id> — another user :: {"error":"Acesso negado"}
   PASS [403] GET /users/<int:user_id>/tasks — another user :: {"error":"Acesso negado"}
-  PASS [200] GET /users/<int:user_id>/tasks — admin :: [{"created_at":"2026-11-03 14:34:41.791671","description":"Tela de login responsiva","due_date":"202
+  PASS [200] GET /users/<int:user_id>/tasks — admin :: [{"created_at":"2026-11-03 14:40:45.336284","description":"Tela de login responsiva","due_date":"202
   PASS [403] GET /reports/user/<int:user_id> — another user :: {"error":"Acesso negado"}
   PASS [200] GET /reports/user/<int:user_id> — admin :: {"statistics":{"cancelled":0,"completion_rate":0.0,"done":0,"high_priority":3,"in_progress":3,"overd
   PASS task id differs from its owner's id
   PASS [403] PUT /tasks/<int:task_id> — another user :: {"error":"Acesso negado"}
   PASS [403] DELETE /tasks/<int:task_id> — another user :: {"error":"Acesso negado"}
-  PASS [200] PUT /tasks/<int:task_id> — admin :: {"category_id":1,"created_at":"2026-11-03 14:34:43.425188","description":"","due_date":null,"id":11,
-  PASS [200] PUT /tasks/<int:task_id> — owner :: {"category_id":1,"created_at":"2026-11-03 14:34:43.425188","description":"","due_date":null,"id":11,
-  PASS [201] POST /tasks — admin creates an unassigned task :: {"category_id":null,"created_at":"2026-11-03 14:34:46.419776","description":"","due_date":null,"id":
+  PASS [200] PUT /tasks/<int:task_id> — admin :: {"category_id":1,"created_at":"2026-11-03 14:40:47.452305","description":"","due_date":null,"id":11,
+  PASS [200] PUT /tasks/<int:task_id> — owner :: {"category_id":1,"created_at":"2026-11-03 14:40:47.452305","description":"","due_date":null,"id":11,
+  PASS [201] POST /tasks — admin creates an unassigned task :: {"category_id":null,"created_at":"2026-11-03 14:40:50.099854","description":"","due_date":null,"id":
   PASS [403] PUT /tasks/<int:task_id> — unassigned task: regular user :: {"error":"Acesso negado"}
-  PASS [200] PUT /tasks/<int:task_id> — unassigned task: admin :: {"category_id":null,"created_at":"2026-11-03 14:34:46.419776","description":"","due_date":null,"id":
+  PASS [200] PUT /tasks/<int:task_id> — unassigned task: admin :: {"category_id":null,"created_at":"2026-11-03 14:40:50.099854","description":"","due_date":null,"id":
   PASS [200] GET /tasks/stats — manager (authenticated) :: {"cancelled":1,"completion_rate":16.67,"done":2,"in_progress":3,"overdue":2,"pending":6,"total":12}
   PASS [403] POST /users — anonymous signup asking for admin :: {"error":"Apenas administradores podem definir role"}
   PASS DB: escalation attempt created no row
   PASS [403] PUT /users/<int:user_id> — user promotes himself :: {"error":"Apenas administradores podem definir role"}
   PASS [403] PUT /users/<int:user_id> — user changes his active flag :: {"error":"Apenas administradores podem alterar active"}
   PASS DB: role unchanged after the attempt
-  PASS [201] POST /users — admin creates a manager :: {"active":true,"created_at":"2026-11-03 14:34:46.717353","email":"<REDACTED>","id":5,"name":"Ger 15
+  PASS [201] POST /users — admin creates a manager :: {"active":true,"created_at":"2026-11-03 14:40:50.374247","email":"<REDACTED>","id":5,"name":"Ger 25
   PASS admin may assign a role
-  PASS [200] PUT /users/<int:user_id> — admin deactivates a user :: {"active":false,"created_at":"2026-11-03 14:34:43.792848","email":"<REDACTED>","id":4,"name":"Renom
+  PASS [200] PUT /users/<int:user_id> — admin deactivates a user :: {"active":false,"created_at":"2026-11-03 14:40:47.863415","email":"<REDACTED>","id":4,"name":"Renom
   PASS [403] GET /tasks — inactive user's token :: {"error":"Usu\u00e1rio inativo"}
   PASS [403] POST /login — inactive user login :: {"error":"Usu\u00e1rio inativo"}
-  PASS [200] PUT /users/<int:user_id> — admin reactivates :: {"active":true,"created_at":"2026-11-03 14:34:43.792848","email":"<REDACTED>","id":4,"name":"Renome
+  PASS [200] PUT /users/<int:user_id> — admin reactivates :: {"active":true,"created_at":"2026-11-03 14:40:47.863415","email":"<REDACTED>","id":4,"name":"Renome
+  PASS [200] PUT /users/<int:user_id> — user changes his password :: {"active":true,"created_at":"2026-11-03 14:40:47.863415","email":"<REDACTED>","id":4,
+  PASS [401] GET /tasks — token issued before the password change :: {"error":"Token inv\u00e1lido ou expirado"}
+  PASS [200] GET /tasks — token issued after the password change :: [{"category_id":1,"category_name":"Backend","created_at":"2026-11-03 14:40:45.336282","description":
+  PASS [403] POST /tasks — regular user creates a task for another user :: {"error":"Apenas administradores podem atribuir tasks a outros usu\u00e1rios"}
+  PASS DB: refused assignment created no row
+  PASS [403] PUT /tasks/<int:task_id> — owner reassigns own task to another user :: {"error":"Apenas administradores podem atribuir tasks a outros usu\u00e1rios"}
+  PASS DB: owner unchanged after the refused reassignment
+  PASS [200] PUT /tasks/<int:task_id> — owner resends the same user_id :: {"category_id":1,"created_at":"2026-11-03 14:40:47.452305","description":"","due_date":null,"id":11,
+  PASS [201] POST /tasks — admin assigns a task to another user :: {"category_id":null,"created_at":"2026-11-03 14:40:51.012045","description":"","due_date":null,"id":
+  PASS [200] DELETE /tasks/<int:task_id> — admin removes the assigned task :: {"message":"Task deletada com sucesso"}
   PASS CORS preflight does not grant private-network access (CVE-2024-6221)
 
 == T4. Edge cases
   PASS [400] POST /tasks — title length 2 (min-1) :: {"error":"T\u00edtulo muito curto"}
-  PASS [201] POST /tasks — title length 3 (min) :: {"category_id":null,"created_at":"2026-11-03 14:34:47.120640","description":"","due_date":null,"id":
-  PASS [201] POST /tasks — title length 200 (max) :: {"category_id":null,"created_at":"2026-11-03 14:34:47.170299","description":"","due_date":null,"id":
+  PASS [201] POST /tasks — title length 3 (min) :: {"category_id":null,"created_at":"2026-11-03 14:40:51.154913","description":"","due_date":null,"id":
+  PASS [201] POST /tasks — title length 200 (max) :: {"category_id":null,"created_at":"2026-11-03 14:40:51.204039","description":"","due_date":null,"id":
   PASS [400] POST /tasks — title length 201 (max+1) :: {"error":"T\u00edtulo muito longo"}
   PASS [400] POST /tasks — priority 0 :: {"error":"Prioridade deve ser entre 1 e 5"}
   PASS [400] POST /tasks — priority 6 :: {"error":"Prioridade deve ser entre 1 e 5"}
   PASS [400] POST /tasks — priority boolean :: {"error":"Prioridade deve ser um n\u00famero inteiro"}
   PASS [400] POST /tasks — tags with a number :: {"error":"Tags inv\u00e1lidas"}
-  PASS [201] POST /tasks — unicode title :: {"category_id":null,"created_at":"2026-11-03 14:34:47.319149","description":"","due_date":null,"id":
+  PASS [201] POST /tasks — unicode title :: {"category_id":null,"created_at":"2026-11-03 14:40:51.351099","description":"","due_date":null,"id":
   PASS unicode stored as sent
   PASS [400] GET /tasks — page=0 :: {"error":"Par\u00e2metro page inv\u00e1lido"}
   PASS [400] GET /tasks — per_page=abc :: {"error":"Par\u00e2metro per_page inv\u00e1lido"}
   PASS [400] GET /tasks — per_page=101 :: {"error":"Par\u00e2metro per_page deve ser no m\u00e1ximo 100"}
-  PASS [200] GET /tasks — page 1 of 2 :: [{"category_id":1,"category_name":"Backend","created_at":"2026-11-03 14:34:41.791669","description":
+  PASS [200] GET /tasks — page 1 of 2 :: [{"category_id":1,"category_name":"Backend","created_at":"2026-11-03 14:40:45.336282","description":
   PASS per_page limits the list
-  PASS [200] GET /users — page of users :: [{"active":true,"created_at":"2026-11-03 14:34:41.783698","email":"<REDACTED>","id":1,"name":"Jo
+  PASS [200] GET /users — page of users :: [{"active":true,"created_at":"2026-11-03 14:40:45.328602","email":"<REDACTED>","id":1,"name":"Jo
   PASS users per_page=1
   PASS [200] GET /categories — page beyond the end :: []
   PASS page beyond the end is empty
@@ -217,7 +227,7 @@ DB target: temp-file
   PASS zeros, not null
 
 == T6. Persistence and integrity
-  PASS [200] GET /tasks/<int:task_id> — re-read the updated task :: {"category_id":1,"created_at":"2026-11-03 14:34:43.425188","description":"","due_date":null,"id":11,
+  PASS [200] GET /tasks/<int:task_id> — re-read the updated task :: {"category_id":1,"created_at":"2026-11-03 14:40:47.452305","description":"","due_date":null,"id":11,
   PASS updates persisted
   PASS DB: task row in the database
   PASS [404] POST /tasks — failing create (unknown user) :: {"error":"Usu\u00e1rio n\u00e3o encontrado"}
@@ -225,23 +235,23 @@ DB target: temp-file
   PASS DB: invalid color never stored
   PASS DB: no password stored as unsalted MD5 or plaintext
   PASS DB: unique email enforced by the database
-  PASS [200] POST /login — login with a legacy MD5 hash :: {"message":"Login realizado com sucesso","token":"<REDACTED>","u
+  PASS [200] POST /login — login with a legacy MD5 hash :: {"message":"Login realizado com sucesso","token":"eyJpZCI6NCwiZnAiOiI2MmI0NGY3MjBlMzlhZjFmYTY3ZmJlYT
   PASS DB: legacy hash replaced by a salted hash
   PASS DB: no orphan task (user_id pointing at nothing)
 
 == T7. Privacy
-  PASS [200] POST /login — login :: {"message":"Login realizado com sucesso","token":"<REDACTED>","u
+  PASS [200] POST /login — login :: {"message":"Login realizado com sucesso","token":"eyJpZCI6MiwiZnAiOiI5YWVkNzY0OTgyMTlhOWE0NWQ1ZDI3Yj
   PASS login does not return the password hash
-  PASS [200] GET /users — admin list :: [{"active":true,"created_at":"2026-11-03 14:34:41.783698","email":"<REDACTED>","id":1,"name":"Jo
+  PASS [200] GET /users — admin list :: [{"active":true,"created_at":"2026-11-03 14:40:45.328602","email":"<REDACTED>","id":1,"name":"Jo
   PASS GET /users has no password field
   PASS GET /users masks another user's email for the admin
   PASS admin sees his own full email
-  PASS [200] GET /users/<int:user_id> — admin reads maria :: {"active":true,"created_at":"2026-11-03 14:34:41.783702","email":"<REDACTED>","id":2,"name":"Mar
+  PASS [200] GET /users/<int:user_id> — admin reads maria :: {"active":true,"created_at":"2026-11-03 14:40:45.328606","email":"<REDACTED>","id":2,"name":"Mar
   PASS GET /users/<id> has no password field
   PASS maria's email masked for the admin
-  PASS [200] PUT /users/<int:user_id> — update response :: {"active":true,"created_at":"2026-11-03 14:34:43.792848","email":"<REDACTED>","id":4,
+  PASS [200] PUT /users/<int:user_id> — update response :: {"active":true,"created_at":"2026-11-03 14:40:47.863415","email":"<REDACTED>","id":4,
   PASS PUT /users/<id> has no password field
-  PASS [201] POST /users — signup response :: {"active":true,"created_at":"2026-11-03 14:34:48.502044","email":"<REDACTED>","id":6
+  PASS [201] POST /users — signup response :: {"active":true,"created_at":"2026-11-03 14:40:52.824957","email":"<REDACTED>","id":6
   PASS POST /users has no password field
   PASS [200] GET /reports/user/<int:user_id> — admin reads maria's report :: {"statistics":{"cancelled":0,"completion_rate":0.0,"done":0,"high_priority":2,"in_progress":3,"overd
   PASS user report masks the email for a non-subject
@@ -257,11 +267,13 @@ DB target: temp-file
   PASS [404] DELETE /users/<int:user_id> — delete twice (admin) :: {"error":"Usu\u00e1rio n\u00e3o encontrado"}
   PASS DB: nothing points at the deleted user
   PASS [401] GET /tasks — deleted user's token :: {"error":"Token inv\u00e1lido ou expirado"}
+  PASS new account received the deleted user's id (precondition)
+  PASS [401] GET /users/<int:user_id> — deleted user's token on the reused id :: {"error":"Token inv\u00e1lido ou expirado"}
   PASS [200] DELETE /users/<int:user_id> — admin deletes another user :: {"message":"Usu\u00e1rio deletado com sucesso"}
   PASS [200] DELETE /tasks/<int:task_id> — owner deletes own task :: {"message":"Task deletada com sucesso"}
 
 ==================================================
-TOTAL: 205 checks | failures: 0 | skipped: 0
+TOTAL: 217 checks | failures: 0 | skipped: 0
 Coverage: 22 endpoints inventoried / 22 exercised
 ==================================================
 api-test.sh exit code: 0

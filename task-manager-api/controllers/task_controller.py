@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 
 from config import settings
-from errors.exceptions import NotFound, ValidationError
+from errors.exceptions import Forbidden, NotFound, ValidationError
 from models.task import Task
 from services import report_service, task_service
 from utils.pagination import parse_pagination
@@ -123,15 +123,26 @@ def get_task(task_id):
     return task.to_detail_dict(), 200
 
 
-def create_task(data):
-    task = task_service.create_task(validate_task(data, partial=False))
+_ASSIGN_FORBIDDEN = 'Apenas administradores podem atribuir tasks a outros usuários'
+
+
+def create_task(data, viewer):
+    fields = validate_task(data, partial=False)
+    # the assignee owns the task: a non-admin may create it only for himself or unassigned
+    if not viewer.is_admin() and fields['user_id'] not in (None, viewer.id):
+        raise Forbidden(_ASSIGN_FORBIDDEN)
+    task = task_service.create_task(fields)
     logger.info("Task created: id=%s", task.id)
     return task.to_dict(), 201
 
 
-def update_task(task_id, data):
-    task_service.ensure_task_exists(task_id)
-    task = task_service.update_task(task_id, validate_task(data, partial=True))
+def update_task(task_id, data, viewer):
+    current = task_service.ensure_task_exists(task_id)
+    fields = validate_task(data, partial=True)
+    # only an admin may change who owns a task
+    if not viewer.is_admin() and 'user_id' in fields and fields['user_id'] != current.user_id:
+        raise Forbidden(_ASSIGN_FORBIDDEN)
+    task = task_service.update_task(task_id, fields)
     logger.info("Task updated: id=%s", task.id)
     return task.to_dict(), 200
 

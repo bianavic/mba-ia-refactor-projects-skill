@@ -227,7 +227,7 @@ check "POST /tasks" 400 "priority as text (was 500)" -X POST "${MH[@]}" "${H_JSO
 check "POST /tasks" 400 "numeric title (was 500)" -X POST "${MH[@]}" "${H_JSON[@]}" -d '{"title":12345}' "$BASE/tasks"
 check "POST /tasks" 400 "invalid status" -X POST "${MH[@]}" "${H_JSON[@]}" -d '{"title":"abcd","status":"x"}' "$BASE/tasks"
 check_equal "Status inválido" "$(printf '%s' "$BODY" | json error)" "status message kept"
-check "POST /tasks" 404 "unknown user_id" -X POST "${MH[@]}" "${H_JSON[@]}" -d '{"title":"abcd","user_id":999999}' "$BASE/tasks"
+check "POST /tasks" 404 "unknown user_id (admin)" -X POST "${AH[@]}" "${H_JSON[@]}" -d '{"title":"abcd","user_id":999999}' "$BASE/tasks"
 check "POST /tasks" 404 "unknown category_id" -X POST "${MH[@]}" "${H_JSON[@]}" -d '{"title":"abcd","category_id":999999}' "$BASE/tasks"
 check "POST /tasks" 400 "bad date" -X POST "${MH[@]}" "${H_JSON[@]}" -d '{"title":"abcd","due_date":"15/01/2030"}' "$BASE/tasks"
 check "POST /tasks" 400 "malformed JSON" -X POST "${MH[@]}" "${H_JSON[@]}" -d '{"title":' "$BASE/tasks"
@@ -316,6 +316,21 @@ check "PUT /users/<int:user_id>" 200 "admin deactivates a user" -X PUT "${AH[@]}
 check "GET /tasks" 403 "inactive user's token" "${NH[@]}" "$BASE/tasks"
 check "POST /login" 403 "inactive user login" -X POST "$BASE/login" "${H_JSON[@]}" -d "{\"email\":\"new$RUN@ex.com\",\"password\":\"pw-$RUN\"}"
 check "PUT /users/<int:user_id>" 200 "admin reactivates" -X PUT "${AH[@]}" "${H_JSON[@]}" -d '{"active":true}' "$BASE/users/$NU"
+# a password change ends the tokens issued before it
+check "PUT /users/<int:user_id>" 200 "user changes his password" -X PUT "${NH[@]}" "${H_JSON[@]}" -d "{\"password\":\"pw3-$RUN\"}" "$BASE/users/$NU"
+check "GET /tasks" 401 "token issued before the password change" "${NH[@]}" "$BASE/tasks"
+login_token "new$RUN@ex.com" "pw3-$RUN"; TN="$TOKEN"; NH=(-H "$(auth "$TN")")
+check "GET /tasks" 200 "token issued after the password change" "${NH[@]}" "$BASE/tasks"
+# the assignee owns a task: only an admin assigns it to someone else
+BEFORE_ASSIGN="$(sqlite3 "$DB" 'SELECT COUNT(*) FROM tasks')"
+check "POST /tasks" 403 "regular user creates a task for another user" -X POST "${MH[@]}" "${H_JSON[@]}" -d "{\"title\":\"Para outro\",\"user_id\":$PEDRO_ID}" "$BASE/tasks"
+check_db "$BEFORE_ASSIGN" "refused assignment created no row" "SELECT COUNT(*) FROM tasks"
+check "PUT /tasks/<int:task_id>" 403 "owner reassigns own task to another user" -X PUT "${MH[@]}" "${H_JSON[@]}" -d "{\"user_id\":$PEDRO_ID}" "$BASE/tasks/$MT"
+check_db "$MARIA_ID" "owner unchanged after the refused reassignment" "SELECT user_id FROM tasks WHERE id=$MT"
+check "PUT /tasks/<int:task_id>" 200 "owner resends the same user_id" -X PUT "${MH[@]}" "${H_JSON[@]}" -d "{\"user_id\":$MARIA_ID}" "$BASE/tasks/$MT"
+check "POST /tasks" 201 "admin assigns a task to another user" -X POST "${AH[@]}" "${H_JSON[@]}" -d "{\"title\":\"Atribuida $RUN\",\"user_id\":$PEDRO_ID}" "$BASE/tasks"
+AT="$(printf '%s' "$BODY" | json id)"
+check "DELETE /tasks/<int:task_id>" 200 "admin removes the assigned task" -X DELETE "${AH[@]}" "$BASE/tasks/$AT"
 # CORS: flask-cors 6 does not grant private-network access
 req -X OPTIONS -D - -o /dev/null -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Private-Network: true" "$BASE/tasks"
 deny "Access-Control-Allow-Private-Network: *true" "CORS preflight does not grant private-network access (CVE-2024-6221)"
@@ -366,7 +381,7 @@ check "GET /tasks/<int:task_id>" 200 "re-read the updated task" "${MH[@]}" "$BAS
 check_equal "in_progress|4" "$(printf '%s' "$BODY" | pyq 'j(d["status"], d["priority"])')" "updates persisted"
 check_db "in_progress|4|a,b" "task row in the database" "SELECT status, priority, tags FROM tasks WHERE id=$MT"
 BEFORE="$(sqlite3 "$DB" 'SELECT COUNT(*) FROM tasks')"
-check "POST /tasks" 404 "failing create (unknown user)" -X POST "${MH[@]}" "${H_JSON[@]}" -d '{"title":"atomic","user_id":999999}' "$BASE/tasks"
+check "POST /tasks" 404 "failing create (unknown user)" -X POST "${AH[@]}" "${H_JSON[@]}" -d '{"title":"atomic","user_id":999999}' "$BASE/tasks"
 check_db "$BEFORE" "failed create left no partial row" "SELECT COUNT(*) FROM tasks"
 check_db "1" "invalid color never stored" "SELECT COUNT(*) = 0 FROM categories WHERE length(color) <> 7"
 check_db "0" "no password stored as unsalted MD5 or plaintext" "SELECT COUNT(*) FROM users WHERE password NOT LIKE 'scrypt:%' AND password NOT LIKE 'pbkdf2:%'"
@@ -430,6 +445,11 @@ check "GET /users/<int:user_id>" 404 "deleted user (admin)" "${AH[@]}" "$BASE/us
 check "DELETE /users/<int:user_id>" 404 "delete twice (admin)" -X DELETE "${AH[@]}" "$BASE/users/$DU"
 check_db "0" "nothing points at the deleted user" "SELECT (SELECT COUNT(*) FROM users WHERE id=$DU)+(SELECT COUNT(*) FROM tasks WHERE user_id=$DU)"
 check "GET /tasks" 401 "deleted user's token" -H "$(auth "$TD")" "$BASE/tasks"
+# SQLite reuses the id of the deleted newest row: the old token must not open the new account
+req -X POST "${H_JSON[@]}" "$BASE/users" -d "{\"name\":\"Reuso $RUN\",\"email\":\"reuse$RUN@ex.com\",\"password\":\"pw4-$RUN\"}"
+RU="$(printf '%s' "$BODY" | json id)"
+check_equal "$DU" "$RU" "new account received the deleted user's id (precondition)"
+check "GET /users/<int:user_id>" 401 "deleted user's token on the reused id" -H "$(auth "$TD")" "$BASE/users/$RU"
 check "DELETE /users/<int:user_id>" 200 "admin deletes another user" -X DELETE "${AH[@]}" "$BASE/users/$NU"
 check "DELETE /tasks/<int:task_id>" 200 "owner deletes own task" -X DELETE "${MH[@]}" "$BASE/tasks/$MT"
 

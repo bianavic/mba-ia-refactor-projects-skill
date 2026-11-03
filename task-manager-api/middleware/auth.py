@@ -7,7 +7,7 @@ from config import settings
 from errors.exceptions import Forbidden, Unauthorized
 from models.task import Task
 from models.user import User
-from utils.security import read_token
+from utils.security import fingerprints_match, read_token
 
 _BEARER = "Bearer "
 # Returned by an owner resolver when the resource does not exist: the controller answers 404.
@@ -19,10 +19,11 @@ def _user_from_header(header):
         raise Unauthorized('Autenticação necessária')
     payload = read_token(current_app.config['SECRET_KEY'], header[len(_BEARER):].strip(),
                          settings.TOKEN_TTL_SECONDS)
-    if not payload or 'id' not in payload:
+    if not payload or 'id' not in payload or 'fp' not in payload:
         raise Unauthorized('Token inválido ou expirado')
     user = User.find(payload['id'])
-    if user is None:
+    # the fingerprint rejects a token whose account was deleted and its id reused, or whose password changed
+    if user is None or not fingerprints_match(user.token_fingerprint(), payload['fp']):
         raise Unauthorized('Token inválido ou expirado')
     if not user.active:
         raise Forbidden('Usuário inativo')

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from controllers import task_controller
 from middleware.auth import owner_from_task_id, owner_or_admin, require_auth
@@ -23,14 +23,14 @@ def get_task(task_id):
 @task_bp.route('/tasks', methods=['POST'])
 @require_auth
 def create_task():
-    body, status = task_controller.create_task(request.get_json(silent=True))
+    body, status = task_controller.create_task(request.get_json(silent=True), g.current_user)
     return jsonify(body), status
 
 
 @task_bp.route('/tasks/<int:task_id>', methods=['PUT'])
 @owner_or_admin(owner_from_task_id)
 def update_task(task_id):
-    body, status = task_controller.update_task(task_id, request.get_json(silent=True))
+    body, status = task_controller.update_task(task_id, request.get_json(silent=True), g.current_user)
     return jsonify(body), status
 
 

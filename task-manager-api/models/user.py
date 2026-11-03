@@ -3,7 +3,7 @@ from datetime import datetime
 from config import settings
 from database.connection import commit, db
 from utils.helpers import mask_email
-from utils.security import hash_password, is_modern_hash, verify_password
+from utils.security import fingerprint, hash_password, is_modern_hash, verify_password
 
 
 class User(db.Model):
@@ -36,6 +36,10 @@ class User(db.Model):
 
     def needs_rehash(self):
         return not is_modern_hash(self.password)
+
+    def token_fingerprint(self):
+        """Binds a token to this exact account: a reused id (new row) or a changed password no longer matches."""
+        return fingerprint(self.id, self.created_at.isoformat() if self.created_at else '', self.password)
 
     def is_admin(self):
         return self.role == settings.ROLE_ADMIN

@@ -32,6 +32,15 @@ def verify_password(stored, password):
     return False
 
 
+def fingerprint(*parts):
+    """Short, non-reversible digest of account state bound into a token."""
+    return hashlib.sha256("|".join(str(part) for part in parts).encode()).hexdigest()[:32]
+
+
+def fingerprints_match(expected, received):
+    return isinstance(received, str) and hmac.compare_digest(expected, received)
+
+
 def create_token(secret, data):
     return URLSafeTimedSerializer(secret, salt=_TOKEN_SALT).dumps(data)
 
