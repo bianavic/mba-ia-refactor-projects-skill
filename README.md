@@ -200,6 +200,7 @@ code-smells-project/
 ├── README.md
 ├── api-test.sh
 ├── app.py
+├── code-smells-project-api-curls.http
 ├── config/
 │   ├── __init__.py
 │   └── settings.py
@@ -288,6 +289,7 @@ ecommerce-api-legacy/
 ├── README.md
 ├── api-test.sh
 ├── api.http
+├── ecommerce-api-legacy-api-curls.http
 ├── package-lock.json
 ├── package.json
 └── src/
@@ -422,6 +424,7 @@ task-manager-api/
 │   ├── report_service.py
 │   ├── task_service.py
 │   └── user_service.py
+├── task-manager-api-api-curls.http
 └── utils/
     ├── __init__.py
     ├── helpers.py
@@ -501,8 +504,18 @@ ecossistemas e em três níveis de organização.
 
 | | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
 |---|---|---|---|
+| Stack detectada | Python 3.11.15 + Flask 3.1.1 ([relatório](reports/audit-project-1.md)) | JavaScript (Node.js 26.13.0) + Express 4.22.1 ([relatório](reports/audit-project-2.md)) | Python 3.11.15 + Flask 3.0.0 ([relatório](reports/audit-project-3.md)) |
+| Organização do boilerplate | 4 arquivos `.py` soltos na raiz | 3 arquivos `.js`; `AppManager.js` concentra rotas, regras e SQL | 15 arquivos já separados em `models/`, `routes/`, `services/` e `utils/`, sem `controllers/` |
+| Diagnóstico de camadas (AP-06) | CRITICAL: SQL no código de rotas, com separação só nominal | CRITICAL: God Class; `arch-check.sh` reportou `controllers:0` e `models:0` | HIGH: rotas com persistência e regra de negócio (76 chamadas de persistência) |
+| Camadas depois da Fase 3 (§3.2) | `routes/` 6, `controllers/` 6, `services/` 4, `models/` 3 | `src/routes/` 3, `controllers/` 3, `services/` 4, `models/` 5 | `routes/` 5, `controllers/` 6, `services/` 4, `models/` 3 |
+| Versões vulneráveis (AP-12) | Python 3.11.15, Flask 3.1.1 e flask-cors 5.0.1 → `clean` | Express 4.22.1 (CRITICAL) e sqlite3 5.1.7 (MEDIUM) → `clean` | Flask 3.0.0, flask-cors 4.0.0 (CRITICAL) e pins sem uso → `clean` |
 
 **Observações**
+
+- **Mesma skill, resultados diferentes.** As três cópias de `.claude/skills/refactor-arch/` são idênticas (conferido com `diff -rq`). As diferenças nos achados vêm do código de cada projeto, não de configuração por stack.
+- **Auditoria de dependências por ecossistema.** Em Python, o AP-12 usou `pip-audit` e api.osv.dev; em Node, `npm audit` (linhas `AP-12:` de cada log de validação). A checagem de versões depende da ferramenta do ecossistema.
+- **O verificador estrutural não basta sozinho.** No ecommerce, `arch-check.sh` não listou `src/utils.js`: o achado de configuração e criptografia misturadas (MEDIUM, [relatório](reports/audit-project-2.md)) veio da leitura do arquivo. No `ecommerce-api-legacy`, o `arch-check.sh` também não detecta um controller escrito em uma única linha ([Future improvements](ecommerce-api-legacy/README.md#future-improvements)).
+- **Camadas por diretório.** O `arch-check.sh` conta arquivos por pasta: isso prova que a estrutura existe, não que a regra foi cumprida. Por isso o AP-06 foi lido nos três projetos, e não só contado.
 
 ### 3.6 Achados em aberto e melhorias futuras
 
@@ -534,7 +547,25 @@ aceite da skill. Distribuição MEDIUM/LOW de cada relatório (§3.1): `code-sme
 ### 4.1 Pré-requisitos
 
 **Ferramenta: Claude Code.** Instalação
-([setup oficial](https://code.claude.com/docs/en/setup)):
+([setup oficial](https://code.claude.com/docs/en/setup)).
+
+Runtime por projeto:
+
+| Projeto | Runtime | Versão | De onde sai | Banco SQLite |
+|---|---|---|---|---|
+| `code-smells-project` | Python | 3.11.18 | `.python-version` (o relatório detectou 3.11.15) | `DB_PATH` (padrão `loja.db`) |
+| `ecommerce-api-legacy` | Node.js e npm | 26.13.0 | versão com que o projeto foi validado; versões anteriores não foram testadas | `DB_FILE` (padrão `:memory:`) |
+| `task-manager-api` | Python | 3.11.18 | `.python-version` (o relatório detectou 3.11.15) | `DATABASE_URL` (padrão `sqlite:///tasks.db`) |
+
+Ferramentas usadas pelos scripts, conforme o próprio código:
+
+- `api-test.sh` dos três: `curl`, `sqlite3` e `python3`; o do `ecommerce-api-legacy` também chama `npm`.
+- `arch-check.sh` e `completion-box.sh` (cópia em cada projeto): `bash`, `awk`, `sed` e `mktemp`.
+- Os READMEs de `code-smells-project` e `ecommerce-api-legacy` usam `lsof` para encerrar a aplicação.
+
+Particularidades por sistema operacional:
+
+- **macOS:** é onde a validação foi rodada. O `api-test.sh` do `ecommerce-api-legacy` exige que o banco esteja numa pasta temporária (`/var/folders`, `/tmp` ou `/private/tmp`) e recusa o resto como "not isolated".
 
 ### 4.2 Executar a skill (reproduzir a refatoração)
 
@@ -561,14 +592,13 @@ Em cada execução: a Fase 1 imprime a caixa `PHASE 1: PROJECT ANALYSIS`; a Fase
 | Projeto | Subir | Porta padrão |
 |---|---|---|
 | `code-smells-project` | `pip install -r requirements.txt`; `cp .env.example .env` (preencha e exporte `SECRET_KEY`, `ADMIN_PASSWORD`, `SEED_CUSTOMER_PASSWORD`…); `python app.py` | 5000 (`APP_PORT`) |
-| `ecommerce-api-legacy` | `npm install`; `ADMIN_TOKEN=<token-admin> SEED_USER_PASSWORD=<senha-do-seed> npm start` | 3000 (`PORT`) |
+| `ecommerce-api-legacy` | `npm install`; `cp .env.example .env` (preencha `ADMIN_TOKEN` e `SEED_USER_PASSWORD`); `set -a; source .env; set +a`; `npm start` | 3000 (`PORT`) |
 | `task-manager-api` | `python -m venv .venv && source .venv/bin/activate`; `pip install -r requirements.txt`; `cp .env.example .env` (preencha `SECRET_KEY`, `SEED_ADMIN_PASSWORD`, `SEED_USER_PASSWORD`); `python seed.py`; `python app.py` | 5000 (`APP_PORT`) |
 
 Requisitos de cada projeto, copiados do README dele e dos cabeçalhos dos scripts:
 - `code-smells-project` — Python 3.11.18 (`.python-version`). Banco SQLite em `DB_PATH` (padrão
   `loja.db`), criado no primeiro boot. Detalhes em [`code-smells-project/README.md`](code-smells-project/README.md#como-rodar).
-- `ecommerce-api-legacy` — Node.js e npm; o projeto não fixa a versão de Node (sem `engines` no
-  `package.json` nem `.nvmrc`; a validação rodou em Node.js 26.13.0, segundo a linha `AP-12: node@` do log).
+- `ecommerce-api-legacy` — Node.js 26.13.0 e npm, a versão com que o projeto foi validado (linha `AP-12: node@` do log); versões anteriores não foram testadas.
   Banco SQLite em memória por padrão (`DB_FILE`). Variáveis e acesso por rota em
   [`ecommerce-api-legacy/README.md`](ecommerce-api-legacy/README.md#como-rodar).
 - `task-manager-api` — Python 3.11.18 (`.python-version`). Banco SQLite em `DATABASE_URL` (padrão
