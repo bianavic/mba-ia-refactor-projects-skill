@@ -216,6 +216,20 @@ ecommerce-api-legacy/
 
 ```
 ecommerce-api-legacy/
+├── .claude/
+│   └── skills/
+│       └── refactor-arch/
+│           ├── SKILL.md
+│           ├── references/
+│           │   ├── anti-patterns-catalog.md
+│           │   ├── architecture-guidelines.md
+│           │   ├── audit-report-template.md
+│           │   ├── project-analysis.md
+│           │   ├── refactoring-playbook.md
+│           │   └── refactoring-validation.md
+│           └── scripts/
+│               ├── arch-check.sh
+│               └── completion-box.sh
 ├── README.md
 ├── api.http
 ├── package-lock.json
@@ -261,6 +275,20 @@ task-manager-api/
 
 ```
 task-manager-api/
+├── .claude/
+│   └── skills/
+│       └── refactor-arch/
+│           ├── SKILL.md
+│           ├── references/
+│           │   ├── anti-patterns-catalog.md
+│           │   ├── architecture-guidelines.md
+│           │   ├── audit-report-template.md
+│           │   ├── project-analysis.md
+│           │   ├── refactoring-playbook.md
+│           │   └── refactoring-validation.md
+│           └── scripts/
+│               ├── arch-check.sh
+│               └── completion-box.sh
 ├── README.md
 ├── app.py
 ├── database.py
