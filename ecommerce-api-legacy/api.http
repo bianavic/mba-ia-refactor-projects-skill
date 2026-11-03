@@ -1,6 +1,8 @@
 @baseUrl = http://localhost:3000
+# Mesmo valor de ADMIN_TOKEN usado no boot
+@adminToken = troque-pelo-admin-token
 
-### Checkout - sucesso
+### Checkout - sucesso (aluno novo)
 POST {{baseUrl}}/api/checkout
 Content-Type: application/json
 
@@ -12,7 +14,31 @@ Content-Type: application/json
   "card": "4111222233334444"
 }
 
-### Checkout - pagamento recusado
+### Checkout - conta existente com a senha correta (repita após o anterior)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Guilherme",
+  "eml": "gui@fullcycle.com.br",
+  "pwd": "senhaforte",
+  "c_id": 1,
+  "card": "4111222233334444"
+}
+
+### Checkout - conta existente com senha errada (401)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Guilherme",
+  "eml": "gui@fullcycle.com.br",
+  "pwd": "errada",
+  "c_id": 1,
+  "card": "4111222233334444"
+}
+
+### Checkout - pagamento recusado (400)
 POST {{baseUrl}}/api/checkout
 Content-Type: application/json
 
@@ -24,8 +50,33 @@ Content-Type: application/json
   "card": "5111222233334444"
 }
 
+### Checkout - card numérico é rejeitado (400)
+POST {{baseUrl}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Maria",
+  "eml": "maria@teste.com",
+  "pwd": "senha",
+  "c_id": 1,
+  "card": 4111222233334444
+}
+
 ### Relatório financeiro administrativo
 GET {{baseUrl}}/api/admin/financial-report
+X-Admin-Token: {{adminToken}}
+
+### Relatório financeiro paginado
+GET {{baseUrl}}/api/admin/financial-report?limit=1&offset=1
+X-Admin-Token: {{adminToken}}
+
+### Relatório sem token (401)
+GET {{baseUrl}}/api/admin/financial-report
+
+### Exportar dados do usuário
+GET {{baseUrl}}/api/users/1/export
+X-Admin-Token: {{adminToken}}
 
 ### Deletar usuário
 DELETE {{baseUrl}}/api/users/1
+X-Admin-Token: {{adminToken}}

@@ -1,0 +1,81 @@
+# ecommerce-api-legacy — requisições para o cliente HTTP do JetBrains (GoLand, IntelliJ, PyCharm…)
+#
+# Usa sintaxe do cliente do JetBrains: {{$random.email}}.
+#
+# Antes de rodar: suba a API (veja ecommerce-api-legacy/README.md#como-rodar) com ADMIN_TOKEN e
+# SEED_USER_PASSWORD definidos, e preencha @admin_token e @seed_user_password com os mesmos valores.
+# Sem ADMIN_TOKEN no boot, as rotas admin respondem 401.
+# Sem SEED_USER_PASSWORD no boot, a senha do Leonan é aleatória e o item 2 responde 401 (esperado).
+#
+# ⚠️ O item 5 remove o usuário, desvincula as matrículas e anonimiza a auditoria.
+#    Use o @teste_user_id (criado no item 1), não o @user_id (o usuário semente).
+# ⚠️ O checkout não devolve o id do usuário criado. @teste_user_id = 2 vale para um boot recém-feito
+#    (em memória, ou DB_FILE vazio). Se o banco foi reaproveitado, ajuste a variável.
+
+@base_url = http://localhost:3000
+@admin_token = troque-pela-ADMIN_TOKEN do .env
+@seed_user_password = troque-pela-SEED_USER_PASSWORD do .env
+# 1 = Clean Architecture (R$ 997,00); 2 = Docker (R$ 497,00). Ambos ativos no seed.
+@course_id = 1
+# usuário semente leonan@fullcycle.com.br
+@user_id = 1
+@teste_user_id = 2
+
+### 1. POST /api/checkout — público (e-mail novo; e-mail existente exige a senha da conta)
+# {{$random.email}} gera um e-mail novo a cada envio, então este item pode ser repetido sem colidir.
+# Campos: usr (texto), eml (texto com @), pwd (texto), c_id (inteiro > 0, sem aspas),
+# card (STRING com 12 a 19 dígitos; número JSON é rejeitado; começa com 4 = aprovado).
+# Resposta 200: {"msg":"Sucesso","enrollment_id":N}
+POST {{base_url}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Aluno Postman",
+  "eml": "{{$random.email}}",
+  "pwd": "Senha123",
+  "c_id": {{course_id}},
+  "card": "4111222233334444"
+}
+
+### 2. POST /api/checkout — conta semente com a senha certa (200)
+# Conta existente: a senha precisa ser a de SEED_USER_PASSWORD. Usa o curso 2 (Docker), que o Leonan ainda não tem.
+# Não cria usuário novo, então @teste_user_id continua valendo.
+POST {{base_url}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Leonan",
+  "eml": "leonan@fullcycle.com.br",
+  "pwd": "{{seed_user_password}}",
+  "c_id": 2,
+  "card": "4111222233334444"
+}
+
+### 3. POST /api/checkout — conta semente com a senha antiga "123" (401)
+# A senha padrão antiga não vale mais para a conta semente.
+POST {{base_url}}/api/checkout
+Content-Type: application/json
+
+{
+  "usr": "Leonan",
+  "eml": "leonan@fullcycle.com.br",
+  "pwd": "123",
+  "c_id": 2,
+  "card": "4111222233334444"
+}
+
+### 4. GET /api/admin/financial-report — admin (X-Admin-Token)
+# Opcionais: limit (1 a 100) e offset (>= 0; exige limit, senão 400).
+# Resposta 200: lista de cursos com revenue (pagamentos PAID) e students.
+GET {{base_url}}/api/admin/financial-report
+X-Admin-Token: {{admin_token}}
+
+### 5. DELETE /api/users/{id} — admin (X-Admin-Token)
+# Resposta 200: texto "Usuário deletado".
+DELETE {{base_url}}/api/users/{{teste_user_id}}
+X-Admin-Token: {{admin_token}}
+
+### 6. GET /api/users/{id}/export — admin (X-Admin-Token)
+# Resposta 200: {user, enrollments, payments}, sem hash de senha.
+GET {{base_url}}/api/users/{{user_id}}/export
+X-Admin-Token: {{admin_token}}
