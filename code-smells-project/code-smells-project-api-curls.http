@@ -1,0 +1,189 @@
+# code-smells-project — requisições para o cliente HTTP do JetBrains (GoLand, IntelliJ, PyCharm…)
+#
+# Usa sintaxe do cliente do JetBrains: client.global.set e {{$random.email}}.
+#
+# Antes de rodar: preencha as senhas abaixo (as mesmas de ADMIN_PASSWORD e SEED_CUSTOMER_PASSWORD) e
+# suba a API com um banco NOVO (DB_PATH inexistente). Um banco antigo já tem outras senhas gravadas e o
+# login falha com 401. Veja code-smells-project/README.md#testar-com-sqlite-passo-a-passo.
+# ⚠️ Se o api-test.sh rodou nesse mesmo servidor, o T8 (reset) apagou o admin: pare a app e suba de novo
+#    com um DB_PATH novo antes, senão o item 3 responde 401 e os seguintes falham em cascata.
+# Rode na ordem: tokens e ids são guardados pelas respostas (client.global.set); não pule itens.
+# O produto usado nos pedidos é criado no item 6 (não depende do seed).
+#
+# ⚠️ O item 17 remove o usuário de teste (item 5), com o token de admin. Não use o token do João nele:
+#    ele não é o dono desse usuário e a API responde 403.
+# ⚠️ O item 22 apaga todos os dados do banco (o api-test.sh avisa que o reset "apaga tudo").
+#    Rode só em banco descartável; depois dele, reinicie o app com um DB_PATH novo.
+# ⚠️ O item 23 devolve 403 enquanto ADMIN_QUERY_ENABLED=false, que é o padrão do .env (esperado).
+# ⚠️ Tokens: são assinados com SECRET_KEY. Se a app reiniciar entre os itens (ou subir sem SECRET_KEY,
+#    com o aviso "SECRET_KEY não definido" no log), os tokens antigos deixam de valer e as rotas
+#    protegidas respondem 401 "Token inválido ou expirado". Nesse caso, rode de novo a partir do item 3.
+
+@base_url = http://localhost:5000
+@admin_password = troque-pela-ADMIN_PASSWORD
+@seed_customer_password = troque-pela-SEED_CUSTOMER_PASSWORD
+
+### 1. GET / — público
+GET {{base_url}}/
+
+### 2. GET /health — público
+GET {{base_url}}/health
+
+### 3. POST /login (admin) — público
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+  "email": "admin@loja.com",
+  "senha": "{{admin_password}}"
+}
+
+> {%
+client.global.set("admin_token", response.body.token);
+%}
+
+### 4. POST /login (João) — público
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "senha": "{{seed_customer_password}}"
+}
+
+> {%
+client.global.set("cliente_token", response.body.token);
+client.global.set("cliente_id", response.body.dados.id);
+%}
+
+### 5. POST /usuarios (cadastro) — público
+# {{$random.email}} gera um e-mail novo a cada envio, então o item pode ser repetido.
+POST {{base_url}}/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Teste Postman",
+  "email": "{{$random.email}}",
+  "senha": "Senha123"
+}
+
+> {%
+client.global.set("teste_user_id", response.body.dados.id);
+%}
+
+### 6. POST /produtos — admin (cria o produto de teste usado nos itens 10 a 13)
+POST {{base_url}}/produtos
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "nome": "Teclado Mecânico",
+  "descricao": "ABNT2",
+  "preco": 299.90,
+  "estoque": 10,
+  "categoria": "informatica"
+}
+
+> {%
+client.global.set("teste_produto_id", response.body.dados.id);
+%}
+
+### 7. GET /produtos — público
+GET {{base_url}}/produtos
+
+### 8. GET /produtos?page=1&per_page=5 — público (variação paginada do item 7)
+GET {{base_url}}/produtos?page=1&per_page=5
+
+### 9. GET /produtos/busca — público
+GET {{base_url}}/produtos/busca?q=Teclado&categoria=informatica&preco_min=10&preco_max=3000&page=1&per_page=10
+
+### 10. GET /produtos/{id} — público
+GET {{base_url}}/produtos/{{teste_produto_id}}
+
+### 11. PUT /produtos/{id} — admin
+PUT {{base_url}}/produtos/{{teste_produto_id}}
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "nome": "Teclado Mecânico v2",
+  "descricao": "ABNT2",
+  "preco": 279.90,
+  "estoque": 8,
+  "categoria": "informatica"
+}
+
+### 12. POST /pedidos — dono (usuario_id do corpo) ou admin
+# guarda o pedido criado: os itens 20 atualiza esse pedido
+POST {{base_url}}/pedidos
+Content-Type: application/json
+Authorization: Bearer {{cliente_token}}
+
+{
+  "usuario_id": {{cliente_id}},
+  "itens": [
+    {
+      "produto_id": {{teste_produto_id}},
+      "quantidade": 2
+    }
+  ]
+}
+
+> {%
+client.global.set("pedido_id", response.body.dados.pedido_id);
+%}
+
+### 13. DELETE /produtos/{id} — admin (roda depois do pedido: o pedido guarda o preço, não depende do produto)
+DELETE {{base_url}}/produtos/{{teste_produto_id}}
+Authorization: Bearer {{admin_token}}
+
+### 14. GET /usuarios — admin
+GET {{base_url}}/usuarios
+Authorization: Bearer {{admin_token}}
+
+### 15. GET /usuarios/{id} — dono ou admin
+GET {{base_url}}/usuarios/{{cliente_id}}
+Authorization: Bearer {{cliente_token}}
+
+### 16. GET /usuarios/{id}/export — dono ou admin
+GET {{base_url}}/usuarios/{{cliente_id}}/export
+Authorization: Bearer {{cliente_token}}
+
+### 17. DELETE /usuarios/{id} — dono ou admin (aqui, admin remove o usuário de teste)
+DELETE {{base_url}}/usuarios/{{teste_user_id}}
+Authorization: Bearer {{admin_token}}
+
+### 18. GET /pedidos?page=1&per_page=10 — admin
+GET {{base_url}}/pedidos?page=1&per_page=10
+Authorization: Bearer {{admin_token}}
+
+### 19. GET /pedidos/usuario/{usuario_id} — dono ou admin
+GET {{base_url}}/pedidos/usuario/{{cliente_id}}
+Authorization: Bearer {{cliente_token}}
+
+### 20. PUT /pedidos/{id}/status — admin
+# status aceitos: pendente, aprovado, enviado, entregue, cancelado
+PUT {{base_url}}/pedidos/{{pedido_id}}/status
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "status": "aprovado"
+}
+
+### 21. GET /relatorios/vendas — admin
+GET {{base_url}}/relatorios/vendas
+Authorization: Bearer {{admin_token}}
+
+### 22. POST /admin/reset-db — admin (APAGA TUDO)
+POST {{base_url}}/admin/reset-db
+Authorization: Bearer {{admin_token}}
+
+### 23. POST /admin/query — admin + ADMIN_QUERY_ENABLED=true (sem a flag: 403, esperado)
+POST {{base_url}}/admin/query
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "sql": "SELECT id, nome FROM produtos"
+}

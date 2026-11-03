@@ -8,7 +8,8 @@ Python 3.11.18 (`.python-version`).
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # preencha e exporte as variáveis (SECRET_KEY, ADMIN_PASSWORD, SEED_CUSTOMER_PASSWORD...)
+[ -f .env ] || cp .env.example .env    # só na primeira vez; preencha SECRET_KEY, ADMIN_PASSWORD e SEED_CUSTOMER_PASSWORD
+set -a; source .env; set +a            # carrega o .env neste terminal (o app não lê o arquivo sozinho)
 python app.py
 ```
 
@@ -16,13 +17,54 @@ A aplicação sobe em `http://localhost:5000` (`APP_PORT`). O banco SQLite (`DB_
 
 Autenticação: `POST /login` devolve `token`; envie `Authorization: Bearer <token>` nas rotas protegidas.
 
-## Testes de contrato
+## Testar com SQLite (passo a passo)
+
+Usa um arquivo SQLite temporário. Assim o `api-test.sh` consegue fazer as checagens no banco (`sqlite3`) e no log (`APP_LOG_FILE`).
 
 ```bash
-export DB_PATH="$(mktemp -d)/loja-test.db" ADMIN_PASSWORD=<senha> SEED_CUSTOMER_PASSWORD=<senha>
-python app.py > "$(dirname "$DB_PATH")/app.log" 2>&1 &
-APP_LOG_FILE="$(dirname "$DB_PATH")/app.log" ./api-test.sh
+cd code-smells-project
+
+[ -f .env ] || cp .env.example .env              # só na primeira vez; preencha SECRET_KEY, ADMIN_PASSWORD e SEED_CUSTOMER_PASSWORD
+set -a; source .env; set +a                      # carrega o .env neste terminal
+export DB_PATH="$(mktemp -d)/loja-test.db"       # banco temporário (sobrescreve DB_PATH=loja.db do .env)
+export APP_LOG_FILE="$(dirname "$DB_PATH")/app.log"
+
+python app.py > "$APP_LOG_FILE" 2>&1 &          # sobe a app gravando o log (porta 5000)
+sleep 3
+grep "SERVIDOR INICIADO" "$APP_LOG_FILE"        # confirma a subida
+
+sqlite3 "$DB_PATH" "SELECT id, nome, preco, estoque FROM produtos LIMIT 3;"   # produtos de exemplo do boot
+sqlite3 "$DB_PATH" "SELECT id, nome, email, tipo FROM usuarios;"              # admin e clientes de exemplo
+
+./api-test.sh                                    # testes de contrato
 ```
+
+Resultado esperado no fim:
+
+```
+TOTAL: 173 checks | failures: 0 | skipped: 0
+Coverage: 21 endpoints inventoried / 21 exercised
+```
+
+Encerrar a aplicação e apagar o banco temporário:
+
+```bash
+kill $(lsof -t -iTCP:5000 -sTCP:LISTEN)
+rm -rf "$(dirname "$DB_PATH")"
+```
+
+> **Atenção à ordem:** a app e o terminal só enxergam as variáveis do momento em que foram iniciados. Se
+> você já tinha a app rodando na porta 5000, ou exportou variáveis antes de editar o `.env`, pare a app
+> (`kill $(lsof -t -iTCP:5000 -sTCP:LISTEN)`) e repita o bloco inteiro, na ordem acima. Se outra app
+> responder na 5000, o `api-test.sh` para com "not isolated — o app não usa o DB_PATH informado".
+
+Pontos de atenção:
+
+- `DB_PATH` precisa estar numa pasta temporária (`/var/folders`, `/tmp` ou `/private/tmp`). Fora dela, o `api-test.sh` recusa com "not isolated".
+- O `api-test.sh` apaga o admin no T8 (reset). Para rodar `code-smells-project-api-curls.http` depois dele, pare a app e suba de novo com um `DB_PATH` novo (`mktemp -d`). No mesmo servidor, o login do item 3 responde `401` e os itens seguintes falham em cascata.
+- O teste T8 faz um reset que apaga tudo. Para rodar de novo, reinicie a app com um `mktemp -d` novo.
+- Se a app estiver em outra porta (`APP_PORT`), passe `BASE_URL=http://localhost:<porta> ./api-test.sh`.
+- Sem `.env`, exporte antes: `export ADMIN_PASSWORD=... SEED_CUSTOMER_PASSWORD=...`.
 
 ## Conclusão da Fase 3
 
