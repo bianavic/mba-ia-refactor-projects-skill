@@ -1,0 +1,145 @@
+# ecommerce-api-legacy — 2026-11-03 10:19:12
+Domain: LMS / course checkout API (checkout, courses, enrollments, payments, users, financial report)
+
+## AP-12
+AP-12: node@26.13.0 | clean | latest of the v26 line; LTS since 2026-10-28, EOL 2029-04-30; no deprecated calls | https://nodejs.org/dist/index.json | 2026-11-03
+AP-12: express@4.22.3 | clean (was 4.22.1, finding) | body-parser 1.20.9, path-to-regexp 0.1.13, qs 6.16.2, proxy-addr 2.0.8 installed; npm audit: 0 vulnerabilities | npm audit; api.osv.dev | 2026-11-03
+AP-12: sqlite3@6.0.1 | clean (was 5.1.7, finding) | npm audit: 0 vulnerabilities; repository marked unmaintained (accepted residual) | npm audit; registry.npmjs.org | 2026-11-03
+
+## Boot
+
+> desafio-arquitetura-ia-boilerplate@1.0.0 start
+> node src/app.js
+
+2026-11-03T13:19:12.352Z [INFO] Frankenstein LMS rodando na porta 3000...
+[harness] application listening on port 3000 — preflight answered HTTP 401
+
+## api-test.sh
+==============================================
+api-test — ecommerce-api-legacy
+Base URL: http://localhost:3000
+Início:   2026-11-03 10:19:12
+==============================================
+
+T0. Preflight
+  aplicação respondeu (HTTP 401)
+DB target: temp-file
+  token admin aceito
+
+T1. Happy path
+  ok   checkout de aluno novo → 200 {"msg":"Sucesso","enrollment_id":2}
+  ok   checkout.msg (= Sucesso)
+  ok   checkout.enrollment_id numérico
+  ok   relatório financeiro (admin) → 200 [{"course":"Clean Architecture","revenue":997,"students":[{"student":"Leonan","p
+  ok   relatório[0].course (= Clean Architecture)
+  ok   relatório[1].course (= Docker)
+  ok   relatório lista o aluno novo em Docker com paid 497 (= [497])
+  ok   revenue de cada curso = soma dos pagamentos PAID (= True)
+  ok   exportação de dados do aluno (admin) → 200 {"user":{"id":2,"name":"Aluno <REDACTED>","email":"<REDACTED>"},"enrollments":[{
+  ok   export.user.email é do titular (= <REDACTED>)
+  ok   export.enrollments[0].id (= 2)
+  ok   export.payments[0].status (= PAID)
+  ok   export.payments[0].amount (= 497)
+
+T2. Sad paths
+  ok   checkout sem eml → 400 Bad Request
+  ok   corpo do 400 mantém o texto original (= Bad Request)
+  ok   checkout sem pwd (sem senha padrão) → 400 Bad Request
+  ok   checkout com card numérico (antes derrubava o processo) → 400 Bad Request
+  ok   processo continua de pé após card numérico (= 200)
+  ok   checkout com c_id string → 400 Bad Request
+  ok   checkout com eml sem @ → 400 Bad Request
+  ok   checkout com JSON malformado → 400 Bad Request
+  ok   checkout de curso inexistente → 404 Curso não encontrado
+  ok   mensagem do 404 de curso (= Curso não encontrado)
+  ok   checkout com pagamento recusado → 400 Pagamento recusado
+  ok   mensagem do pagamento recusado (= Pagamento recusado)
+  ok   relatório com limit=0 → 400 Bad Request
+  ok   relatório com limit=abc → 400 Bad Request
+  ok   relatório com limit=101 → 400 Bad Request
+  ok   relatório com offset sem limit → 400 Bad Request
+  ok   delete com id não numérico → 400 Bad Request
+  ok   delete de usuário inexistente → 404 Usuário não encontrado
+  ok   mensagem do 404 de usuário (= Usuário não encontrado)
+  ok   export de usuário inexistente → 404 Usuário não encontrado
+  ok   export com id não numérico → 400 Bad Request
+
+T3. Permissões (anônimo / outro usuário / dono / admin)
+  ok   relatório anônimo → 401 Não autorizado
+  ok   relatório com token errado → 401 Não autorizado
+  ok   relatório admin → 200 [{"course":"Clean Architecture","revenue":997,"students":[{"student":"Leonan","p
+  ok   delete anônimo → 401 Não autorizado
+  ok   delete com token errado → 401 Não autorizado
+  ok   usuário segue existindo após deletes negados → 200 {"user":{"id":2,"name":"Aluno <REDACTED>","email":"<REDACTED>"},"enrollments":[{
+  ok   export anônimo → 401 Não autorizado
+  ok   export com token errado → 401 Não autorizado
+  ok   outro usuário cria a própria conta → 200 {"msg":"Sucesso","enrollment_id":3}
+  ok   outro usuário (sua senha) compra na conta do aluno → 401 Não autorizado
+  ok   anônimo (senha errada) compra na conta do aluno → 401 Não autorizado
+  ok   admin (token, sem senha certa) compra na conta do aluno → 401 Não autorizado
+  ok   dono (senha certa) compra na própria conta → 200 {"msg":"Sucesso","enrollment_id":4}
+  ok   usuário semente com SEED_USER_PASSWORD → 200 {"msg":"Sucesso","enrollment_id":5}
+  ok   usuário semente com a antiga senha '123' → 401 Não autorizado
+
+T4. Bordas
+  ok   relatório limit=1 → 200 [{"course":"Clean Architecture","revenue":2991,"students":[{"student":"Leonan","
+  ok   limit=1 devolve 1 curso (= 1)
+  ok   relatório limit=1&offset=1 → 200 [{"course":"Docker","revenue":994,"students":[{"student":"Aluno <REDACTED>","pai
+  ok   offset=1 devolve o 2º curso (= Docker)
+  ok   relatório limit=100 (máximo) → 200 [{"course":"Clean Architecture","revenue":2991,"students":[{"student":"Leonan","
+  ok   relatório offset negativo → 400 Bad Request
+  ok   card com 11 dígitos → 400 Bad Request
+  ok   card com 12 dígitos → 200 {"msg":"Sucesso","enrollment_id":6}
+  ok   card com 19 dígitos → 200 {"msg":"Sucesso","enrollment_id":7}
+  ok   card com 20 dígitos → 400 Bad Request
+  ok   usr string vazia → 400 Bad Request
+  ok   usr só espaços → 400 Bad Request
+  ok   c_id zero → 400 Bad Request
+  ok   c_id negativo → 400 Bad Request
+  ok   c_id fracionário → 400 Bad Request
+  ok   nome com unicode → 200 {"msg":"Sucesso","enrollment_id":8}
+  ok   delete com id 0 → 400 Bad Request
+
+T5. Estados vazios
+  ok   relatório com offset além do fim → 200 []
+  ok   página vazia devolve [] (= [])
+
+T6. Persistência e integridade
+  ok   DB: um usuário com o e-mail do aluno (= 1)
+  ok   DB: senha gravada como hash scrypt (= 1)
+  ok   DB: nenhuma senha em texto puro (curta) na tabela users (= 0)
+  ok   DB: aluno tem 2 matrículas (T1 + dono em T3) (= 2)
+  ok   DB: aluno tem 2 pagamentos PAID (= 2)
+  ok   DB: auditoria da matrícula de T1 (= 1)
+  ok   DB: pagamento recusado não criou usuário (atomicidade) (= 0)
+  ok   DB: curso inexistente não criou usuário (= 0)
+  ok   DB: nenhum pagamento sem matrícula (= 0)
+  ok   DB: nenhuma matrícula sem pagamento (= 0)
+
+T7. Privacidade
+  ok   export não traz hash de senha
+  ok   relatório não traz e-mails
+  ok   checkout não devolve hash
+  ok   log da aplicação sem número de cartão completo
+  ok   log registra o cartão mascarado
+  ok   log da aplicação sem e-mail do aluno
+  ok   log da aplicação sem senha
+
+T8. Exclusão do titular
+  ok   delete admin do usuário descartável → 200 Usuário deletado
+  ok   mensagem de sucesso do delete (= Usuário deletado)
+  ok   segundo delete do mesmo id → 404 Usuário não encontrado
+  ok   export após delete → 404 Usuário não encontrado
+  ok   relatório após delete → 200 [{"course":"Clean Architecture","revenue":7976,"students":[{"student":"Leonan","
+  ok   relatório não mostra mais o nome apagado
+  ok   DB: linha do usuário removida (= 0)
+  ok   DB: nenhuma matrícula aponta para o id (= 0)
+  ok   DB: nenhuma auditoria com 'por <id>' (= 0)
+  ok   DB: auditoria anonimizada mantida (= 1)
+  ok   DB: pagamentos mantidos para contabilidade (= 10)
+
+==============================================
+TOTAL: 96 checks | failures: 0 | skipped: 0
+Coverage: 4 endpoints inventoried / 4 exercised
+==============================================
+api-test.sh exit code: 0
