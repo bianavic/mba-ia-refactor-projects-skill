@@ -151,7 +151,7 @@ Como ler os relatórios:
 - **São a saída da Fase 2.** Cada finding descreve o código como estava antes da refatoração, e os
   `File:` apontam para as linhas do código original do boilerplate. Vários desses arquivos não
   existem mais na árvore atual (ex.: `code-smells-project/models.py`); para conferir uma linha,
-  consulte o código original no boilerplate do desafio (mesmo caminho).
+  abra o mesmo caminho no [repositório base do desafio](https://github.com/devfullcycle/mba-ia-refactor-projects-skill).
 - **Os relatórios não foram regravados depois da Fase 3.** O que cada finding virou está no log de
   validação, em `## Future improvements` do README de cada projeto (§3.6) e em
   [`docs/results-deep-dive.md`](docs/results-deep-dive.md). Uma nova execução da Fase 2 re-auditaria o
