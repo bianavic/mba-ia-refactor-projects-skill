@@ -86,7 +86,7 @@ When a check fails, fix the draft and re-run the checks; do not stop to ask.
 - **Signals:** one file or class holds connection/schema setup, routes and business rules with no intermediate layer; routes or controllers running queries; domain rules inside SQL-access functions; one per-domain module (`services/`, `helpers/`, `managers/`) that validates the request, runs the queries and decides the response — layers renamed, not separated.
 - **Detection:** `arch-check.sh` scans route files only; controllers running queries are confirmed by reading each controller.
 - **Impact:** nothing can be tested in isolation; a change in one domain risks every other.
-- **Severity:** HIGH. CRITICAL when separation of responsibilities is violated completely: one file or class merges DB access, business rules and routing, **or** the separation is only nominal — the file that registers routes (or a controller) opens connections / runs raw SQL itself, bypassing the data layer that exists elsewhere. Routes that call model or ORM methods (e.g. `Task.query.get(id)`) are not this escalation; rule logic in those routes is AP-22 (HIGH).
+- **Severity:** HIGH. CRITICAL when separation of responsibilities is violated completely: one file or class merges DB access, business rules and routing, **or** the separation is only nominal — the file that registers routes (or a controller) opens connections / runs raw SQL itself, bypassing the data layer that exists elsewhere. Routes that call model or ORM methods (e.g. `Task.query.get(id)`) are not this escalation: they stay AP-06 at HIGH, and a missing or unwired controller layer is AP-22.
 - **Fix:** RP-03, RP-14, RP-11.
 
 ### AP-07 — Business logic duplicated across controllers/routes

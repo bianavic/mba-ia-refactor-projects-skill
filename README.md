@@ -2,12 +2,35 @@
 
 > Enunciado original preservado em [`docs/original-challenge.md`](docs/original-challenge.md).
 
+**Resultado.** A skill rodou nos 3 projetos, em Python/Flask e Node.js/Express, e atingiu os critérios de aceite em todos ([§3.7](#37-critérios-de-aceite)):
+
+- `code-smells-project`: 22 findings (8 CRITICAL), 173 checks sem falhas, 21/21 endpoints.
+- `ecommerce-api-legacy`: 19 findings (7 CRITICAL), 100 checks sem falhas, 4/4 endpoints.
+- `task-manager-api`: 22 findings (7 CRITICAL), 217 checks sem falhas, 22/22 endpoints.
+
+Relatórios na [§3.1](#31-findings-por-severidade), logs na [§3.4](#34-evidências) e itens em aberto na [§3.6](#36-achados-em-aberto-e-melhorias-futuras).
+
 ## Sumário
 
 1. [Análise Manual](#1-análise-manual)
+   - [1.1 `code-smells-project`](#11-code-smells-project--pythonflask-e-commerce)
+   - [1.2 `ecommerce-api-legacy`](#12-ecommerce-api-legacy--nodejsexpress-lms-com-checkout)
+   - [1.3 `task-manager-api`](#13-task-manager-api--pythonflask-gerenciador-de-tarefas)
+   - [1.4 Padrões que se repetem](#14-padrões-que-se-repetem)
 2. [Construção da Skill](#2-construção-da-skill)
 3. [Resultados](#3-resultados)
+   - [3.1 Findings por severidade](#31-findings-por-severidade)
+   - [3.2 Estrutura antes/depois](#32-estrutura-antesdepois)
+   - [3.3 Checklist de Validação](#33-checklist-de-validação)
+   - [3.4 Evidências](#34-evidências)
+   - [3.5 Comportamento entre diferentes stacks](#35-comportamento-entre-diferentes-stacks)
+   - [3.6 Achados em aberto e melhorias futuras](#36-achados-em-aberto-e-melhorias-futuras)
+   - [3.7 Critérios de Aceite](#37-critérios-de-aceite)
 4. [Como Executar](#4-como-executar)
+   - [4.1 Pré-requisitos](#41-pré-requisitos)
+   - [4.2 Executar a skill](#42-executar-a-skill-reproduzir-a-refatoração)
+   - [4.3 Rodar os projetos refatorados](#43-rodar-os-projetos-refatorados)
+   - [4.4 Validação](#44-validação)
 
 ## 1. Análise Manual
 
@@ -86,9 +109,10 @@ aplicação continua funcionando. O código está em
 [`code-smells-project/.claude/skills/refactor-arch/`](code-smells-project/.claude/skills/refactor-arch/SKILL.md),
 com uma cópia em cada um dos outros dois projetos. Detalhes em [`docs/skill-construction.md`](docs/skill-construction.md).
 
-**Estrutura.** `SKILL.md` (frontmatter, fluxo das 3 fases, regras inegociáveis) mais referências em
-Markdown em `references/`, carregadas sob demanda por fase, e dois scripts em `scripts/`
-(`arch-check.sh` e `completion-box.sh`):
+**Estrutura.** O `SKILL.md` é um prompt enxuto: traz o frontmatter, o fluxo das 3 fases e as regras
+inegociáveis. O conhecimento de domínio fica em referências Markdown em `references/`, para que cada
+fase leia só o que precisa (*progressive disclosure*). Dois scripts em `scripts/` (`arch-check.sh` e
+`completion-box.sh`) fazem as verificações que não devem depender da leitura do agente:
 
 | Área exigida | Arquivo | Conteúdo |
 |---|---|---|
@@ -114,9 +138,9 @@ uma checagem a repetir após a Fase 3.
 | Severidade base | Anti-patterns | Por que entraram |
 |---|---|---|
 | CRITICAL (7) | AP-01 SQL injection · AP-02 segredos hardcoded · AP-03 hash de senha quebrado/ausente · AP-04 dado sensível na serialização · AP-05 falta de autenticação/autorização · AP-17 escalada de privilégio no auto-cadastro · AP-20 endpoint de execução arbitrária | AP-01 e AP-02 são os exemplos de CRITICAL do enunciado e estão na §1 (SQL concatenado no code-smells; segredos nos 3 projetos). AP-03 e AP-04 generalizam o texto plano, o `badCrypto` e o MD5 da §1 e a senha/hash devolvidos nas respostas. AP-05 cobre as rotas de admin e de dados pessoais abertas nos 3 projetos, e AP-20 o `POST /admin/query` do code-smells, que executa SQL do cliente. AP-17 veio de um desafio: a Fase 3 criou a guarda de admin, e o cadastro aceitava `role` do corpo. Todos expõem dado ou dão controle a quem não deveria tê-lo |
-| HIGH (4) | AP-06 God Class · AP-07 regra de negócio duplicada · AP-08 estado global mutável · AP-22 orquestração fora de um Service | Dois exemplos de HIGH do enunciado: regra de negócio presa nas rotas/controllers (AP-22, o padrão do task-manager) e estado global mutável (AP-08, `globalCache`/`totalRevenue` do ecommerce). AP-06 aplica a definição geral de HIGH (forte violação de MVC) e sobe a CRITICAL quando a separação de responsabilidades é violada por completo: banco, regra e roteamento numa classe só (ecommerce) ou separação só nominal, com SQL cru no arquivo de rotas (code-smells, §1). Rotas que chamam o ORM, como no task-manager, ficam no AP-22. AP-07 vem da regra `is_overdue` do task-manager, reescrita em várias rotas: duplicação sozinha seria MEDIUM no enunciado, mas aqui a regra duplicada é de domínio e saiu do model, o que a torna violação de MVC. Não expõem dado, mas impedem testar e mudar uma parte sem as outras |
+| HIGH (4) | AP-06 God Class · AP-07 regra de negócio duplicada · AP-08 estado global mutável · AP-22 orquestração fora de um Service | Dois exemplos de HIGH do enunciado: regra de negócio presa nas rotas/controllers (AP-06, o padrão do task-manager) e estado global mutável (AP-08, `globalCache`/`totalRevenue` do ecommerce). AP-06 cobre persistência ou regra presa nas rotas (forte violação de MVC) e sobe a CRITICAL quando a separação de responsabilidades é violada por completo: banco, regra e roteamento numa classe só (ecommerce) ou separação só nominal, com SQL cru no arquivo de rotas (code-smells, §1). Rotas que chamam o ORM, como no task-manager, não sobem a CRITICAL: ficam em AP-06 HIGH. AP-22 cobre camadas que invadem umas às outras e a camada de controllers ausente ou desconectada, que no task-manager virou um finding próprio. AP-07 vem da regra `is_overdue` do task-manager, reescrita em várias rotas: duplicação sozinha seria MEDIUM no enunciado, mas aqui a regra duplicada é de domínio e saiu do model, o que a torna violação de MVC. Não expõem dado, mas impedem testar e mudar uma parte sem as outras |
 | MEDIUM (8) | AP-09 N+1 · AP-10 sem paginação · AP-11 camada morta/desconectada · AP-12 APIs deprecated e versões vulneráveis/EOL · AP-18 dado pessoal em log · AP-19 direitos do titular incompletos · AP-21 validação de entrada ausente · AP-23 módulos soltos na raiz | AP-09 e AP-21 são exemplos de MEDIUM do enunciado; AP-09 e AP-10 aparecem nos 3 projetos (§1.4). AP-12 atende a exigência de detectar APIs deprecated e cobre também versões fixadas com advisory. AP-11 vem do serviço de notificação que nenhuma rota usa. AP-18 e AP-19 vieram de um desafio (a lente de dado pessoal): o cartão no log do ecommerce e a falta de exclusão, exportação e retenção nos 3. AP-23 cobre `database.py` e afins na raiz, que o layout MVC precisa mover; scripts avulsos como `seed.py` podem ficar. Custam desempenho, manutenção ou conformidade, sem exposição imediata (AP-12, AP-18 e AP-21 sobem quando há) |
-| LOW (4) | AP-13 `print`/`console.log` como log · AP-14 configuração/valores mágicos · AP-15 imports não usados · AP-16 nomenclatura inconsistente | Os exemplos de LOW do enunciado (nomenclatura ruim, *magic numbers*) e os LOW da §1: `print()`/`console.log` nos 3, categorias hardcoded no code-smells, imports não usados no task-manager e idiomas misturados no ecommerce. Afetam legibilidade, não comportamento |
+| LOW (4) | AP-13 `print`/`console.log` como log · AP-14 configuração/valores mágicos · AP-15 imports não usados · AP-16 nomenclatura inconsistente | Os exemplos de LOW do enunciado (nomenclatura ruim, *magic numbers*) e os LOW da §1: `print()`/`console.log` nos 3, categorias hardcoded no code-smells e imports não usados no task-manager. Afetam legibilidade, não comportamento |
 
 **Decisões de design**
 - **Catálogo → playbook.** Cada finding cita um `AP-xx` e um `RP-xx`; a Fase 3 aplica o padrão que o plano aprovado nomeia, em vez de improvisar. O catálogo inclui detecção de APIs deprecated e de versões fixadas vulneráveis ou EOL (AP-12).
@@ -594,7 +618,7 @@ análise manual. Cada achado da §1 foi procurado no relatório do projeto:
 | Projeto | Encontrados | Observação |
 |---|---:|---|
 | `code-smells-project` | 8 de 8 | God Class aparece como `Routing code runs raw SQL past the data layer` (AP-06); senha em texto plano e senha nas respostas viraram 2 findings; categorias hardcoded estão em `Hardcoded configuration and magic values` |
-| `ecommerce-api-legacy` | 8 de 9 | Não encontrado: idiomas misturados (LOW) |
+| `ecommerce-api-legacy` | 8 de 9 | Não encontrado: idiomas misturados (LOW). O catálogo não cobre esse caso: o AP-16 trata de nomes de identificadores, não do idioma das mensagens |
 | `task-manager-api` | 9 de 9 | `is_overdue` nas rotas aparece em `Route files hold persistence and business rules` e `Overdue rule, task serialization, statistics and validation copied across handlers`; o serviço de notificação está em `Notification service, helpers and model methods implemented but never used` |
 
 ## 4. Como Executar
@@ -673,8 +697,8 @@ Os relatórios e o código refatorado ficam nessa cópia; apague a pasta `../ref
 
 Variáveis, acesso por rota e outros detalhes estão no README de cada projeto: [`code-smells-project`](code-smells-project/README.md#como-rodar), [`ecommerce-api-legacy`](ecommerce-api-legacy/README.md#como-rodar) e [`task-manager-api`](task-manager-api/README.md#como-rodar).
 
-`code-smells-project` e `task-manager-api` usam a mesma porta padrão; para subir os dois juntos, mude
-`APP_PORT` de um deles.
+`code-smells-project` e `task-manager-api` usam a mesma porta padrão (5000), por isso rode um de cada
+vez. Só mude `APP_PORT` se a porta estiver ocupada (§4.4).
 
 ### 4.4 Validação
 
@@ -693,12 +717,13 @@ dependências instaladas e o `.env` preenchido (§4.3):
 ```bash
 # code-smells-project
 cd code-smells-project
+source .venv/bin/activate
 set -a; source .env; set +a
 export DB_PATH="$(mktemp -d)/loja-test.db" APP_LOG_FILE="$(mktemp -d)/app.log"
 python app.py > "$APP_LOG_FILE" 2>&1 &
 sleep 3
 ./api-test.sh                    # TOTAL: 173 checks | failures: 0 | skipped: 0
-kill $!; cd ..
+kill $!; deactivate; cd ..
 
 # ecommerce-api-legacy
 cd ecommerce-api-legacy
@@ -711,14 +736,19 @@ kill $!; cd ..
 
 # task-manager-api
 cd task-manager-api
+source .venv/bin/activate
 set -a; source .env; set +a
 export DATABASE_URL="sqlite:///$(mktemp -d)/tasks.db" APP_LOG_FILE="$(mktemp -d)/app.log"
 python seed.py
 python app.py > "$APP_LOG_FILE" 2>&1 &
 sleep 3
 ./api-test.sh                    # TOTAL: 217 checks | failures: 0 | skipped: 0
-kill $!; cd ..
+kill $!; deactivate; cd ..
 ```
+
+Os dois projetos Python validam na porta 5000, um de cada vez. Só se ela estiver ocupada (no macOS, o
+AirPlay costuma usá-la), rode `export APP_PORT=5050` depois do `source .env` e informe a mesma porta ao
+teste: `BASE_URL=http://localhost:5050 ./api-test.sh`.
 
 O exit 0 do `api-test.sh` significa sem falhas. O `api-test.sh` do `code-smells-project` apaga tudo no
 final: para repetir, suba a aplicação com um `DB_PATH` novo.
