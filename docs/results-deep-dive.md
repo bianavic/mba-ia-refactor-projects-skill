@@ -21,7 +21,7 @@ Achados vêm dos relatórios; checks e endpoints, dos logs de validação.
 
 ## `code-smells-project`
 
-### Rodada final
+### Resultados
 
 **Findings** ([`reports/audit-project-1.md`](../reports/audit-project-1.md)) — Python 3.11.15 + Flask 3.1.1,
 4 arquivos, ~780 linhas: **8 CRITICAL · 3 HIGH · 7 MEDIUM · 4 LOW = 22**.
@@ -63,7 +63,7 @@ aberto, servidor de desenvolvimento). Lista completa, com a origem de cada item:
 
 ## `ecommerce-api-legacy`
 
-### Rodada final
+### Resultados
 
 **Findings** ([`reports/audit-project-2.md`](../reports/audit-project-2.md)) —
 JavaScript (Node.js 26.13.0) + Express 4.22.1, 3 arquivos, ~180 linhas:
@@ -110,7 +110,7 @@ autenticação, nomes de alunos no relatório financeiro para anônimos, a God C
 
 ## `task-manager-api`
 
-### Rodada final
+### Resultados
 
 **Findings** ([`reports/audit-project-3.md`](../reports/audit-project-3.md)) — Python 3.11.15 + Flask 3.0.0 (Flask-SQLAlchemy 3.1.1, SQLite), 15 arquivos, ~1160 linhas:
 **7 CRITICAL · 3 HIGH · 8 MEDIUM · 4 LOW = 22**.
