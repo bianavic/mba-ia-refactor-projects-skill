@@ -1,0 +1,178 @@
+# task-manager-api — requisições para o cliente HTTP do JetBrains (GoLand, IntelliJ, PyCharm…)
+#
+# Usa sintaxe do cliente do JetBrains: client.global.set e {{$random.email}}.
+# Antes de rodar: preencha as senhas abaixo (as mesmas de SEED_ADMIN_PASSWORD e SEED_USER_PASSWORD)
+# e suba a API (veja task-manager-api/README.md#como-rodar).
+# Rode na ordem: tokens e ids de teste são guardados pelas respostas (client.global.set).
+#
+# ⚠️ O item 10 remove o usuário de teste (item 5), nunca a Maria.
+# ⚠️ Os itens 20 e 21 usam a categoria de teste do item 19; não apague as categorias do seed.
+# ⚠️ Para voltar ao estado inicial, rode `python seed.py` de novo (apaga e recria todos os dados).
+
+@base_url = http://localhost:5000
+@admin_password = troque-pela-SEED_ADMIN_PASSWORD
+@user_password = troque-pela-SEED_USER_PASSWORD
+# seed recém-feito: Backend = 1; Maria = 2; task 2 = "Criar tela de login" (da Maria)
+@category_id = 1
+@task_id = 2
+
+### 1. GET / — público
+GET {{base_url}}/
+
+### 2. GET /health — público
+GET {{base_url}}/health
+
+### 3. POST /login (João, admin) — público
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "password": "{{admin_password}}"
+}
+
+> {%
+client.global.set("admin_token", response.body.token);
+%}
+
+### 4. POST /login (Maria) — público
+POST {{base_url}}/login
+Content-Type: application/json
+
+{
+  "email": "maria@email.com",
+  "password": "{{user_password}}"
+}
+
+> {%
+client.global.set("user_token", response.body.token);
+client.global.set("user_id", response.body.user.id);
+%}
+
+### 5. POST /users (cadastro) — público
+POST {{base_url}}/users
+Content-Type: application/json
+
+{
+  "name": "Teste Postman",
+  "email": "{{$random.email}}",
+  "password": "Senha123"
+}
+
+> {%
+client.global.set("teste_user_id", response.body.id);
+%}
+
+### 6. GET /users — admin
+GET {{base_url}}/users
+Authorization: Bearer {{admin_token}}
+
+### 7. GET /users/{id} — dono ou admin
+GET {{base_url}}/users/{{user_id}}
+Authorization: Bearer {{user_token}}
+
+### 8. PUT /users/{id} — dono ou admin
+# regrava o nome da Maria com o mesmo valor do seed
+PUT {{base_url}}/users/{{user_id}}
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "name": "Maria Santos"
+}
+
+### 9. GET /users/{id}/tasks — dono ou admin
+GET {{base_url}}/users/{{user_id}}/tasks
+Authorization: Bearer {{user_token}}
+
+### 10. DELETE /users/{id} — dono ou admin (usa o admin e o usuário de teste)
+DELETE {{base_url}}/users/{{teste_user_id}}
+Authorization: Bearer {{admin_token}}
+
+### 11. GET /tasks — autenticado
+GET {{base_url}}/tasks
+Authorization: Bearer {{user_token}}
+
+### 12. GET /tasks/{id} — autenticado
+GET {{base_url}}/tasks/{{task_id}}
+Authorization: Bearer {{user_token}}
+
+### 13. POST /tasks — autenticado (atribuir a outro usuário: só admin)
+POST {{base_url}}/tasks
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "title": "Task Postman",
+  "description": "Criada pelo curl",
+  "priority": 2,
+  "user_id": {{user_id}},
+  "category_id": {{category_id}},
+  "due_date": "2030-01-15",
+  "tags": ["postman", "teste"]
+}
+
+> {%
+client.global.set("teste_task_id", response.body.id);
+%}
+
+### 14. PUT /tasks/{id} — dono da task (user_id) ou admin
+PUT {{base_url}}/tasks/{{teste_task_id}}
+Content-Type: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "status": "in_progress"
+}
+
+### 15. DELETE /tasks/{id} — dono da task (user_id) ou admin
+DELETE {{base_url}}/tasks/{{teste_task_id}}
+Authorization: Bearer {{user_token}}
+
+### 16. GET /tasks/search — autenticado
+GET {{base_url}}/tasks/search?q=pagina&status=pending&priority=3&page=1&per_page=10
+Authorization: Bearer {{user_token}}
+
+### 17. GET /tasks/stats — autenticado
+GET {{base_url}}/tasks/stats
+Authorization: Bearer {{user_token}}
+
+### 18. GET /categories — autenticado
+GET {{base_url}}/categories
+Authorization: Bearer {{user_token}}
+
+### 19. POST /categories — admin
+POST {{base_url}}/categories
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "name": "Teste Postman",
+  "description": "Categoria de teste",
+  "color": "#123abc"
+}
+
+> {%
+client.global.set("teste_category_id", response.body.id);
+%}
+
+### 20. PUT /categories/{id} — admin
+PUT {{base_url}}/categories/{{teste_category_id}}
+Content-Type: application/json
+Authorization: Bearer {{admin_token}}
+
+{
+  "description": "Categoria alterada pelo Postman"
+}
+
+### 21. DELETE /categories/{id} — admin
+DELETE {{base_url}}/categories/{{teste_category_id}}
+Authorization: Bearer {{admin_token}}
+
+### 22. GET /reports/summary — admin
+GET {{base_url}}/reports/summary
+Authorization: Bearer {{admin_token}}
+
+### 23. GET /reports/user/{id} — dono ou admin
+GET {{base_url}}/reports/user/{{user_id}}
+Authorization: Bearer {{user_token}}

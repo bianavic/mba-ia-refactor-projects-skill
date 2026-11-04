@@ -10,3 +10,10 @@ venv/
 # SQLite
 *.db
 instance/
+
+.idea
+.DS_Store
+
+/.claude/
+
+.sessions
