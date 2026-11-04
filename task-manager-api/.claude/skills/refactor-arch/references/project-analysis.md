@@ -20,18 +20,23 @@ Print this box at the end of Phase 1; each field comes from the section named af
 ================================
 PHASE 1: PROJECT ANALYSIS
 ================================
-Language:      <language> <runtime version>
-Framework:     <framework> <version>
-Dependencies:  <imported dependencies other than the framework, comma-separated>
-Domain:        <Domain> API (<resource>, <resource>, …)
-Architecture:  <bucket> — <one clause on the deviation>
-Source files:  <N> files analyzed | ~<LOC> lines of code
-DB tables:     <table>, <table>, … (<file | external server | in-memory>)
+Language:      <detected language>
+Framework:     <detected framework + version>
+Dependencies:  <key dependencies>
+Domain:        <what this application does>
+Architecture:  <current architectural state, one line>
+Source files:  <N> files analyzed
+DB tables:     <tables/collections found, if any>
 ================================
 ```
 
-- `Language`, `Framework`, `Dependencies`, `DB tables`: section 1. `Domain`: section 2.
-  `Architecture`: section 3. `Source files`: section 5.
+This is the challenge's fixed template, the same as in `SKILL.md`. How to fill each field:
+- `Language`: the language and its runtime version. `Framework`: the framework and its version.
+  `Dependencies`: imported dependencies other than the framework, comma-separated. `DB tables`:
+  the tables and where they live (`file`, `external server` or `in-memory`). All from section 1.
+- `Domain`: `<Domain> API (<resource>, <resource>, …)`, from section 2.
+- `Architecture`: `<bucket> — <one clause on the deviation>`, from section 3.
+- `Source files`: the file count from section 5. The line count goes in `Lines:`, under the box.
 
 ## 1. Stack
 
@@ -84,7 +89,7 @@ Phase 1 has no confirmation gate — resolve these yourself and keep going:
 
 ## 5. Source files and lines
 
-The count comes from a reproducible command, so the `Source files:` line of the Phase 1 box and the
+The count comes from a reproducible command, so the `Source files:` and `Lines:` lines of Phase 1 and the
 `Files:` line of the report header carry the same two numbers (file count and line count):
 
 ```bash
