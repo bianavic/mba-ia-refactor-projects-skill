@@ -11,6 +11,14 @@ revelou falhas que viraram regras, anti-patterns ou checagens
 não fazem parte desta entrega: relatórios e logs vêm da rodada final, executada uma vez em cada
 projeto, com a skill já pronta.
 
+| Projeto | Stack | CRITICAL | HIGH | MEDIUM | LOW | Total | Checks (`api-test.sh`) | Endpoints |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| `code-smells-project` | Python 3.11.15 + Flask 3.1.1 | 8 | 3 | 7 | 4 | 22 | 173, 0 falhas | 21/21 |
+| `ecommerce-api-legacy` | Node.js 26.13.0 + Express 4.22.1 | 7 | 3 | 5 | 4 | 19 | 100, 0 falhas | 4/4 |
+| `task-manager-api` | Python 3.11.15 + Flask 3.0.0 | 7 | 3 | 8 | 4 | 22 | 217, 0 falhas | 22/22 |
+
+Achados vêm dos relatórios; checks e endpoints, dos logs de validação.
+
 ## `code-smells-project`
 
 ### Rodada final
@@ -42,10 +50,10 @@ nenhuma autenticação em rota alguma e SQL cru no código de roteamento.
 - Flask 3.1.3, flask-cors 6.0.5, werkzeug e itsdangerous fixados; `.python-version` 3.11.18.
 
 **Validação** ([log](../evidence/logs/code-smells-project-validation.txt)): 173 checks, 0 falhas,
-0 pulados, 21/21 endpoints, `api-test.sh` exit 0; `arch-check.sh` PASS; caixa da Fase 3 emitida
+0 pulados, 21/21 endpoints, `api-test.sh` exit 0; `arch-check.sh` PASS; caixa de conclusão da Fase 3 gerada
 ([README do projeto](../code-smells-project/README.md#conclusão-da-fase-3)).
 
-**Em aberto**: limite de retenção de dados pessoais (deixado em aberto no plano), rotação dos
+**Em aberto**: limite de retenção de dados pessoais (decisão deixada em aberto na Fase 2), rotação dos
 segredos e senhas que estavam no código (fora do código), resíduos aceitos (tokens sem revogação,
 `/admin/query` ainda total quando habilitado, listas sem `page` devolvendo a tabela inteira, dados
 inválidos já gravados) e itens notados na Fase 3 fora do plano (status de pedido inexistente
@@ -58,7 +66,8 @@ aberto, servidor de desenvolvimento). Lista completa, com a origem de cada item:
 ### Rodada final
 
 **Findings** ([`reports/audit-project-2.md`](../reports/audit-project-2.md)) —
-JavaScript (Node.js 26.13.0) + Express 4.22.1, 3 arquivos, ~180 linhas: **7 CRITICAL · 3 HIGH · 5 MEDIUM · 4 LOW = 19**.
+JavaScript (Node.js 26.13.0) + Express 4.22.1, 3 arquivos, ~180 linhas:
+**7 CRITICAL · 3 HIGH · 5 MEDIUM · 4 LOW = 19**.
 
 Os CRITICAL: credenciais e chave de pagamento `pk_live_` no código, "hash" de senha em base64
 truncado, número completo do cartão e chave do gateway no log, rotas admin e de exclusão sem
@@ -93,28 +102,24 @@ autenticação, nomes de alunos no relatório financeiro para anônimos, a God C
   e tenta de novo (até 3 vezes) se ela mudou. O `api-test.sh` cobre os dois casos.
 
 **Validação** ([log](../evidence/logs/ecommerce-api-legacy-validation.txt)): 100 checks, 0 falhas,
-0 pulados, 4/4 endpoints, `api-test.sh` exit 0; `arch-check.sh` PASS; caixa da Fase 3 emitida
+0 pulados, 4/4 endpoints, `api-test.sh` exit 0; `arch-check.sh` PASS; caixa de conclusão da Fase 3 gerada
 ([README do projeto](../ecommerce-api-legacy/README.md#conclusão-da-fase-3)).
 
-**Em aberto**: limite de retenção (AP-19, só a exportação entrou no plano), rotação da senha do banco
-e da chave `pk_live_` e expurgo dos logs antigos com cartão (fora do código), resíduos aceitos (sem
-rate limit no checkout de conta existente, um único token admin compartilhado, nomes de alunos no
-relatório para admins, `sqlite3` 6.x sem manutenção) e dois itens notados na Fase 3 (o
-`arch-check.sh` não detecta um controller de uma linha só que chama 2 models; contenção do threadpool
-do libuv entre `scrypt` e `sqlite3`). Lista completa:
+**Em aberto**: limite de retenção de dados pessoais, rotação da senha do banco e da chave `pk_live_`, expurgo dos logs antigos com cartão (fora do código) e resíduos aceitos (sem rate limit no checkout de conta existente, um único token admin compartilhado, nomes de alunos no relatório para admins, `sqlite3` 6.x sem manutenção). Lista completa:
 [`ecommerce-api-legacy/README.md`](../ecommerce-api-legacy/README.md#future-improvements).
 
 ## `task-manager-api`
 
 ### Rodada final
 
-**Findings** ([`reports/audit-project-3.md`](../reports/audit-project-3.md)) — Python 3.11.15 + Flask 3.0.0
-(Flask-SQLAlchemy 3.1.1, SQLite), 15 arquivos, ~1160 linhas: **7 CRITICAL · 3 HIGH · 8 MEDIUM · 4 LOW = 22**.
+**Findings** ([`reports/audit-project-3.md`](../reports/audit-project-3.md)) — Python 3.11.15 + Flask 3.0.0 (Flask-SQLAlchemy 3.1.1, SQLite), 15 arquivos, ~1160 linhas:
+**7 CRITICAL · 3 HIGH · 8 MEDIUM · 4 LOW = 22**.
 
 Os CRITICAL: `SECRET_KEY`, senha SMTP e senhas do seed literais com debug em `0.0.0.0`, MD5 sem salt,
-hash de senha em toda resposta de usuário (inclusive no login), nenhuma autenticação com um token de
-login forjável que nada confere, nomes e e-mails de outros para anônimos, `flask-cors` 4.0.0
-enviando `Access-Control-Allow-Private-Network: true` e exceções com hash e e-mail escritas no log.
+hash de senha em toda resposta de usuário (inclusive no login), nenhuma autenticação em rota alguma (o
+login emitia um token forjável que nada conferia), nomes e e-mails de outros para anônimos,
+`flask-cors` 4.0.0 enviando `Access-Control-Allow-Private-Network: true` e exceções com hash e e-mail
+escritas no log.
 Os HIGH são o padrão deste projeto: pastas `models/routes/services` já existiam, mas a persistência
 e a regra de negócio estavam nas rotas, sem camada de controller, e a regra de atraso, a
 serialização e as estatísticas estavam copiadas entre handlers.
@@ -139,10 +144,10 @@ serialização e as estatísticas estavam copiadas entre handlers.
   `api-test.sh` cobre os dois casos.
 
 **Validação** ([log](../evidence/logs/task-manager-api-validation.txt)): 217 checks, 0 falhas,
-0 pulados, 22/22 endpoints, `api-test.sh` exit 0; `arch-check.sh` PASS; caixa da Fase 3 emitida
+0 pulados, 22/22 endpoints, `api-test.sh` exit 0; `arch-check.sh` PASS; caixa de conclusão da Fase 3 gerada
 ([README do projeto](../task-manager-api/README.md#conclusão-da-fase-3)).
 
-**Em aberto**: limite de retenção de dados pessoais (deixado em aberto no plano), rotação dos
+**Em aberto**: limite de retenção de dados pessoais (decisão deixada em aberto na Fase 2), rotação dos
 segredos e expurgo dos logs antigos com hash e e-mail (fora do código), resíduos aceitos (token
 roubado válido até expirar, MD5 legado em contas que não voltam a logar, listas sem `page`
 devolvendo a tabela inteira, qualquer usuário logado vê todas as tasks e o nome do responsável,
