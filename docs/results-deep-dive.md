@@ -1,13 +1,19 @@
-# Resultados — Rodada a Rodada
+# Resultados — Rodada final
 
 [← README](../README.md)
 
-Uma seção por projeto: a rodada mais recente (findings por severidade, o que a Fase 3 mudou,
-o que ficou em aberto) e o histórico das anteriores. Rodadas antigas nunca são apagadas.
+Uma seção por projeto com a rodada final: findings por severidade, o que a Fase 3 mudou e o que
+ficou em aberto.
+
+A skill foi construída em rodadas. Cada rodada anterior usou uma versão ainda incompleta da skill e
+revelou falhas que viraram regras, anti-patterns ou checagens
+([Desafios](skill-construction.md#desafios-e-como-a-skill-os-trata)). Os resultados dessas rodadas
+não fazem parte desta entrega: relatórios e logs vêm da rodada final, executada uma vez em cada
+projeto, com a skill já pronta.
 
 ## `code-smells-project`
 
-### Rodada 1 (mais recente)
+### Rodada final
 
 **Findings** ([`reports/audit-project-1.md`](../reports/audit-project-1.md)) — Python 3.11.15 + Flask 3.1.1,
 4 arquivos, ~780 linhas: **8 CRITICAL · 3 HIGH · 7 MEDIUM · 4 LOW = 22**.
@@ -47,13 +53,9 @@ responde 200, cancelamento não devolve estoque, e-mail sem `UNIQUE`, login sem 
 aberto, servidor de desenvolvimento). Lista completa, com a origem de cada item:
 [`code-smells-project/README.md`](../code-smells-project/README.md#future-improvements).
 
-### Histórico
-
-Nenhuma rodada anterior.
-
 ## `ecommerce-api-legacy`
 
-### Rodada 1 (mais recente)
+### Rodada final
 
 **Findings** ([`reports/audit-project-2.md`](../reports/audit-project-2.md)) —
 JavaScript (Node.js 26.13.0) + Express 4.22.1, 3 arquivos, ~180 linhas: **7 CRITICAL · 3 HIGH · 5 MEDIUM · 4 LOW = 19**.
@@ -102,13 +104,9 @@ relatório para admins, `sqlite3` 6.x sem manutenção) e dois itens notados na 
 do libuv entre `scrypt` e `sqlite3`). Lista completa:
 [`ecommerce-api-legacy/README.md`](../ecommerce-api-legacy/README.md#future-improvements).
 
-### Histórico
-
-Nenhuma rodada anterior.
-
 ## `task-manager-api`
 
-### Rodada 1 (mais recente)
+### Rodada final
 
 **Findings** ([`reports/audit-project-3.md`](../reports/audit-project-3.md)) — Python 3.11.15 + Flask 3.0.0
 (Flask-SQLAlchemy 3.1.1, SQLite), 15 arquivos, ~1160 linhas: **7 CRITICAL · 3 HIGH · 8 MEDIUM · 4 LOW = 22**.
@@ -152,7 +150,3 @@ dados inválidos já gravados) e itens notados na Fase 3 (login sem rate limit, 
 `datetime.utcnow()` deprecated a partir do Python 3.12, setuptools do `.venv` com advisory,
 servidor de desenvolvimento). Lista completa:
 [`task-manager-api/README.md`](../task-manager-api/README.md#future-improvements).
-
-### Histórico
-
-Nenhuma rodada anterior.

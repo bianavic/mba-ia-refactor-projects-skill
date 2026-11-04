@@ -15,8 +15,9 @@ Os três projetos foram lidos à mão antes de a skill existir: 8 achados no pri
 outros (o enunciado pede no mínimo 5, com ao menos 1 CRITICAL ou HIGH, 2 MEDIUM e 2 LOW). As linhas se referem ao código original
 do boilerplate, antes da Fase 3. As severidades seguem a escala da seção
 [Definição de Severidades](docs/original-challenge.md#definição-de-severidades) do enunciado, a fonte
-da verdade desta análise. Descrição, impacto, critério de severidade e validação em execução de cada
-achado estão em [`docs/manual-analysis.md`](docs/manual-analysis.md).
+da verdade desta análise. Descrição, impacto e critério de severidade de cada achado estão em
+[`docs/manual-analysis.md`](docs/manual-analysis.md). Dois achados do `task-manager-api` também foram
+confirmados com a aplicação rodando: o hash MD5 e o serviço de notificação nunca usado.
 
 ### 1.1 `code-smells-project` — Python/Flask, e-commerce
 
@@ -104,9 +105,12 @@ verificação estrutural agnóstica de stack; `completion-box.sh` gera a caixa
 decisões abertas e o formato do plano ficam no próprio `SKILL.md`, na Fase 2.
 As três cópias da skill (uma por projeto) são idênticas.
 
-**Catálogo e por quê.** Os 23 anti-patterns vêm de três fontes: os achados da análise manual (§1),
-os exemplos de cada nível da escala de severidade do enunciado e os desafios que apareceram ao rodar a
-skill. Todos são usados: cada `AP-xx` aparece em pelo menos um dos três relatórios.
+**Catálogo e por quê.** Os 23 anti-patterns vêm de quatro fontes: os achados da análise manual (§1),
+o enunciado (exemplos da escala de severidade e a exigência de detectar APIs deprecated, o AP-12), os
+desafios que apareceram ao rodar a skill e problemas presentes nos projetos que a análise manual não
+listou (AP-05, AP-20 e AP-23). Dos 23, 22 viraram finding em pelo menos um relatório. O AP-17 é a
+exceção: ele só existe depois que há autorização para contornar, por isso aparece no relatório 1 como
+uma checagem a repetir após a Fase 3.
 
 | Severidade base | Anti-patterns | Por que entraram |
 |---|---|---|
@@ -117,10 +121,17 @@ skill. Todos são usados: cada `AP-xx` aparece em pelo menos um dos três relat�
 
 **Decisões de design**
 - **Catálogo → playbook.** Cada finding cita um `AP-xx` e um `RP-xx`; a Fase 3 aplica o padrão que o plano aprovado nomeia, em vez de improvisar. O catálogo inclui detecção de APIs deprecated e de versões fixadas vulneráveis ou EOL (AP-12).
-- **Agnóstica.** A stack é detectada a cada execução, os sinais descrevem padrões e não sintaxe, e stack sem cobertura é relatada como lacuna, nunca como aprovação. Python/Flask e Node.js/Express são o perfil coberto.
 - **Pausa obrigatória.** A Fase 2 grava o relatório, pergunta cada decisão em aberto e só segue após `y` à pergunta literal do enunciado; antes disso o único arquivo escrito é o relatório em `reports/`, e nenhum arquivo do projeto muda.
 - **Prova, não declaração.** A Fase 3 só conclui com boot, `api-test.sh` exit 0, `arch-check.sh` exit 0 e artefatos em disco; cada `✓` da caixa final exige sua evidência.
 - **Proteção de dados.** LGPD, GDPR e PCI-DSS orientam o `Impact` e a `Recommendation` dos findings que envolvem dado pessoal ou de cartão (quem lê o dado, por quanto tempo, o que acontece com o que já foi gravado), sem mudar a escala de severidade do enunciado.
+
+**Como a skill se mantém agnóstica**
+1. **Detecção a cada execução.** A Fase 1 infere linguagem, framework e banco dos manifests (`requirements.txt`, `package.json`, `go.mod`, `pom.xml`…) e confirma nos imports do código. A regra 1 do `SKILL.md` proíbe reaproveitar a stack de uma execução anterior.
+2. **Sinais por padrão, não por sintaxe.** Cada anti-pattern descreve o padrão e cita equivalentes nas stacks cobertas; o playbook usa nomes genéricos (`<table>`, `<entity>`), traduzidos para o projeto analisado.
+3. **Cobertura declarada.** Sinal de uma stack sem cobertura é relatado como lacuna, nunca como aprovação.
+4. **Verificação configurável.** O `arch-check.sh` localiza rotas, models e controllers por heurística e aceita ajuste por projeto em `.arch-check.conf`, sem mudar a skill. O `code-smells-project` usa esse arquivo para reconhecer `get_db().execute(...)`.
+
+A prova é a execução: as mesmas cópias da skill rodaram em Python/Flask e Node.js/Express, em código sem camadas e em código parcialmente organizado (§3.5). O limite também é declarado: Python/Flask e Node.js/Express são o perfil coberto e os únicos testados.
 
 **Desafios** (tabela completa em [`docs/skill-construction.md`](docs/skill-construction.md#desafios-e-como-a-skill-os-trata)):
 - **Finding fabricado:** regra de `file:line` real, reaberto e conferido, nas regras inegociáveis e no catálogo.
@@ -450,7 +461,7 @@ Checklist do enunciado ([`docs/original-challenge.md`](docs/original-challenge.m
 | 2 — Auditoria | Cada finding tem arquivo e linhas exatos | ✓ 22/22 `File:` com `arquivo:linha` | ✓ 19/19 `File:` com `arquivo:linha` | ✓ 22/22 `File:` com `arquivo:linha` |
 | 2 — Auditoria | Findings ordenados por severidade | ✓ CRITICAL → LOW | ✓ CRITICAL → LOW | ✓ CRITICAL → LOW |
 | 2 — Auditoria | Mínimo de 5 findings | ✓ 22 | ✓ 19 | ✓ 22 |
-| 2 — Auditoria | Detecção de APIs deprecated (se aplicável) | ✓ finding AP-12 (MEDIUM: Flask 3.1.1, flask-cors 5.0.1, Python 3.11.15); após a Fase 3, `clean`: python 3.11.18, flask 3.1.3, flask-cors 6.0.5, werkzeug 3.1.9, itsdangerous 2.2.0, sqlite3 stdlib | ✓ findings AP-12 (CRITICAL express 4.22.1, MEDIUM sqlite3 5.1.7); após a Fase 3, `clean`: node 26.13.0, express 4.22.3, sqlite3 6.0.1 (sem manutenção, risco aceito) | ✓ findings AP-12 (MEDIUM: Flask 3.0.0/Python 3.11.15/pins sem uso; MEDIUM: `Query.get()` deprecated); após a Fase 3, `clean`: python 3.11.18, flask 3.1.3, flask-cors 6.0.5, sqlalchemy 2.1.6 (`Query.get` ×16 → 0), python-dotenv 1.2.2; marshmallow e requests removidos |
+| 2 — Auditoria | Detecção de APIs deprecated (se aplicável) | ✓ finding AP-12 (MEDIUM: Flask 3.1.1, flask-cors 5.0.1, Python 3.11.15); após a Fase 3, `clean`: python 3.11.18, flask 3.1.3, flask-cors 6.0.5, werkzeug 3.1.9, itsdangerous 2.2.0, sqlite3 stdlib | ✓ findings AP-12 (CRITICAL express 4.22.1, MEDIUM sqlite3 5.1.7); após a Fase 3, `clean`: node 26.13.0, express 4.22.3, sqlite3 6.0.1 (sem manutenção, risco aceito) | ✓ findings AP-12 (CRITICAL: flask-cors 4.0.0; MEDIUM: Flask 3.0.0/Python 3.11.15/pins sem uso; MEDIUM: `Query.get()` deprecated); após a Fase 3, `clean`: python 3.11.18, flask 3.1.3, flask-cors 6.0.5, sqlalchemy 2.1.6 (`Query.get` ×16 → 0), python-dotenv 1.2.2; marshmallow e requests removidos |
 | 2 — Auditoria | Skill pausa e pede confirmação antes da Fase 3 | ✓ `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]` | ✓ mesma linha | ✓ mesma linha |
 | 3 — Refatoração | Estrutura de diretórios segue padrão MVC | ✓ `routes/` → `controllers/` → `services/` → `models/` | ✓ `src/routes/` → `src/controllers/` → `src/services/` → `src/models/` | ✓ `routes/` → `controllers/` → `services/` → `models/` |
 | 3 — Refatoração | Configuração extraída para módulo de config | ✓ `config/settings.py` (único leitor do ambiente; `.env.example`) | ✓ `src/config/index.js` (único leitor do ambiente; `.env.example`) | ✓ `config/settings.py` (único leitor do ambiente; `.env.example`) |
@@ -460,7 +471,15 @@ Checklist do enunciado ([`docs/original-challenge.md`](docs/original-challenge.m
 | 3 — Refatoração | Error handling centralizado | ✓ `errors/handlers.py` (`AppError` + `Exception`), registrado em `app.py` | ✓ `src/errors/errorHandler.js`, último middleware de `src/app.js` | ✓ `errors/handlers.py` (`AppError` + `Exception`), registrado em `app.py` |
 | 3 — Refatoração | Entry point claro | ✓ `app.py` (raiz de composição) | ✓ `src/app.js` (raiz de composição; `npm start`) | ✓ `app.py` (raiz de composição) + `seed.py` |
 | 3 — Refatoração | Aplicação inicia sem erros | ✓ boot no log, `GET /health` 200 | ✓ boot no log, escutando na porta 3000 | ✓ seed + boot no log, `GET /health` 200 |
-| 3 — Refatoração | Endpoints originais respondem corretamente | ✓ 173 checks, 0 falhas, 21/21 endpoints | ✓ 100 checks, 0 falhas, 4/4 endpoints | ✓ 217 checks, 0 falhas, 22/22 endpoints |
+| 3 — Refatoração | Endpoints originais respondem corretamente | ✓ 173 checks, 0 falhas; 19 originais + 2 novos (21/21) | ✓ 100 checks, 0 falhas; 3 originais + 1 novo (4/4) | ✓ 217 checks, 0 falhas; 22 originais, nenhum novo (22/22) |
+
+**Endpoints novos e mudanças de contrato.** Todos os métodos e caminhos originais continuam existindo.
+Os novos são `DELETE /usuarios/<id>` e `GET /usuarios/<id>/export` no `code-smells-project` e
+`GET /api/users/:id/export` no `ecommerce-api-legacy`. "Respondem corretamente" inclui as mudanças
+escolhidas na Fase 2: rotas antes abertas agora devolvem 401 ou 403 sem a credencial exigida, as
+respostas não trazem mais senha, hash nem segredos, e `POST /admin/query` responde 403 enquanto
+`ADMIN_QUERY_ENABLED` estiver desligado. O acesso de cada rota está no inventário do cabeçalho de cada
+`api-test.sh`.
 
 Fontes por coluna (as mesmas nos três projetos):
 - Linguagem, framework, arquivos, template, `File:`, ordem, total e pausa: o relatório do projeto
@@ -485,6 +504,32 @@ Fontes por coluna (as mesmas nos três projetos):
 Checks, falhas, pulados, cobertura e exit do `api-test.sh` vêm do rodapé de cada log. O exit do
 `arch-check.sh` não fica no log: é o de `<projeto>/.claude/skills/refactor-arch/scripts/arch-check.sh <projeto>`
 na árvore atual (PASS nos três) — o mesmo portão que o `completion-box.sh` exige para emitir a caixa abaixo.
+
+Trechos dos logs, com boot e rodapé (sem data e hora). As portas 5050 e 5070 vêm do `APP_PORT` usado na validação:
+
+```text
+# code-smells-project
+INFO __main__: SERVIDOR INICIADO em http://127.0.0.1:5050
+INFO werkzeug: 127.0.0.1 - - "GET /health HTTP/1.1" 200 -
+TOTAL: 173 checks | failures: 0 | skipped: 0
+Coverage: 21 endpoints inventoried / 21 exercised
+api-test.sh exit code: 0
+
+# ecommerce-api-legacy
+[INFO] Frankenstein LMS rodando na porta 3000...
+[harness] application listening on port 3000 — preflight answered HTTP 401
+TOTAL: 100 checks | failures: 0 | skipped: 0
+Coverage: 4 endpoints inventoried / 4 exercised
+api-test.sh exit code: 0
+
+# task-manager-api
+Seed concluído com sucesso!
+ * Running on http://127.0.0.1:5070
+INFO werkzeug: 127.0.0.1 - - "GET /health HTTP/1.1" 200 -
+TOTAL: 217 checks | failures: 0 | skipped: 0
+Coverage: 22 endpoints inventoried / 22 exercised
+api-test.sh exit code: 0
+```
 
 #### Caixa de conclusão da Fase 3
 
@@ -525,7 +570,7 @@ Os achados que ficaram em aberto após a Fase 3 estão na seção `## Future imp
 - [`ecommerce-api-legacy/README.md`](ecommerce-api-legacy/README.md#future-improvements)
 - [`task-manager-api/README.md`](task-manager-api/README.md#future-improvements)
 
-Rodada a rodada — findings por severidade, o que a Fase 3 mudou e o que ficou em aberto em cada projeto:
+Rodada final em detalhe — findings por severidade, o que a Fase 3 mudou e o que ficou em aberto em cada projeto:
 [`docs/results-deep-dive.md`](docs/results-deep-dive.md).
 
 ### 3.7 Critérios de Aceite
@@ -542,12 +587,25 @@ Os mínimos de 2 MEDIUM e 2 LOW são da análise manual (enunciado, "Requisitos"
 aceite da skill. Distribuição MEDIUM/LOW de cada relatório (§3.1): `code-smells-project` 7 MEDIUM / 4 LOW,
 `ecommerce-api-legacy` 5 MEDIUM / 4 LOW, `task-manager-api` 8 MEDIUM / 4 LOW.
 
+**Análise manual × Fase 2.** O enunciado pede que a Fase 2 encontre no mínimo 5 dos problemas da
+análise manual. Cada achado da §1 foi procurado no relatório do projeto:
+
+| Projeto | Encontrados | Observação |
+|---|---:|---|
+| `code-smells-project` | 8 de 8 | God Class aparece como `Routing code runs raw SQL past the data layer` (AP-06); senha em texto plano e senha nas respostas viraram 2 findings; categorias hardcoded estão em `Hardcoded configuration and magic values` |
+| `ecommerce-api-legacy` | 8 de 9 | Não encontrado: idiomas misturados (LOW) |
+| `task-manager-api` | 9 de 9 | `is_overdue` nas rotas aparece em `Route files hold persistence and business rules` e `Overdue rule, task serialization, statistics and validation copied across handlers`; o serviço de notificação está em `Notification service, helpers and model methods implemented but never used` |
+
 ## 4. Como Executar
 
 ### 4.1 Pré-requisitos
 
-**Ferramenta: Claude Code.** Instalação
-([setup oficial](https://code.claude.com/docs/en/setup)).
+**Ferramenta: Claude Code.** Instale pelo [setup oficial](https://code.claude.com/docs/en/setup) e
+faça login com sua conta: rode `claude` uma vez e siga as instruções.
+
+**Rede.** A Fase 2 consulta fontes externas no portão AP-12: registro de pacotes, OSV e, quando
+disponíveis, `pip-audit` e `npm audit`. Sem acesso a nenhuma fonte, o componente fica `BLOCKED` e a
+skill pergunta se tenta de novo ou segue com ele não verificado.
 
 Runtime por projeto:
 
@@ -565,11 +623,23 @@ Ferramentas usadas pelos scripts, conforme o próprio código:
 
 Particularidades por sistema operacional:
 
-- **macOS:** é onde a validação foi rodada. O `api-test.sh` do `ecommerce-api-legacy` exige que o banco esteja numa pasta temporária (`/var/folders`, `/tmp` ou `/private/tmp`) e recusa o resto como "not isolated".
+- **macOS:** é onde a validação foi rodada.
+- **Linux e Windows:** não testados. Os scripts são `bash`, então no Windows é preciso WSL ou Git Bash.
 
 ### 4.2 Executar a skill (reproduzir a refatoração)
 
-Rode a skill a partir da pasta de cada projeto (é lá que fica a cópia em `.claude/skills/refactor-arch/`):
+Os projetos desta árvore já estão refatorados: rodar a skill aqui reaudita o código atual e atualiza os relatórios em `reports/`. Para reproduzir a refatoração desde o início, clone o repositório base do desafio, que traz o boilerplate sem a skill, e copie a skill para os 3 projetos. Na raiz do repositório:
+
+```bash
+git clone https://github.com/devfullcycle/mba-ia-refactor-projects-skill.git ../refactor-repro
+for p in code-smells-project ecommerce-api-legacy task-manager-api; do
+  mkdir -p "../refactor-repro/$p/.claude/skills"
+  cp -R "$p/.claude/skills/refactor-arch" "../refactor-repro/$p/.claude/skills/"
+done
+cd ../refactor-repro
+```
+
+Depois rode a skill a partir da pasta de cada projeto (é lá que fica a cópia em `.claude/skills/refactor-arch/`):
 
 ```bash
 # Projeto 1 — Python/Flask (e-commerce)
@@ -585,15 +655,19 @@ cd ../task-manager-api
 claude /refactor-arch
 ```
 
-Em cada execução: a Fase 1 imprime a caixa `PHASE 1: PROJECT ANALYSIS`; a Fase 2 grava `reports/audit-project-<N>.md` na raiz do repositório, faz as perguntas das decisões em aberto, mostra o plano e para em `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]`. Responda `y` para liberar a Fase 3, que termina com a caixa `PHASE 3: REFACTORING COMPLETE`. Para reproduzir a refatoração desde o início, rode os comandos acima numa cópia com o código original dos 3 projetos (o boilerplate) e a skill na versão atual.
+Em cada execução: a Fase 1 imprime a caixa `PHASE 1: PROJECT ANALYSIS`; a Fase 2 grava `reports/audit-project-<N>.md` na raiz do repositório, faz as perguntas das decisões em aberto, mostra o plano e para em `Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]`. Responda `y` para liberar a Fase 3, que termina com a caixa `PHASE 3: REFACTORING COMPLETE`.
+
+Os relatórios e o código refatorado ficam nessa cópia; apague a pasta `../refactor-repro` quando terminar.
 
 ### 4.3 Rodar os projetos refatorados
 
 | Projeto | Subir | Porta padrão |
 |---|---|---|
-| `code-smells-project` | `pip install -r requirements.txt`; `cp .env.example .env` (preencha e exporte `SECRET_KEY`, `ADMIN_PASSWORD`, `SEED_CUSTOMER_PASSWORD`…); `python app.py` | 5000 (`APP_PORT`) |
+| `code-smells-project` | `python -m venv .venv && source .venv/bin/activate`; `pip install -r requirements.txt`; `cp .env.example .env` (preencha `SECRET_KEY`, `ADMIN_PASSWORD` e `SEED_CUSTOMER_PASSWORD`); `set -a; source .env; set +a`; `python app.py` | 5000 (`APP_PORT`) |
 | `ecommerce-api-legacy` | `npm install`; `cp .env.example .env` (preencha `ADMIN_TOKEN` e `SEED_USER_PASSWORD`); `set -a; source .env; set +a`; `npm start` | 3000 (`PORT`) |
 | `task-manager-api` | `python -m venv .venv && source .venv/bin/activate`; `pip install -r requirements.txt`; `cp .env.example .env` (preencha `SECRET_KEY`, `SEED_ADMIN_PASSWORD`, `SEED_USER_PASSWORD`); `python seed.py`; `python app.py` | 5000 (`APP_PORT`) |
+
+`code-smells-project` e `ecommerce-api-legacy` não leem o `.env` sozinhos, por isso o `source`; o `task-manager-api` lê o arquivo com `python-dotenv`.
 
 Requisitos de cada projeto, copiados do README dele e dos cabeçalhos dos scripts:
 - `code-smells-project` — Python 3.11.18 (`.python-version`). Banco SQLite em `DB_PATH` (padrão
@@ -609,11 +683,49 @@ Requisitos de cada projeto, copiados do README dele e dos cabeçalhos dos script
 
 ### 4.4 Validação
 
-Cada projeto traz `api-test.sh` (precisa de banco descartável: o script escreve e apaga dados; o cabeçalho de cada um tem o passo a passo) e a skill traz `arch-check.sh`:
+**Estrutura.** Na raiz do repositório, com a aplicação parada ou não:
 
 ```bash
 <projeto>/.claude/skills/refactor-arch/scripts/arch-check.sh <projeto>   # exit 0 = PASS
-cd <projeto> && ./api-test.sh                                            # exit 0 = sem falhas (variáveis no cabeçalho)
 ```
+
+**Contrato HTTP.** O `api-test.sh` exige a aplicação no ar e um banco descartável, porque escreve e
+apaga dados. Nos três projetos, um banco fora de uma pasta temporária (`/tmp`, `/private/tmp`,
+`/var/folders` ou `$TMPDIR`) é recusado com "not isolated" e exit 2. O `ecommerce-api-legacy` também
+aceita `DB_FILE=:memory:`, mas aí as checagens de banco são puladas. Rode um projeto por vez, com as
+dependências instaladas e o `.env` preenchido (§4.3):
+
+```bash
+# code-smells-project
+cd code-smells-project
+set -a; source .env; set +a
+export DB_PATH="$(mktemp -d)/loja-test.db" APP_LOG_FILE="$(mktemp -d)/app.log"
+python app.py > "$APP_LOG_FILE" 2>&1 &
+sleep 3
+./api-test.sh                    # TOTAL: 173 checks | failures: 0 | skipped: 0
+kill $!; cd ..
+
+# ecommerce-api-legacy
+cd ecommerce-api-legacy
+set -a; source .env; set +a
+export DB_FILE="$(mktemp -d)/loja.sqlite" APP_LOG="$(mktemp -d)/app.log"
+node src/app.js > "$APP_LOG" 2>&1 &
+sleep 3
+./api-test.sh                    # TOTAL: 100 checks | failures: 0 | skipped: 0
+kill $!; cd ..
+
+# task-manager-api
+cd task-manager-api
+set -a; source .env; set +a
+export DATABASE_URL="sqlite:///$(mktemp -d)/tasks.db" APP_LOG_FILE="$(mktemp -d)/app.log"
+python seed.py
+python app.py > "$APP_LOG_FILE" 2>&1 &
+sleep 3
+./api-test.sh                    # TOTAL: 217 checks | failures: 0 | skipped: 0
+kill $!; cd ..
+```
+
+O exit 0 do `api-test.sh` significa sem falhas. O `api-test.sh` do `code-smells-project` apaga tudo no
+final: para repetir, suba a aplicação com um `DB_PATH` novo.
 
 Como alternativa manual, cada projeto traz um arquivo `*-api-curls.http` com as mesmas requisições para o cliente HTTP do JetBrains (GoLand, IntelliJ, PyCharm etc.). Preencha as variáveis do topo do arquivo, suba a aplicação com um banco novo e execute as requisições na ordem, porque tokens e ids são guardados pelas respostas. O cabeçalho de cada arquivo indica o que apaga dados e o que depende de configuração.
