@@ -41,7 +41,7 @@ disclosure*). O frontmatter define:
 | Catálogo de anti-patterns | `anti-patterns-catalog.md` | 23 anti-patterns (AP-01–AP-23) com sinais de detecção e severidade |
 | Template de relatório | `audit-report-template.md` | Formato fixo do relatório, onde salvá-lo e regras de re-execução |
 | Guidelines de arquitetura | `architecture-guidelines.md` | Responsabilidade de cada camada, tabela de decisão de colocação, projetos já parcialmente em camadas |
-| Playbook de refatoração | `refactoring-playbook.md` | 22 padrões (RP-01–RP-22) com exemplos antes/depois em Python; 17 também em JavaScript/Node (Express) |
+| Playbook de refatoração | `refactoring-playbook.md` | 22 padrões (RP-01–RP-22) com exemplos antes/depois: 21 em Python, 17 também em JavaScript/Node (Express); o RP-22 mostra a árvore de pastas |
 
 ## Catálogo
 

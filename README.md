@@ -84,7 +84,7 @@ A skill `refactor-arch` automatiza o que a análise manual fez: detecta a stack,
 contra um catálogo de anti-patterns, pede confirmação humana e refatora para MVC provando que a
 aplicação continua funcionando. O código está em
 [`code-smells-project/.claude/skills/refactor-arch/`](code-smells-project/.claude/skills/refactor-arch/SKILL.md),
-com cópias idênticas nos outros dois projetos. Detalhes em [`docs/skill-construction.md`](docs/skill-construction.md).
+com uma cópia em cada um dos outros dois projetos. Detalhes em [`docs/skill-construction.md`](docs/skill-construction.md).
 
 **Estrutura.** `SKILL.md` (frontmatter, fluxo das 3 fases, regras inegociáveis) mais referências em
 Markdown em `references/`, carregadas sob demanda por fase, e dois scripts em `scripts/`
@@ -96,14 +96,13 @@ Markdown em `references/`, carregadas sob demanda por fase, e dois scripts em `s
 | Catálogo de anti-patterns | `anti-patterns-catalog.md` | 23 anti-patterns pela severidade base: 7 CRITICAL, 4 HIGH, 8 MEDIUM, 4 LOW. AP-04, AP-06, AP-12, AP-18 e AP-21 têm regra própria para subir ou descer (ex.: AP-06 é CRITICAL quando um único arquivo junta banco, rotas e regra, ou quando a separação é só nominal, com o arquivo de rotas ou um controller executando SQL direto por fora da camada de dados) |
 | Template de relatório | `audit-report-template.md` | Formato fixo do relatório da Fase 2 |
 | Guidelines de arquitetura | `architecture-guidelines.md` | Camadas MVC e tabela de decisão de colocação |
-| Playbook de refatoração | `refactoring-playbook.md` | 22 padrões antes/depois (Python; 17 também em JavaScript/Node), um ou mais por anti-pattern |
+| Playbook de refatoração | `refactoring-playbook.md` | 22 padrões antes/depois (21 em Python, 17 também em JavaScript/Node; o RP-22 mostra a árvore de pastas), um ou mais por anti-pattern |
 
 Há ainda `refactoring-validation.md` (validação da Fase 3: `api-test.sh`, `arch-check.sh`, checagem por
 finding, anti-tautologia, log de validação, evidências da caixa final). `arch-check.sh` faz a
 verificação estrutural agnóstica de stack; `completion-box.sh` gera a caixa
 `PHASE 3: REFACTORING COMPLETE` e só a imprime quando as pré-condições passam. As regras das
 decisões abertas e o formato do plano ficam no próprio `SKILL.md`, na Fase 2.
-As três cópias da skill (uma por projeto) são idênticas.
 
 **Catálogo e por quê.** Os 23 anti-patterns vêm de quatro fontes: os achados da análise manual (§1),
 o enunciado (exemplos da escala de severidade e a exigência de detectar APIs deprecated, o AP-12), os
@@ -114,7 +113,7 @@ uma checagem a repetir após a Fase 3.
 
 | Severidade base | Anti-patterns | Por que entraram |
 |---|---|---|
-| CRITICAL (7) | AP-01 SQL injection · AP-02 segredos hardcoded · AP-03 hash de senha quebrado/ausente · AP-04 dado sensível na serialização · AP-05 falta de autenticação/autorização · AP-17 escalada de privilégio no auto-cadastro · AP-20 endpoint de execução arbitrária | AP-01 e AP-02 são os exemplos de CRITICAL do enunciado e estão na §1 (SQL concatenado no code-smells; segredos nos 3 projetos). AP-03 e AP-04 generalizam o texto plano, o `badCrypto` e o MD5 da §1 e a senha/hash devolvidos nas respostas. AP-05 cobre as rotas de admin e de dados pessoais abertas nos 3 projetos, e AP-20 o `POST /admin/query` do code-smells, que executa SQL do cliente. AP-17 veio de um desafio: a Fase 3 criou o papel de admin e o cadastro aceitava `role` do corpo. Todos expõem dado ou dão controle a quem não deveria tê-lo |
+| CRITICAL (7) | AP-01 SQL injection · AP-02 segredos hardcoded · AP-03 hash de senha quebrado/ausente · AP-04 dado sensível na serialização · AP-05 falta de autenticação/autorização · AP-17 escalada de privilégio no auto-cadastro · AP-20 endpoint de execução arbitrária | AP-01 e AP-02 são os exemplos de CRITICAL do enunciado e estão na §1 (SQL concatenado no code-smells; segredos nos 3 projetos). AP-03 e AP-04 generalizam o texto plano, o `badCrypto` e o MD5 da §1 e a senha/hash devolvidos nas respostas. AP-05 cobre as rotas de admin e de dados pessoais abertas nos 3 projetos, e AP-20 o `POST /admin/query` do code-smells, que executa SQL do cliente. AP-17 veio de um desafio: a Fase 3 criou a guarda de admin, e o cadastro aceitava `role` do corpo. Todos expõem dado ou dão controle a quem não deveria tê-lo |
 | HIGH (4) | AP-06 God Class · AP-07 regra de negócio duplicada · AP-08 estado global mutável · AP-22 orquestração fora de um Service | Dois exemplos de HIGH do enunciado: regra de negócio presa nas rotas/controllers (AP-22, o padrão do task-manager) e estado global mutável (AP-08, `globalCache`/`totalRevenue` do ecommerce). AP-06 aplica a definição geral de HIGH (forte violação de MVC) e sobe a CRITICAL quando a separação de responsabilidades é violada por completo: banco, regra e roteamento numa classe só (ecommerce) ou separação só nominal, com SQL cru no arquivo de rotas (code-smells, §1). Rotas que chamam o ORM, como no task-manager, ficam no AP-22. AP-07 vem da regra `is_overdue` do task-manager, reescrita em várias rotas: duplicação sozinha seria MEDIUM no enunciado, mas aqui a regra duplicada é de domínio e saiu do model, o que a torna violação de MVC. Não expõem dado, mas impedem testar e mudar uma parte sem as outras |
 | MEDIUM (8) | AP-09 N+1 · AP-10 sem paginação · AP-11 camada morta/desconectada · AP-12 APIs deprecated e versões vulneráveis/EOL · AP-18 dado pessoal em log · AP-19 direitos do titular incompletos · AP-21 validação de entrada ausente · AP-23 módulos soltos na raiz | AP-09 e AP-21 são exemplos de MEDIUM do enunciado; AP-09 e AP-10 aparecem nos 3 projetos (§1.4). AP-12 atende a exigência de detectar APIs deprecated e cobre também versões fixadas com advisory. AP-11 vem do serviço de notificação que nenhuma rota usa. AP-18 e AP-19 vieram de um desafio (a lente de dado pessoal): o cartão no log do ecommerce e a falta de exclusão, exportação e retenção nos 3. AP-23 cobre `database.py` e afins na raiz, que o layout MVC precisa mover; scripts avulsos como `seed.py` podem ficar. Custam desempenho, manutenção ou conformidade, sem exposição imediata (AP-12, AP-18 e AP-21 sobem quando há) |
 | LOW (4) | AP-13 `print`/`console.log` como log · AP-14 configuração/valores mágicos · AP-15 imports não usados · AP-16 nomenclatura inconsistente | Os exemplos de LOW do enunciado (nomenclatura ruim, *magic numbers*) e os LOW da §1: `print()`/`console.log` nos 3, categorias hardcoded no code-smells, imports não usados no task-manager e idiomas misturados no ecommerce. Afetam legibilidade, não comportamento |
@@ -533,6 +532,8 @@ api-test.sh exit code: 0
 
 #### Caixa de conclusão da Fase 3
 
+O `✓ Zero anti-patterns remaining` vem do template do enunciado e significa que cada finding foi resolvido ou deixado em aberto por decisão na Fase 2. Os itens em aberto estão na [§3.6](#36-achados-em-aberto-e-melhorias-futuras).
+
 <!-- BEGIN:completion-box -->
 Saída literal do `completion-box.sh` de cada projeto, na seção "Conclusão da Fase 3" do README dele:
 
@@ -544,7 +545,7 @@ Saída literal do `completion-box.sh` de cada projeto, na seção "Conclusão da
 
 ### 3.5 Comportamento entre diferentes stacks
 
-A mesma skill, sem nenhuma alteração entre projetos (as três cópias são idênticas), rodou em dois
+A mesma skill, sem nenhuma alteração entre projetos, rodou em dois
 ecossistemas e em três níveis de organização.
 
 | | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
@@ -553,7 +554,7 @@ ecossistemas e em três níveis de organização.
 | Organização do boilerplate | 4 arquivos `.py` soltos na raiz | 3 arquivos `.js`; `AppManager.js` concentra rotas, regras e SQL | 15 arquivos já separados em `models/`, `routes/`, `services/` e `utils/`, sem `controllers/` |
 | Diagnóstico de camadas (AP-06) | CRITICAL: SQL no código de rotas, com separação só nominal | CRITICAL: God Class; `arch-check.sh` reportou `controllers:0` e `models:0` | HIGH: rotas com persistência e regra de negócio (76 chamadas de persistência) |
 | Camadas depois da Fase 3 (§3.2) | `routes/` 6, `controllers/` 6, `services/` 4, `models/` 3 | `src/routes/` 3, `controllers/` 3, `services/` 4, `models/` 5 | `routes/` 5, `controllers/` 6, `services/` 4, `models/` 3 |
-| Versões vulneráveis (AP-12) | Python 3.11.15, Flask 3.1.1 e flask-cors 5.0.1 → `clean` | Express 4.22.1 (CRITICAL) e sqlite3 5.1.7 (MEDIUM) → `clean` | Flask 3.0.0, flask-cors 4.0.0 (CRITICAL) e pins sem uso → `clean` |
+| Versões vulneráveis (AP-12) | Python 3.11.15, Flask 3.1.1 e flask-cors 5.0.1 → `clean` | Express 4.22.1 (CRITICAL) e sqlite3 5.1.7 (MEDIUM) → `clean` | flask-cors 4.0.0 (CRITICAL), Flask 3.0.0 e pins sem uso (MEDIUM) → `clean` |
 
 **Observações**
 
@@ -617,8 +618,9 @@ Runtime por projeto:
 
 Ferramentas usadas pelos scripts, conforme o próprio código:
 
-- `api-test.sh` dos três: `curl`, `sqlite3` e `python3`; o do `ecommerce-api-legacy` também chama `npm`.
-- `arch-check.sh` e `completion-box.sh` (cópia em cada projeto): `bash`, `awk`, `sed` e `mktemp`.
+- `api-test.sh` dos três: `bash`, `curl`, `sqlite3`, `python3` e utilitários padrão do sistema.
+- `arch-check.sh`: `bash`, `awk`, `basename`, `find`, `grep`, `head`, `mktemp`, `sed`, `sort`, `tr` e `wc`.
+- `completion-box.sh`: `bash`, `basename`, `dirname`, `grep`, `sed`, `sort` e `tail`.
 - Os READMEs de `code-smells-project` e `ecommerce-api-legacy` usam `lsof` para encerrar a aplicação.
 
 Particularidades por sistema operacional:
@@ -669,14 +671,7 @@ Os relatórios e o código refatorado ficam nessa cópia; apague a pasta `../ref
 
 `code-smells-project` e `ecommerce-api-legacy` não leem o `.env` sozinhos, por isso o `source`; o `task-manager-api` lê o arquivo com `python-dotenv`.
 
-Requisitos de cada projeto, copiados do README dele e dos cabeçalhos dos scripts:
-- `code-smells-project` — Python 3.11.18 (`.python-version`). Banco SQLite em `DB_PATH` (padrão
-  `loja.db`), criado no primeiro boot. Detalhes em [`code-smells-project/README.md`](code-smells-project/README.md#como-rodar).
-- `ecommerce-api-legacy` — Node.js 26.13.0 e npm, a versão com que o projeto foi validado (linha `AP-12: node@` do log); versões anteriores não foram testadas.
-  Banco SQLite em memória por padrão (`DB_FILE`). Variáveis e acesso por rota em
-  [`ecommerce-api-legacy/README.md`](ecommerce-api-legacy/README.md#como-rodar).
-- `task-manager-api` — Python 3.11.18 (`.python-version`). Banco SQLite em `DATABASE_URL` (padrão
-  `sqlite:///tasks.db`), populado por `seed.py`. Detalhes em [`task-manager-api/README.md`](task-manager-api/README.md#como-rodar).
+Variáveis, acesso por rota e outros detalhes estão no README de cada projeto: [`code-smells-project`](code-smells-project/README.md#como-rodar), [`ecommerce-api-legacy`](ecommerce-api-legacy/README.md#como-rodar) e [`task-manager-api`](task-manager-api/README.md#como-rodar).
 
 `code-smells-project` e `task-manager-api` usam a mesma porta padrão; para subir os dois juntos, mude
 `APP_PORT` de um deles.
